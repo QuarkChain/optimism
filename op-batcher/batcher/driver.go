@@ -26,8 +26,10 @@ import (
 )
 
 var (
-	ErrBatcherNotRunning = errors.New("batcher is not running")
-	emptyTxData          = txData{
+	ErrBatcherNotRunning      = errors.New("batcher is not running")
+	ErrInboxTransactionFailed = errors.New("inbox transaction failed")
+
+	emptyTxData = txData{
 		frames: []frameData{
 			{
 				data: []byte{},
@@ -45,6 +47,7 @@ type txRef struct {
 type L1Client interface {
 	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
+	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
 }
 
 type L2Client interface {
@@ -87,7 +90,8 @@ type BatchSubmitter struct {
 	lastStoredBlock eth.BlockID
 	lastL1Tip       eth.L1BlockRef
 
-	state *channelManager
+	state      *channelManager
+	inboxIsEOA *bool
 }
 
 // NewBatchSubmitter initializes the BatchSubmitter driver from a preconfigured DriverSetup
@@ -584,20 +588,33 @@ func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, que
 		}
 		candidate = l.calldataTxCandidate(data)
 	}
-
+	if *candidate.To != l.RollupConfig.BatchInboxAddress {
+		return fmt.Errorf("candidate.To is not inbox")
+	}
+	if l.inboxIsEOA == nil {
+		var code []byte
+		code, err = l.L1Client.CodeAt(ctx, *candidate.To, nil)
+		if err != nil {
+			return fmt.Errorf("CodeAt failed:%w", err)
+		}
+		isEOA := len(code) == 0
+		l.inboxIsEOA = &isEOA
+	}
 	l.queueTx(txdata, false, candidate, queue, receiptsCh)
 	return nil
 }
 
 func (l *BatchSubmitter) queueTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue *txmgr.Queue[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
-	intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
-	if err != nil {
-		// we log instead of return an error here because txmgr can do its own gas estimation
-		l.Log.Error("Failed to calculate intrinsic gas", "err", err)
-	} else {
-		candidate.GasLimit = intrinsicGas
+	// only set GasLimit when inbox is EOA so that later on `EstimateGas` will be called if inbox is a contract
+	if *l.inboxIsEOA {
+		intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
+		if err != nil {
+			// we log instead of return an error here because txmgr can do its own gas estimation
+			l.Log.Error("Failed to calculate intrinsic gas", "err", err)
+		} else {
+			candidate.GasLimit = intrinsicGas
+		}
 	}
-
 	queue.Send(txRef{id: txdata.ID(), isCancel: isCancel, isBlob: txdata.asBlob}, *candidate, receiptsCh)
 }
 
@@ -630,6 +647,10 @@ func (l *BatchSubmitter) handleReceipt(r txmgr.TxReceipt[txRef]) {
 	if r.Err != nil {
 		l.recordFailedTx(r.ID.id, r.Err)
 	} else {
+		if r.Receipt.Status == types.ReceiptStatusFailed {
+			l.recordFailedTx(r.ID.id, ErrInboxTransactionFailed)
+			return
+		}
 		l.recordConfirmedTx(r.ID.id, r.Receipt)
 	}
 }

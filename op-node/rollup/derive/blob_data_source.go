@@ -73,6 +73,28 @@ func (ds *BlobDataSource) Next(ctx context.Context) (eth.Data, error) {
 	return data, nil
 }
 
+// getTxSucceed returns a non-nil map which contains all successful tx hashes to batch inbox
+func getTxSucceed(ctx context.Context, fetcher L1Fetcher, hash common.Hash, txs types.Transactions) (successTxs types.Transactions, err error) {
+	_, receipts, err := fetcher.FetchReceipts(ctx, hash)
+	if err != nil {
+		return nil, NewTemporaryError(fmt.Errorf("failed to fetch L1 block info and receipts: %w", err))
+	}
+
+	txSucceeded := make(map[common.Hash]bool)
+	for _, receipt := range receipts {
+		if receipt.Status == types.ReceiptStatusSuccessful {
+			txSucceeded[receipt.TxHash] = true
+		}
+	}
+	successTxs = make(types.Transactions, 0)
+	for _, tx := range txs {
+		if _, ok := txSucceeded[tx.Hash()]; ok {
+			successTxs = append(successTxs, tx)
+		}
+	}
+	return successTxs, nil
+}
+
 // open fetches and returns the blob or calldata (as appropriate) from all valid batcher
 // transactions in the referenced block. Returns an empty (non-nil) array if no batcher
 // transactions are found. It returns ResetError if it cannot find the referenced block or a
@@ -85,17 +107,12 @@ func (ds *BlobDataSource) open(ctx context.Context) ([]blobOrCalldata, error) {
 		}
 		return nil, NewTemporaryError(fmt.Errorf("failed to open blob data source: %w", err))
 	}
-	_, receipts, err := ds.fetcher.FetchReceipts(ctx, ds.ref.Hash)
+	txs, err = getTxSucceed(ctx, ds.fetcher, ds.ref.Hash, txs)
 	if err != nil {
-		return nil, NewTemporaryError(fmt.Errorf("failed to fetch L1 block info and receipts: %w", err))
+		return nil, err
 	}
 
-	txSucceeded := make(map[common.Hash]bool)
-	for _, receipt := range receipts {
-		txSucceeded[receipt.TxHash] = receipt.Status == types.ReceiptStatusSuccessful
-	}
-
-	data, hashes := dataAndHashesFromTxs(txs, &ds.dsCfg, ds.batcherAddr, txSucceeded)
+	data, hashes := dataAndHashesFromTxs(txs, &ds.dsCfg, ds.batcherAddr)
 
 	if len(hashes) == 0 {
 		// there are no blobs to fetch so we can return immediately
@@ -124,13 +141,13 @@ func (ds *BlobDataSource) open(ctx context.Context) ([]blobOrCalldata, error) {
 // dataAndHashesFromTxs extracts calldata and datahashes from the input transactions and returns them. It
 // creates a placeholder blobOrCalldata element for each returned blob hash that must be populated
 // by fillBlobPointers after blob bodies are retrieved.
-func dataAndHashesFromTxs(txs types.Transactions, config *DataSourceConfig, batcherAddr common.Address, txSucceeded map[common.Hash]bool) ([]blobOrCalldata, []eth.IndexedBlobHash) {
+func dataAndHashesFromTxs(txs types.Transactions, config *DataSourceConfig, batcherAddr common.Address) ([]blobOrCalldata, []eth.IndexedBlobHash) {
 	data := []blobOrCalldata{}
 	var hashes []eth.IndexedBlobHash
 	blobIndex := 0 // index of each blob in the block's blob sidecar
 	for _, tx := range txs {
 		// skip any non-batcher transactions or failed transactions
-		if !(isValidBatchTx(tx, config.l1Signer, config.batchInboxAddress, batcherAddr) && txSucceeded[tx.Hash()]) {
+		if !(isValidBatchTx(tx, config.l1Signer, config.batchInboxAddress, batcherAddr)) {
 			blobIndex += len(tx.BlobHashes())
 			continue
 		}

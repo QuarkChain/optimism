@@ -209,91 +209,91 @@ def devnet_deploy(paths):
     wait_up(8545)
     wait_for_rpc_server('127.0.0.1:8545')
 
-    if os.path.exists(paths.genesis_l2_path):
-        log.info('L2 genesis and rollup configs already generated.')
-    else:
-        log.info('Generating L2 genesis and rollup configs.')
-        l2_allocs_path = pjoin(paths.devnet_dir, f'allocs-l2-{FORKS[-1]}.json')
-        if os.path.exists(l2_allocs_path) == False or DEVNET_L2OO == True:
-            # Also regenerate if L2OO.
-            # The L2OO flag may affect the L1 deployments addresses, which may affect the L2 genesis.
-            devnet_l2_allocs(paths)
-        else:
-            log.info('Re-using existing L2 allocs.')
+    # if os.path.exists(paths.genesis_l2_path):
+    #     log.info('L2 genesis and rollup configs already generated.')
+    # else:
+    #     log.info('Generating L2 genesis and rollup configs.')
+    #     l2_allocs_path = pjoin(paths.devnet_dir, f'allocs-l2-{FORKS[-1]}.json')
+    #     if os.path.exists(l2_allocs_path) == False or DEVNET_L2OO == True:
+    #         # Also regenerate if L2OO.
+    #         # The L2OO flag may affect the L1 deployments addresses, which may affect the L2 genesis.
+    #         devnet_l2_allocs(paths)
+    #     else:
+    #         log.info('Re-using existing L2 allocs.')
 
-        run_command([
-            'go', 'run', 'cmd/main.go', 'genesis', 'l2',
-            '--l1-rpc', 'http://localhost:8545',
-            '--deploy-config', paths.devnet_config_path,
-            '--l2-allocs', l2_allocs_path,
-            '--l1-deployments', paths.addresses_json_path,
-            '--outfile.l2', paths.genesis_l2_path,
-            '--outfile.rollup', paths.rollup_config_path
-        ], cwd=paths.op_node_dir)
+    #     run_command([
+    #         'go', 'run', 'cmd/main.go', 'genesis', 'l2',
+    #         '--l1-rpc', 'http://localhost:8545',
+    #         '--deploy-config', paths.devnet_config_path,
+    #         '--l2-allocs', l2_allocs_path,
+    #         '--l1-deployments', paths.addresses_json_path,
+    #         '--outfile.l2', paths.genesis_l2_path,
+    #         '--outfile.rollup', paths.rollup_config_path
+    #     ], cwd=paths.op_node_dir)
 
-    rollup_config = read_json(paths.rollup_config_path)
-    addresses = read_json(paths.addresses_json_path)
+    # rollup_config = read_json(paths.rollup_config_path)
+    # addresses = read_json(paths.addresses_json_path)
 
-    # Start the L2.
-    log.info('Bringing up L2.')
-    run_command(['docker', 'compose', 'up', '-d', 'l2'], cwd=paths.ops_bedrock_dir, env={
-        'PWD': paths.ops_bedrock_dir
-    })
+    # # Start the L2.
+    # log.info('Bringing up L2.')
+    # run_command(['docker', 'compose', 'up', '-d', 'l2'], cwd=paths.ops_bedrock_dir, env={
+    #     'PWD': paths.ops_bedrock_dir
+    # })
 
-    # Wait for the L2 to be available.
-    wait_up(9545)
-    wait_for_rpc_server('127.0.0.1:9545')
+    # # Wait for the L2 to be available.
+    # wait_up(9545)
+    # wait_for_rpc_server('127.0.0.1:9545')
 
-    # Print out the addresses being used for easier debugging.
-    l2_output_oracle = addresses['L2OutputOracleProxy']
-    dispute_game_factory = addresses['DisputeGameFactoryProxy']
-    batch_inbox_address = rollup_config['batch_inbox_address']
-    log.info(f'Using L2OutputOracle {l2_output_oracle}')
-    log.info(f'Using DisputeGameFactory {dispute_game_factory}')
-    log.info(f'Using batch inbox {batch_inbox_address}')
+    # # Print out the addresses being used for easier debugging.
+    # l2_output_oracle = addresses['L2OutputOracleProxy']
+    # dispute_game_factory = addresses['DisputeGameFactoryProxy']
+    # batch_inbox_address = rollup_config['batch_inbox_address']
+    # log.info(f'Using L2OutputOracle {l2_output_oracle}')
+    # log.info(f'Using DisputeGameFactory {dispute_game_factory}')
+    # log.info(f'Using batch inbox {batch_inbox_address}')
 
-    # Set up the base docker environment.
-    docker_env = {
-        'PWD': paths.ops_bedrock_dir,
-        'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address
-    }
+    # # Set up the base docker environment.
+    # docker_env = {
+    #     'PWD': paths.ops_bedrock_dir,
+    #     'SEQUENCER_BATCH_INBOX_ADDRESS': batch_inbox_address
+    # }
 
-    # Selectively set the L2OO_ADDRESS or DGF_ADDRESS if using L2OO.
-    # Must be done selectively because op-proposer throws if both are set.
-    if DEVNET_L2OO:
-        docker_env['L2OO_ADDRESS'] = l2_output_oracle
-    else:
-        docker_env['DGF_ADDRESS'] = dispute_game_factory
-        docker_env['DG_TYPE'] = '254'
-        docker_env['PROPOSAL_INTERVAL'] = '12s'
+    # # Selectively set the L2OO_ADDRESS or DGF_ADDRESS if using L2OO.
+    # # Must be done selectively because op-proposer throws if both are set.
+    # if DEVNET_L2OO:
+    #     docker_env['L2OO_ADDRESS'] = l2_output_oracle
+    # else:
+    #     docker_env['DGF_ADDRESS'] = dispute_game_factory
+    #     docker_env['DG_TYPE'] = '254'
+    #     docker_env['PROPOSAL_INTERVAL'] = '12s'
 
-    if DEVNET_ALTDA:
-        docker_env['ALTDA_ENABLED'] = 'true'
-        docker_env['DA_TYPE'] = 'calldata'
-    else:
-        docker_env['ALTDA_ENABLED'] = 'false'
-        docker_env['DA_TYPE'] = 'blobs'
+    # if DEVNET_ALTDA:
+    #     docker_env['ALTDA_ENABLED'] = 'true'
+    #     docker_env['DA_TYPE'] = 'calldata'
+    # else:
+    #     docker_env['ALTDA_ENABLED'] = 'false'
+    #     docker_env['DA_TYPE'] = 'blobs'
 
-    if GENERIC_ALTDA:
-        docker_env['ALTDA_GENERIC_DA'] = 'true'
-        docker_env['ALTDA_SERVICE'] = 'true'
-    else:
-        docker_env['ALTDA_GENERIC_DA'] = 'false'
-        docker_env['ALTDA_SERVICE'] = 'false'
+    # if GENERIC_ALTDA:
+    #     docker_env['ALTDA_GENERIC_DA'] = 'true'
+    #     docker_env['ALTDA_SERVICE'] = 'true'
+    # else:
+    #     docker_env['ALTDA_GENERIC_DA'] = 'false'
+    #     docker_env['ALTDA_SERVICE'] = 'false'
 
-    # Bring up the rest of the services.
-    log.info('Bringing up `op-node`, `op-proposer` and `op-batcher`.')
-    run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server'], cwd=paths.ops_bedrock_dir, env=docker_env)
+    # # Bring up the rest of the services.
+    # log.info('Bringing up `op-node`, `op-proposer` and `op-batcher`.')
+    # run_command(['docker', 'compose', 'up', '-d', 'op-node', 'op-proposer', 'op-batcher', 'artifact-server'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
-    # Optionally bring up op-challenger.
-    if not DEVNET_L2OO:
-        log.info('Bringing up `op-challenger`.')
-        run_command(['docker', 'compose', 'up', '-d', 'op-challenger'], cwd=paths.ops_bedrock_dir, env=docker_env)
+    # # Optionally bring up op-challenger.
+    # if not DEVNET_L2OO:
+    #     log.info('Bringing up `op-challenger`.')
+    #     run_command(['docker', 'compose', 'up', '-d', 'op-challenger'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
-    # Optionally bring up Alt-DA Mode components.
-    if DEVNET_ALTDA:
-        log.info('Bringing up `da-server`, `sentinel`.') # TODO(10141): We don't have public sentinel images yet
-        run_command(['docker', 'compose', 'up', '-d', 'da-server'], cwd=paths.ops_bedrock_dir, env=docker_env)
+    # # Optionally bring up Alt-DA Mode components.
+    # if DEVNET_ALTDA:
+    #     log.info('Bringing up `da-server`, `sentinel`.') # TODO(10141): We don't have public sentinel images yet
+    #     run_command(['docker', 'compose', 'up', '-d', 'da-server'], cwd=paths.ops_bedrock_dir, env=docker_env)
 
     # Fin.
     log.info('Devnet ready.')

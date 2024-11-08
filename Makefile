@@ -185,13 +185,13 @@ devnet-up: pre-devnet ## Starts the local devnet
 .PHONY: devnet-up
 
 devnet-up-l1: pre-devnet ## Starts the L1 local devnet
-    ./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/contracts-bedrock \
-        || make devnet-allocs
-    PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --deploy L1
+	./ops/scripts/newer-file.sh .devnet/allocs-l1.json ./packages/contracts-bedrock \
+		|| make devnet-allocs
+	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --deploy L1
 .PHONY: devnet-up-l1
 
 devnet-up-l2: pre-devnet ## Starts the L2 local devnet
-    PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --deploy L2
+	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --deploy L2
 .PHONY: devnet-up-l2
 
 devnet-test: pre-devnet ## Runs tests on the local devnet

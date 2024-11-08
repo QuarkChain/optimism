@@ -18,6 +18,7 @@ pjoin = os.path.join
 parser = argparse.ArgumentParser(description='Bedrock devnet launcher')
 parser.add_argument('--monorepo-dir', help='Directory of the monorepo', default=os.getcwd())
 parser.add_argument('--allocs', help='Only create the allocs and exit', type=bool, action=argparse.BooleanOptionalAction)
+parser.add_argument('--deploy', choices=['L1', 'L2'], required=False, help='Deploy L1 or L2 network')
 
 log = logging.getLogger()
 
@@ -56,14 +57,20 @@ class ChildProcess:
 
 
 def main():
-    paths = setup_paths()
-    start_l1_network(paths)
-    start_l2_network(paths)
-    log.info('Devnet starting')
-    devnet_deploy(paths)
-
-def setup_paths():
     args = parser.parse_args()
+    paths = setup_paths(args)
+
+    if args.deploy == 'L1':
+        start_l1_network(paths)
+        print("L1 network deployed successfully")
+    elif args.deploy == 'L2':
+        start_l2_network(paths)
+        print("L2 network deployed successfully")
+    elif args.deploy == '':
+        devnet_deploy(paths)
+        log.info('Devnet starting')
+
+def setup_paths(args):
 
     monorepo_dir = os.path.abspath(args.monorepo_dir)
     devnet_dir = pjoin(monorepo_dir, '.devnet')

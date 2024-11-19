@@ -202,6 +202,10 @@ devnet-down: ## Stops the local devnet
 	@(cd ./ops-bedrock && GENESIS_TIMESTAMP=$(shell date +%s) docker compose stop)
 .PHONY: devnet-down
 
+devnet-down-l2: ## Stops the local devnet l2
+	@(cd ./ops-bedrock && GENESIS_TIMESTAMP=$(shell date +%s) docker compose stop op-proposer op-challenger op-batcher op-node l2 artifact-server)
+.PHONY: devnet-down-l2
+
 devnet-clean: ## Cleans up local devnet environment
 	rm -rf ./packages/contracts-bedrock/deployments/devnetL1
 	rm -rf ./.devnet

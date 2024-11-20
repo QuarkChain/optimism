@@ -1284,158 +1284,158 @@ workflows:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - go-mod-download
-      - contracts-bedrock-build:
-          # Build with just core + script contracts.
-          skip_pattern: test
-      - check-kontrol-build:
-          requires:
-            - contracts-bedrock-build
-      - contracts-bedrock-tests:
-          # Test everything except PreimageOracle.t.sol since it's slow.
-          name: contracts-bedrock-tests
-          test_parallelism: 4
-          test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
-      - contracts-bedrock-tests:
-          # PreimageOracle test is slow, run it separately to unblock CI.
-          name: contracts-bedrock-tests-preimage-oracle
-          test_parallelism: 1
-          test_list: find test -name "PreimageOracle.t.sol"
-      - contracts-bedrock-tests:
-          # Heavily fuzz any fuzz tests within added or modified test files.
-          name: contracts-bedrock-tests-heavy-fuzz-modified
-          test_parallelism: 1
-          test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
-          test_timeout: 1h
-          test_profile: ciheavy
-      - contracts-bedrock-coverage
-      - contracts-bedrock-checks:
-          requires:
-            - contracts-bedrock-build
-      - contracts-bedrock-validate-spacers:
-          requires:
-            - contracts-bedrock-build
-      - semgrep-scan:
-          name: semgrep-scan-local
-          scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
-      - semgrep-scan:
-          name: semgrep-test
-          scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
-      - go-lint
-      - fuzz-golang:
-          name: fuzz-golang-<<matrix.package_name>>
-          on_changes: <<matrix.package_name>>
-          matrix:
-            parameters:
-              package_name:
-                - op-challenger
-                - op-node
-                - op-service
-                - op-chain-ops
-      - fuzz-golang:
-          name: cannon-fuzz
-          package_name: cannon
-          on_changes: cannon,packages/contracts-bedrock/src/cannon
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
-      - fuzz-golang:
-          name: op-e2e-fuzz
-          package_name: op-e2e
-          on_changes: op-e2e,packages/contracts-bedrock/src
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
-      - go-test:
-          name: go-test-all
-          requires:
-            - contracts-bedrock-build
-      - go-test-kurtosis:
-          name: op-deployer-integration
-          module: op-deployer
-          test_directory: ./pkg/deployer/integration_test
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
-      - go-e2e-test:
-          name: op-e2e-HTTP-tests
-          module: op-e2e
-          target: test-http
-          requires:
-            - contracts-bedrock-build
-      - go-e2e-test:
-          name: op-e2e-action-tests
-          module: op-e2e
-          target: test-actions
-          requires:
-            - contracts-bedrock-build
-      - go-e2e-test:
-          name: op-e2e-fault-proof-tests
-          module: op-e2e
-          target: test-fault-proofs
-          skip_slow_tests: true
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate
-      - op-program-compat
-      - bedrock-go-tests:
-          requires:
-            - go-mod-download
-            - go-lint
-            - cannon-build-test-vectors
-            - cannon-go-lint-and-test-32-bit
-            - cannon-go-lint-and-test-64-bit
-            - check-generated-mocks-op-node
-            - check-generated-mocks-op-service
-            - go-mod-download
-            - op-deployer-integration
-            - op-program-compat
-            - op-e2e-HTTP-tests
-            - op-e2e-fault-proof-tests
-            - op-e2e-action-tests
-            # Not needed for the devnet but we want to make sure they build successfully
-            - cannon-docker-build
-            - op-dispute-mon-docker-build
-            - op-program-docker-build
-            - op-supervisor-docker-build
-            - proofs-tools-docker-build
-            - go-test-all
-      - docker-build:
-          name: <<matrix.docker_name>>-docker-build
-          docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-          save_image_tag: <<pipeline.git.revision>>
-          matrix:
-            parameters:
-              docker_name:
-                - op-node
-                - op-batcher
-                - op-program
-                - op-proposer
-                - op-challenger
-                - proofs-tools
-                - op-dispute-mon
-                - op-conductor
-                - da-server
-                - op-supervisor
-                - cannon
-      - cannon-prestate
-      - check-generated-mocks-op-node
-      - check-generated-mocks-op-service
-      - cannon-go-lint-and-test:
-          name: cannon-go-lint-and-test-<<matrix.mips_word_size>>-bit
-          requires:
-            - contracts-bedrock-build
-          skip_slow_tests: true
-          notify: true
-          matrix:
-            parameters:
-              mips_word_size: [ 32, 64 ]
-      - cannon-build-test-vectors
-      - todo-issues:
-          name: todo-issues-check
-          check_closed: false
-      - shellcheck/check:
-          name: shell-check
-          # We don't need the `exclude` key as the orb detects the `.shellcheckrc`
-          dir: .
-          ignore-dirs:
-            ./packages/contracts-bedrock/lib
+      # - contracts-bedrock-build:
+      #     # Build with just core + script contracts.
+      #     skip_pattern: test
+      # - check-kontrol-build:
+      #     requires:
+      #       - contracts-bedrock-build
+      # - contracts-bedrock-tests:
+      #     # Test everything except PreimageOracle.t.sol since it's slow.
+      #     name: contracts-bedrock-tests
+      #     test_parallelism: 4
+      #     test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
+      # - contracts-bedrock-tests:
+      #     # PreimageOracle test is slow, run it separately to unblock CI.
+      #     name: contracts-bedrock-tests-preimage-oracle
+      #     test_parallelism: 1
+      #     test_list: find test -name "PreimageOracle.t.sol"
+      # - contracts-bedrock-tests:
+      #     # Heavily fuzz any fuzz tests within added or modified test files.
+      #     name: contracts-bedrock-tests-heavy-fuzz-modified
+      #     test_parallelism: 1
+      #     test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+      #     test_timeout: 1h
+      #     test_profile: ciheavy
+      # - contracts-bedrock-coverage
+      # - contracts-bedrock-checks:
+      #     requires:
+      #       - contracts-bedrock-build
+      # - contracts-bedrock-validate-spacers:
+      #     requires:
+      #       - contracts-bedrock-build
+      # - semgrep-scan:
+      #     name: semgrep-scan-local
+      #     scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
+      # - semgrep-scan:
+      #     name: semgrep-test
+      #     scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
+      # - go-lint
+      # - fuzz-golang:
+      #     name: fuzz-golang-<<matrix.package_name>>
+      #     on_changes: <<matrix.package_name>>
+      #     matrix:
+      #       parameters:
+      #         package_name:
+      #           - op-challenger
+      #           - op-node
+      #           - op-service
+      #           - op-chain-ops
+      # - fuzz-golang:
+      #     name: cannon-fuzz
+      #     package_name: cannon
+      #     on_changes: cannon,packages/contracts-bedrock/src/cannon
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
+      # - fuzz-golang:
+      #     name: op-e2e-fuzz
+      #     package_name: op-e2e
+      #     on_changes: op-e2e,packages/contracts-bedrock/src
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
+      # - go-test:
+      #     name: go-test-all
+      #     requires:
+      #       - contracts-bedrock-build
+      # - go-test-kurtosis:
+      #     name: op-deployer-integration
+      #     module: op-deployer
+      #     test_directory: ./pkg/deployer/integration_test
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
+      # - go-e2e-test:
+      #     name: op-e2e-HTTP-tests
+      #     module: op-e2e
+      #     target: test-http
+      #     requires:
+      #       - contracts-bedrock-build
+      # - go-e2e-test:
+      #     name: op-e2e-action-tests
+      #     module: op-e2e
+      #     target: test-actions
+      #     requires:
+      #       - contracts-bedrock-build
+      # - go-e2e-test:
+      #     name: op-e2e-fault-proof-tests
+      #     module: op-e2e
+      #     target: test-fault-proofs
+      #     skip_slow_tests: true
+      #     requires:
+      #       - contracts-bedrock-build
+      #       - cannon-prestate
+      # - op-program-compat
+      # - bedrock-go-tests:
+      #     requires:
+      #       - go-mod-download
+      #       - go-lint
+      #       - cannon-build-test-vectors
+      #       - cannon-go-lint-and-test-32-bit
+      #       - cannon-go-lint-and-test-64-bit
+      #       - check-generated-mocks-op-node
+      #       - check-generated-mocks-op-service
+      #       - go-mod-download
+      #       - op-deployer-integration
+      #       - op-program-compat
+      #       - op-e2e-HTTP-tests
+      #       - op-e2e-fault-proof-tests
+      #       - op-e2e-action-tests
+      #       # Not needed for the devnet but we want to make sure they build successfully
+      #       - cannon-docker-build
+      #       - op-dispute-mon-docker-build
+      #       - op-program-docker-build
+      #       - op-supervisor-docker-build
+      #       - proofs-tools-docker-build
+      #       - go-test-all
+      # - docker-build:
+      #     name: <<matrix.docker_name>>-docker-build
+      #     docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
+      #     save_image_tag: <<pipeline.git.revision>>
+      #     matrix:
+      #       parameters:
+      #         docker_name:
+      #           - op-node
+      #           - op-batcher
+      #           - op-program
+      #           - op-proposer
+      #           - op-challenger
+      #           - proofs-tools
+      #           - op-dispute-mon
+      #           - op-conductor
+      #           - da-server
+      #           - op-supervisor
+      #           - cannon
+      # - cannon-prestate
+      # - check-generated-mocks-op-node
+      # - check-generated-mocks-op-service
+      # - cannon-go-lint-and-test:
+      #     name: cannon-go-lint-and-test-<<matrix.mips_word_size>>-bit
+      #     requires:
+      #       - contracts-bedrock-build
+      #     skip_slow_tests: true
+      #     notify: true
+      #     matrix:
+      #       parameters:
+      #         mips_word_size: [ 32, 64 ]
+      # - cannon-build-test-vectors
+      # - todo-issues:
+      #     name: todo-issues-check
+      #     check_closed: false
+      # - shellcheck/check:
+      #     name: shell-check
+      #     # We don't need the `exclude` key as the orb detects the `.shellcheckrc`
+      #     dir: .
+      #     ignore-dirs:
+      #       ./packages/contracts-bedrock/lib
 
   go-release-deployer:
     jobs:

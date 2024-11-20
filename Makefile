@@ -214,6 +214,13 @@ devnet-clean: ## Cleans up local devnet environment
 	docker volume ls --filter name=ops-bedrock --format='{{.Name}}' | xargs -r docker volume rm
 .PHONY: devnet-clean
 
+devnet-clean-l2: devnet-down-l2 ## Cleans up local devnet l2 environment
+	rm ./.devnet/genesis-l2.json
+	docker rm ops-bedrock-op-challenger-1 ops-bedrock-op-batcher-1 ops-bedrock-op-proposer-1 ops-bedrock-op-node-1 ops-bedrock-artifact-server-1
+	docker rmi ops-bedrock-l2
+	docker volume rm ops-bedrock_safedb_data ops-bedrock_challenger_data ops-bedrock_op_log ops-bedrock_l2_data
+.PHONY: devnet-clean-l2
+
 devnet-allocs: pre-devnet ## Generates allocations for the local devnet
 	PYTHONPATH=./bedrock-devnet $(PYTHON) ./bedrock-devnet/main.py --monorepo-dir=. --allocs
 .PHONY: devnet-allocs

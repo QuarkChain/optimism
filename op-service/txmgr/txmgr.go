@@ -286,6 +286,7 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 		if err != nil {
 			return nil, fmt.Errorf("failed to estimate gas: %w", errutil.TryAddRevertReason(err))
 		}
+		m.l.Info("Estimated gas", "gas", gas)
 		gasLimit = gas
 	}
 
@@ -299,6 +300,7 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 			return nil, fmt.Errorf("failed to make sidecar: %w", err)
 		}
 	}
+	m.l.Info("Transaction info", "blobs", len(candidate.Blobs), "calldata", common.Bytes2Hex(candidate.TxData), "value", candidate.Value)
 
 	var txMessage types.TxData
 	if sidecar != nil {

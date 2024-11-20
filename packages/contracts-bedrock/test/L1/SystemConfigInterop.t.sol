@@ -26,6 +26,19 @@ contract SystemConfigInterop_Test is CommonTest {
         super.setUp();
     }
 
+    /// @dev Tests that when the decimals is not 18, initialization reverts.
+    function test_initialize_decimalsIsNot18_reverts(uint8 decimals) external {
+        vm.assume(decimals != 18);
+        address _token = address(L1Token);
+
+        vm.mockCall(_token, abi.encodeCall(ERC20.name, ()), abi.encode("Token"));
+        vm.mockCall(_token, abi.encodeCall(ERC20.symbol, ()), abi.encode("TKN"));
+        vm.mockCall(_token, abi.encodeCall(ERC20.decimals, ()), abi.encode(decimals));
+
+        vm.expectRevert("SystemConfig: bad decimals of gas paying token");
+        _cleanStorageAndInit(_token);
+    }
+
     /// @dev Tests that the gas paying token can be set.
     function testFuzz_setGasPayingToken_succeeds(
         address _token,
@@ -41,9 +54,9 @@ contract SystemConfigInterop_Test is CommonTest {
         vm.assume(bytes(_name).length <= 32);
         vm.assume(bytes(_symbol).length <= 32);
 
-        vm.mockCall(_token, abi.encodeWithSelector(ERC20.decimals.selector), abi.encode(18));
-        vm.mockCall(_token, abi.encodeWithSelector(ERC20.name.selector), abi.encode(_name));
-        vm.mockCall(_token, abi.encodeWithSelector(ERC20.symbol.selector), abi.encode(_symbol));
+        vm.mockCall(_token, abi.encodeCall(ERC20.decimals, ()), abi.encode(18));
+        vm.mockCall(_token, abi.encodeCall(ERC20.name, ()), abi.encode(_name));
+        vm.mockCall(_token, abi.encodeCall(ERC20.symbol, ()), abi.encode(_symbol));
 
         vm.expectCall(
             address(optimismPortal),
@@ -80,7 +93,7 @@ contract SystemConfigInterop_Test is CommonTest {
 
     /// @dev Tests that adding a dependency as not the dependency manager reverts.
     function testFuzz_addDependency_notDependencyManager_reverts(uint256 _chainId) public {
-        require(alice != _systemConfigInterop().dependencyManager(), "SystemConfigInterop_Test-100");
+        require(alice != _systemConfigInterop().dependencyManager(), "SystemConfigInterop_Test: 100");
         vm.expectRevert("SystemConfig: caller is not the dependency manager");
         vm.prank(alice);
         _systemConfigInterop().addDependency(_chainId);
@@ -102,7 +115,7 @@ contract SystemConfigInterop_Test is CommonTest {
 
     /// @dev Tests that removing a dependency as not the dependency manager reverts.
     function testFuzz_removeDependency_notDependencyManager_reverts(uint256 _chainId) public {
-        require(alice != _systemConfigInterop().dependencyManager(), "SystemConfigInterop_Test-100");
+        require(alice != _systemConfigInterop().dependencyManager(), "SystemConfigInterop_Test: 100");
         vm.expectRevert("SystemConfig: caller is not the dependency manager");
         vm.prank(alice);
         _systemConfigInterop().removeDependency(_chainId);

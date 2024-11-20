@@ -73,7 +73,7 @@ type Config struct {
 
 	// Conductor is used to determine this node is the leader sequencer.
 	ConductorEnabled    bool
-	ConductorRpc        string
+	ConductorRpc        ConductorRPCFunc
 	ConductorRpcTimeout time.Duration
 
 	// AltDA config
@@ -103,6 +103,9 @@ func (dacConfig *DACConfig) Client() engine.DACClient {
 	}
 	return client.New(dacConfig.URLS)
 }
+
+// ConductorRPCFunc retrieves the endpoint. The RPC may not immediately be available.
+type ConductorRPCFunc func(ctx context.Context) (string, error)
 
 type RPCConfig struct {
 	ListenAddr  string

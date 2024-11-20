@@ -8,13 +8,9 @@ import (
 	"testing"
 	"time"
 
-	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/system/e2esys"
-
-	"github.com/ethereum-optimism/optimism/op-node/rollup"
-	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/util"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,8 +20,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/ethereum/go-ethereum/rpc"
+
+	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
+	"github.com/ethereum-optimism/optimism/op-e2e/system/e2esys"
+	"github.com/ethereum-optimism/optimism/op-node/rollup"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	"github.com/ethereum-optimism/optimism/op-service/eth"
 )
 
 var (
@@ -53,8 +54,9 @@ func TestMissingGasLimit(t *testing.T) {
 
 	res, err := opGeth.StartBlockBuilding(ctx, attrs)
 	require.Error(t, err)
-	require.ErrorIs(t, err, eth.InputError{})
-	require.Equal(t, eth.InvalidPayloadAttributes, err.(eth.InputError).Code)
+	var rpcErr rpc.Error
+	require.ErrorAs(t, err, &rpcErr)
+	require.EqualValues(t, eth.InvalidPayloadAttributes, rpcErr.ErrorCode())
 	require.Nil(t, res)
 }
 
@@ -1006,7 +1008,7 @@ func TestEcotone(t *testing.T) {
 }
 
 func TestSoulGasToken(t *testing.T) {
-	SoulGasTokenABI, err := util.ParseFunctionsAsABI([]string{"function deposit()"})
+	SoulGasTokenABI, err := util.ParseFunctionsAsABI([]string{"function deposit()", "function allowSgtValue(address[] contracts)"})
 	require.NoError(t, err)
 	t.Run("no SoulGasToken", func(t *testing.T) {
 		op_e2e.InitParallel(t)
@@ -1307,6 +1309,76 @@ func TestSoulGasToken(t *testing.T) {
 			Gas:       1_000_001,
 			To:        &cfg.Secrets.Addresses().Alice,
 			Value:     big.NewInt(params.Wei),
+			Data:      nil,
+		})
+		_, err = opGeth.AddL2Block(ctx, tx)
+		require.NoError(t, err)
+	})
+
+	t.Run("sgt as msg.value", func(t *testing.T) {
+		op_e2e.InitParallel(t)
+		cfg := e2esys.DefaultSystemConfigForSoulGasToken(t, true, true)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+
+		opGeth, err := NewOpGeth(t, ctx, &cfg)
+		require.NoError(t, err)
+		defer opGeth.Close()
+
+		// mint enough SoulGasToken with deposit tx, but no native balance
+		targetPK, _ := crypto.GenerateKey()
+		targetAccount := crypto.PubkeyToAddress(*targetPK.Public().(*ecdsa.PublicKey))
+
+		// fund targetAccount with 1 eth + 1wei
+		transferEthTx := types.NewTx(&types.DepositTx{
+			From:  cfg.Secrets.Addresses().Bob,
+			To:    &targetAccount,
+			Value: big.NewInt(params.Ether + params.Wei),
+			Gas:   1000001,
+		})
+		// convert 1 eth to sgt for targetAccount
+		mintTx := types.NewTx(&types.DepositTx{
+			From:  targetAccount,
+			To:    &types.SoulGasTokenAddr,
+			Value: big.NewInt(params.Ether),
+			Gas:   1000001,
+			Data:  SoulGasTokenABI.Methods["deposit"].ID,
+		})
+		// set alice as whitelist for sgt
+		inputData, err := SoulGasTokenABI.Pack("allowSgtValue", []common.Address{cfg.Secrets.Addresses().Alice})
+		require.NoError(t, err)
+		whitelistTx := types.NewTx(&types.DepositTx{
+			From:  cfg.DeployConfig.ProxyAdminOwner,
+			To:    &types.SoulGasTokenAddr,
+			Value: big.NewInt(0),
+			Gas:   1000001,
+			Data:  inputData,
+		})
+		_, err = opGeth.AddL2Block(ctx, transferEthTx, mintTx, whitelistTx)
+		require.NoError(t, err)
+
+		// ensure mintTx is successful
+		receipt, err := opGeth.L2Client.TransactionReceipt(ctx, mintTx.Hash())
+		require.NoError(t, err)
+		assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+
+		// ensure whitelistTx is successful
+		receipt, err = opGeth.L2Client.TransactionReceipt(ctx, whitelistTx.Hash())
+		require.NoError(t, err)
+		assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
+
+		signer := types.LatestSigner(opGeth.L2ChainConfig)
+
+		// send 0.1 eth to alice
+		tx := types.MustSignNewTx(targetPK, signer, &types.DynamicFeeTx{
+			ChainID:   big.NewInt(int64(cfg.DeployConfig.L2ChainID)),
+			Nonce:     1,
+			GasTipCap: big.NewInt(100),
+			GasFeeCap: big.NewInt(100000),
+			Gas:       1_000_001,
+			To:        &cfg.Secrets.Addresses().Alice,
+			Value:     big.NewInt(params.Ether * 0.1),
 			Data:      nil,
 		})
 		_, err = opGeth.AddL2Block(ctx, tx)

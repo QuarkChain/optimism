@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 // Testing
-import { Bridge_Initializer } from "test/setup/Bridge_Initializer.sol";
+import { CommonTest } from "test/setup/CommonTest.sol";
 
 // Contracts
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -25,7 +25,7 @@ contract TestERC721 is ERC721 {
     }
 }
 
-contract L1ERC721Bridge_Test is Bridge_Initializer {
+contract L1ERC721Bridge_Test is CommonTest {
     TestERC721 internal localToken;
     TestERC721 internal remoteToken;
     uint256 internal constant tokenId = 1;
@@ -237,6 +237,14 @@ contract L1ERC721Bridge_Test is Bridge_Initializer {
         assertEq(localToken.ownerOf(tokenId), alice);
     }
 
+    /// @dev Tests that `bridgeERC721To` reverts if the to address is the zero address.
+    function test_bridgeERC721To_toZeroAddress_reverts() external {
+        // Bridge the token.
+        vm.prank(bob);
+        vm.expectRevert("ERC721Bridge: nft recipient cannot be address(0)");
+        l1ERC721Bridge.bridgeERC721To(address(localToken), address(remoteToken), address(0), tokenId, 1234, hex"5678");
+    }
+
     /// @dev Tests that the ERC721 bridge successfully finalizes a withdrawal.
     function test_finalizeBridgeERC721_succeeds() external {
         // Bridge the token.
@@ -250,7 +258,7 @@ contract L1ERC721Bridge_Test is Bridge_Initializer {
         // Finalize a withdrawal.
         vm.mockCall(
             address(l1CrossDomainMessenger),
-            abi.encodeWithSelector(l1CrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encodeCall(l1CrossDomainMessenger.xDomainMessageSender, ()),
             abi.encode(Predeploys.L2_ERC721_BRIDGE)
         );
         vm.prank(address(l1CrossDomainMessenger));
@@ -276,7 +284,7 @@ contract L1ERC721Bridge_Test is Bridge_Initializer {
         // Finalize a withdrawal.
         vm.mockCall(
             address(l1CrossDomainMessenger),
-            abi.encodeWithSelector(l1CrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encodeCall(l1CrossDomainMessenger.xDomainMessageSender, ()),
             abi.encode(alice)
         );
         vm.prank(address(l1CrossDomainMessenger));
@@ -290,7 +298,7 @@ contract L1ERC721Bridge_Test is Bridge_Initializer {
         // Finalize a withdrawal.
         vm.mockCall(
             address(l1CrossDomainMessenger),
-            abi.encodeWithSelector(l1CrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encodeCall(l1CrossDomainMessenger.xDomainMessageSender, ()),
             abi.encode(Predeploys.L2_ERC721_BRIDGE)
         );
         vm.prank(address(l1CrossDomainMessenger));
@@ -306,7 +314,7 @@ contract L1ERC721Bridge_Test is Bridge_Initializer {
         // Finalize a withdrawal.
         vm.mockCall(
             address(l1CrossDomainMessenger),
-            abi.encodeWithSelector(l1CrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encodeCall(l1CrossDomainMessenger.xDomainMessageSender, ()),
             abi.encode(Predeploys.L2_ERC721_BRIDGE)
         );
         vm.prank(address(l1CrossDomainMessenger));
@@ -315,7 +323,7 @@ contract L1ERC721Bridge_Test is Bridge_Initializer {
     }
 }
 
-contract L1ERC721Bridge_Pause_Test is Bridge_Initializer {
+contract L1ERC721Bridge_Pause_Test is CommonTest {
     /// @dev Verifies that the `paused` accessor returns the same value as the `paused` function of the
     ///      `superchainConfig`.
     function test_paused_succeeds() external view {
@@ -325,7 +333,7 @@ contract L1ERC721Bridge_Pause_Test is Bridge_Initializer {
     /// @dev Ensures that the `paused` function of the bridge contract actually calls the `paused` function of the
     ///      `superchainConfig`.
     function test_pause_callsSuperchainConfig_succeeds() external {
-        vm.expectCall(address(superchainConfig), abi.encodeWithSelector(ISuperchainConfig.paused.selector));
+        vm.expectCall(address(superchainConfig), abi.encodeCall(ISuperchainConfig.paused, ()));
         l1ERC721Bridge.paused();
     }
 
@@ -343,7 +351,7 @@ contract L1ERC721Bridge_Pause_Test is Bridge_Initializer {
     }
 }
 
-contract L1ERC721Bridge_Pause_TestFail is Bridge_Initializer {
+contract L1ERC721Bridge_Pause_TestFail is CommonTest {
     /// @dev Sets up the test by pausing the bridge, giving ether to the bridge and mocking
     ///      the calls to the xDomainMessageSender so that it returns the correct value.
     function setUp() public override {
@@ -354,7 +362,7 @@ contract L1ERC721Bridge_Pause_TestFail is Bridge_Initializer {
 
         vm.mockCall(
             address(l1ERC721Bridge.messenger()),
-            abi.encodeWithSelector(ICrossDomainMessenger.xDomainMessageSender.selector),
+            abi.encodeCall(ICrossDomainMessenger.xDomainMessageSender, ()),
             abi.encode(address(l1ERC721Bridge.otherBridge()))
         );
     }

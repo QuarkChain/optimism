@@ -11,11 +11,12 @@ import (
 
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm"
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm/memory"
+	"github.com/ethereum-optimism/optimism/cannon/mipsevm/program"
 	"github.com/ethereum-optimism/optimism/cannon/mipsevm/testutil"
 )
 
-func vmFactory(state *State, po mipsevm.PreimageOracle, stdOut, stdErr io.Writer, log log.Logger) mipsevm.FPVM {
-	return NewInstrumentedState(state, po, stdOut, stdErr, log, nil)
+func vmFactory(state *State, po mipsevm.PreimageOracle, stdOut, stdErr io.Writer, log log.Logger, meta *program.Metadata) mipsevm.FPVM {
+	return NewInstrumentedState(state, po, stdOut, stdErr, log, meta)
 }
 
 func TestInstrumentedState_OpenMips(t *testing.T) {
@@ -35,27 +36,90 @@ func TestInstrumentedState_Claim(t *testing.T) {
 
 func TestInstrumentedState_MultithreadedProgram(t *testing.T) {
 	t.Parallel()
-	state, _ := testutil.LoadELFProgram(t, "../../testdata/example/bin/multithreaded.elf", CreateInitialState, false)
-	oracle := testutil.StaticOracle(t, []byte{})
-
-	var stdOutBuf, stdErrBuf bytes.Buffer
-	us := NewInstrumentedState(state, oracle, io.MultiWriter(&stdOutBuf, os.Stdout), io.MultiWriter(&stdErrBuf, os.Stderr), testutil.CreateLogger(), nil)
-	for i := 0; i < 2_000_000; i++ {
-		if us.GetState().GetExited() {
-			break
-		}
-		_, err := us.Step(false)
-		require.NoError(t, err)
+	cases := []struct {
+		name           string
+		expectedOutput []string
+		programName    string
+	}{
+		{
+			name: "wg and chan test",
+			expectedOutput: []string{
+				"waitgroup result: 42",
+				"channels result: 1234",
+			},
+			programName: "mt-wg",
+		},
+		{
+			name: "mutex test",
+			expectedOutput: []string{
+				"Mutex test passed",
+			},
+			programName: "mt-mutex",
+		},
+		{
+			name: "cond test",
+			expectedOutput: []string{
+				"Cond test passed",
+			},
+			programName: "mt-cond",
+		},
+		{
+			name: "rwmutex test",
+			expectedOutput: []string{
+				"RWMutex test passed",
+			},
+			programName: "mt-rwmutex",
+		},
+		{
+			name: "once test",
+			expectedOutput: []string{
+				"Once test passed",
+			},
+			programName: "mt-once",
+		},
+		{
+			name: "map test",
+			expectedOutput: []string{
+				"Map test passed",
+			},
+			programName: "mt-map",
+		},
+		{
+			name: "pool test",
+			expectedOutput: []string{
+				"Pool test passed",
+			},
+			programName: "mt-pool",
+		},
 	}
-	t.Logf("Completed in %d steps", state.Step)
 
-	require.True(t, state.Exited, "must complete program")
-	require.Equal(t, uint8(0), state.ExitCode, "exit with 0")
-	require.Contains(t, "waitgroup result: 42", stdErrBuf.String())
-	require.Contains(t, "channels result: 1234", stdErrBuf.String())
-	require.Equal(t, "", stdErrBuf.String(), "should not print any errors")
+	for _, test := range cases {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			state, _ := testutil.LoadELFProgram(t, testutil.ProgramPath(test.programName), CreateInitialState, false)
+			oracle := testutil.StaticOracle(t, []byte{})
+
+			var stdOutBuf, stdErrBuf bytes.Buffer
+			us := NewInstrumentedState(state, oracle, io.MultiWriter(&stdOutBuf, os.Stdout), io.MultiWriter(&stdErrBuf, os.Stderr), testutil.CreateLogger(), nil)
+			for i := 0; i < 5_000_000; i++ {
+				if us.GetState().GetExited() {
+					break
+				}
+				_, err := us.Step(false)
+				require.NoError(t, err)
+			}
+			t.Logf("Completed in %d steps", state.Step)
+
+			require.True(t, state.Exited, "must complete program")
+			require.Equal(t, uint8(0), state.ExitCode, "exit with 0")
+			for _, expected := range test.expectedOutput {
+				require.Contains(t, stdOutBuf.String(), expected)
+			}
+			require.Equal(t, "", stdErrBuf.String(), "should not print any errors")
+		})
+	}
 }
-
 func TestInstrumentedState_Alloc(t *testing.T) {
 	if os.Getenv("SKIP_SLOW_TESTS") == "true" {
 		t.Skip("Skipping slow test because SKIP_SLOW_TESTS is enabled")
@@ -78,7 +142,7 @@ func TestInstrumentedState_Alloc(t *testing.T) {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			state, meta := testutil.LoadELFProgram(t, "../../testdata/example/bin/alloc.elf", CreateInitialState, false)
+			state, meta := testutil.LoadELFProgram(t, testutil.ProgramPath("alloc"), CreateInitialState, false)
 			oracle := testutil.AllocOracle(t, test.numAllocs, test.allocSize)
 
 			us := NewInstrumentedState(state, oracle, os.Stdout, os.Stderr, testutil.CreateLogger(), meta)

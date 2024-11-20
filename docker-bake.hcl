@@ -206,12 +206,23 @@ target "proofs-tools" {
   dockerfile = "./ops/docker/proofs-tools/Dockerfile"
   context = "."
   args = {
-    CHALLENGER_VERSION="22d8365199b3141fcfbccc7cb9e107a71e151b0a"
-    KONA_VERSION="kona-client-v0.1.0-alpha.5"
+    CHALLENGER_VERSION="b46bffed42db3442d7484f089278d59f51503049"
+    KONA_VERSION="kona-client-v0.1.0-alpha.7"
   }
   target="proofs-tools"
   platforms = split(",", PLATFORMS)
   tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/proofs-tools:${tag}"]
+}
+
+target "holocene-deployer" {
+  dockerfile = "./packages/contracts-bedrock/scripts/upgrades/holocene/upgrade.dockerfile"
+  context = "./packages/contracts-bedrock/scripts/upgrades/holocene"
+  args = {
+    REV = "op-contracts/v1.8.0-rc.1"
+  }
+  target="holocene-deployer"
+  platforms = split(",", PLATFORMS)
+  tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/holocene-deployer:${tag}"]
 }
 
 target "ci-builder" {

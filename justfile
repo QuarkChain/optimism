@@ -3,14 +3,14 @@ issues:
 
 # Runs semgrep on the entire monorepo.
 semgrep:
-  semgrep scan --config=semgrep --error .
+  semgrep scan --config .semgrep/rules/ --error .
 
 # Runs semgrep tests.
 semgrep-test:
-  semgrep scan --test semgrep/
+  semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
 
 lint-shellcheck:
-  find . -type f -name '*.sh' -not -path '*/node_modules/*' -not -path './packages/contracts-bedrock/lib/*' -not -path './packages/contracts-bedrock/kout*/*' -exec sh -c 'echo \"Checking $1\"; shellcheck \"$1\"' _ {} \\;
+  find . -type f -name '*.sh' -not -path '*/node_modules/*' -not -path './packages/contracts-bedrock/lib/*' -not -path './packages/contracts-bedrock/kout*/*' -exec sh -c 'echo "Checking $1"; shellcheck "$1"' _ {} \;
 
 install-foundry:
   curl -L https://foundry.paradigm.xyz | bash && just update-foundry
@@ -19,7 +19,7 @@ update-foundry:
   bash ./ops/scripts/install-foundry.sh
 
 check-foundry:
-  bash ./packages/contracts-bedrock/scripts/checks/check-foundry-install.sh
+  bash ./ops/scripts/check-foundry.sh
 
 install-kontrol:
   curl -L https://kframework.org/install | bash && just update-kontrol
@@ -61,4 +61,4 @@ check-semgrep:
   [ "$(just print-semgrep)" = "$(jq -r .semgrep < versions.json)" ] && echo '✓ semgrep versions match' || (echo '✗ semgrep version mismatch. Run `just upgrade-semgrep` to upgrade.' && exit 1)
 
 upgrade-semgrep:
-  jq '.semgrep = $v' --arg v $(just print-semgrep) <<<$(cat versions.json) > versions.json
+  pip3 install semgrep=="$(jq -r .semgrep < versions.json)"

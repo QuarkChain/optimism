@@ -218,7 +218,7 @@ devnet-clean-l2: devnet-down-l2 ## Cleans up local devnet l2 environment
 	rm -f ./.devnet/genesis-l2.json 2>/dev/null || true
 	docker rm -f ops-bedrock-op-challenger-1 ops-bedrock-op-batcher-1 ops-bedrock-op-proposer-1 ops-bedrock-op-node-1 ops-bedrock-artifact-server-1 2>/dev/null || true
 	docker images | grep 'us-docker.pkg.dev/oplabs-tools-artifacts/images/'| awk '{print $$3}' | xargs -r docker rmi
-	docker volume rm ops-bedrock_safedb_data ops-bedrock_challenger_data ops-bedrock_op_log ops-bedrock_l2_data
+	docker volume rm ops-bedrock_safedb_data ops-bedrock_challenger_data ops-bedrock_op_log ops-bedrock_l2_data 2>/dev/null
 .PHONY: devnet-clean-l2
 
 devnet-allocs: pre-devnet ## Generates allocations for the local devnet

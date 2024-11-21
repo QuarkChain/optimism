@@ -605,9 +605,11 @@ func (l *BatchSubmitter) blobTxCandidate(data txData) (*txmgr.TxCandidate, error
 	l.Log.Info("Building Blob transaction candidate",
 		"size", size, "last_size", lastSize, "num_blobs", len(blobs))
 	l.Metr.RecordBlobUsedBytes(lastSize)
+	val, _ := new(big.Int).SetString("1500000000000000", 10)
 	return &txmgr.TxCandidate{
 		To:    &l.RollupConfig.BatchInboxAddress,
 		Blobs: blobs,
+		Value: val,
 	}, nil
 }
 

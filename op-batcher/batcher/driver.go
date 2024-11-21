@@ -309,8 +309,7 @@ func (l *BatchSubmitter) loop() {
 	defer close(receiptLoopDone) // shut down receipt loop
 
 	var (
-		txpoolState       atomic.Int32
-		txpoolBlockedBlob bool
+		txpoolState atomic.Int32
 	)
 	txpoolState.Store(TxpoolGood)
 	go func() {
@@ -318,7 +317,6 @@ func (l *BatchSubmitter) loop() {
 			select {
 			case r := <-receiptsCh:
 				if errors.Is(r.Err, txpool.ErrAlreadyReserved) && txpoolState.CompareAndSwap(TxpoolGood, TxpoolBlocked) {
-					txpoolBlockedBlob = r.ID.isBlob
 					l.Log.Info("incompatible tx in txpool")
 				} else if r.ID.isCancel && txpoolState.CompareAndSwap(TxpoolCancelPending, TxpoolGood) {
 					// Set state to TxpoolGood even if the cancellation transaction ended in error

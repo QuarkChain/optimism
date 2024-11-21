@@ -272,24 +272,6 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 
 	gasLimit := candidate.GasLimit
 
-	// If the gas limit is set, we can use that as the gas
-	if gasLimit == 0 {
-		// Calculate the intrinsic gas for the transaction
-		gas, err := m.backend.EstimateGas(ctx, ethereum.CallMsg{
-			From:      m.cfg.From,
-			To:        candidate.To,
-			GasTipCap: gasTipCap,
-			GasFeeCap: gasFeeCap,
-			Data:      candidate.TxData,
-			Value:     candidate.Value,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to estimate gas: %w", errutil.TryAddRevertReason(err))
-		}
-		m.l.Info("Estimated gas", "gas", gas)
-		gasLimit = gas
-	}
-
 	var sidecar *types.BlobTxSidecar
 	var blobHashes []common.Hash
 	if len(candidate.Blobs) > 0 {
@@ -299,6 +281,29 @@ func (m *SimpleTxManager) craftTx(ctx context.Context, candidate TxCandidate) (*
 		if sidecar, blobHashes, err = MakeSidecar(candidate.Blobs); err != nil {
 			return nil, fmt.Errorf("failed to make sidecar: %w", err)
 		}
+	}
+
+	// If the gas limit is set, we can use that as the gas
+	if gasLimit == 0 {
+		callMsg := ethereum.CallMsg{
+			From:      m.cfg.From,
+			To:        candidate.To,
+			GasTipCap: gasTipCap,
+			GasFeeCap: gasFeeCap,
+			Data:      candidate.TxData,
+			Value:     candidate.Value,
+		}
+		if len(blobHashes) > 0 {
+			callMsg.BlobGasFeeCap = blobBaseFee
+			callMsg.BlobHashes = blobHashes
+		}
+		// Calculate the intrinsic gas for the transaction
+		gas, err := m.backend.EstimateGas(ctx, callMsg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to estimate gas: %w", errutil.TryAddRevertReason(err))
+		}
+		m.l.Info("Estimated gas", "gas", gas)
+		gasLimit = gas
 	}
 	m.l.Info("Transaction info", "blobs", len(candidate.Blobs), "calldata", common.Bytes2Hex(candidate.TxData), "value", candidate.Value)
 
@@ -715,14 +720,19 @@ func (m *SimpleTxManager) increaseGasPrice(ctx context.Context, tx *types.Transa
 	}
 
 	// Re-estimate gaslimit in case things have changed or a previous gaslimit estimate was wrong
-	gas, err := m.backend.EstimateGas(ctx, ethereum.CallMsg{
+	callMsg := ethereum.CallMsg{
 		From:      m.cfg.From,
 		To:        tx.To(),
 		GasTipCap: bumpedTip,
 		GasFeeCap: bumpedFee,
 		Data:      tx.Data(),
 		Value:     tx.Value(),
-	})
+	}
+	if len(tx.BlobHashes()) > 0 {
+		callMsg.BlobGasFeeCap = tx.BlobGasFeeCap()
+		callMsg.BlobHashes = tx.BlobHashes()
+	}
+	gas, err := m.backend.EstimateGas(ctx, callMsg)
 	if err != nil {
 		// If this is a transaction resubmission, we sometimes see this outcome because the
 		// original tx can get included in a block just before the above call. In this case the

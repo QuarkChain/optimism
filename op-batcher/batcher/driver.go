@@ -567,15 +567,19 @@ func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, que
 	}
 	isEOAPointer := l.inboxIsEOA.Load()
 	if isEOAPointer == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+		defer cancel()
 		var code []byte
 		code, err = l.L1Client.CodeAt(ctx, *candidate.To, nil)
 		if err != nil {
 			return fmt.Errorf("CodeAt failed:%w", err)
 		}
+		l.Log.Info("Inbox code", "code", common.Bytes2Hex(code))
 		isEOA := len(code) == 0
 		isEOAPointer = &isEOA
 		l.inboxIsEOA.Store(isEOAPointer)
 	}
+
 	// Don't set GasLimit when inbox is contract so that later on `EstimateGas` will be called
 	if !*isEOAPointer {
 		intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
@@ -584,6 +588,7 @@ func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, que
 			l.Log.Error("Failed to calculate intrinsic gas", "err", err)
 		} else {
 			candidate.GasLimit = intrinsicGas
+			l.Log.Info("Use intrinsicGas", "gasLimit", intrinsicGas)
 		}
 	}
 	queue.Send(txRef{id: txdata.ID(), isCancel: false, isBlob: txdata.asBlob}, *candidate, receiptsCh)

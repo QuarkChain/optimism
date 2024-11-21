@@ -574,7 +574,6 @@ func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, que
 		if err != nil {
 			return fmt.Errorf("CodeAt failed:%w", err)
 		}
-		l.Log.Info("Inbox code", "code", common.Bytes2Hex(code))
 		isEOA := len(code) == 0
 		isEOAPointer = &isEOA
 		l.inboxIsEOA.Store(isEOAPointer)

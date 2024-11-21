@@ -91,7 +91,7 @@ type BatchSubmitter struct {
 	lastL1Tip       eth.L1BlockRef
 
 	state      *channelManager
-	inboxIsEOA *bool
+	inboxIsEOA atomic.Pointer[bool]
 }
 
 // NewBatchSubmitter initializes the BatchSubmitter driver from a preconfigured DriverSetup
@@ -349,15 +349,6 @@ func (l *BatchSubmitter) loop() {
 	for {
 		select {
 		case <-ticker.C:
-			if txpoolState.CompareAndSwap(TxpoolBlocked, TxpoolCancelPending) {
-				// txpoolState is set to Blocked only if Send() is returning
-				// ErrAlreadyReserved. In this case, the TxMgr nonce should be reset to nil,
-				// allowing us to send a cancellation transaction.
-				l.cancelBlockingTx(queue, receiptsCh, txpoolBlockedBlob)
-			}
-			if txpoolState.Load() != TxpoolGood {
-				continue
-			}
 			if err := l.loadBlocksIntoState(l.shutdownCtx); errors.Is(err, ErrReorg) {
 				err := l.state.Close()
 				if err != nil {
@@ -537,21 +528,6 @@ func (l *BatchSubmitter) safeL1Origin(ctx context.Context) (eth.BlockID, error) 
 	return status.SafeL2.L1Origin, nil
 }
 
-// cancelBlockingTx creates an empty transaction of appropriate type to cancel out the incompatible
-// transaction stuck in the txpool. In the future we might send an actual batch transaction instead
-// of an empty one to avoid wasting the tx fee.
-func (l *BatchSubmitter) cancelBlockingTx(queue *txmgr.Queue[txRef], receiptsCh chan txmgr.TxReceipt[txRef], isBlockedBlob bool) {
-	var candidate *txmgr.TxCandidate
-	var err error
-	if isBlockedBlob {
-		candidate = l.calldataTxCandidate([]byte{})
-	} else if candidate, err = l.blobTxCandidate(emptyTxData); err != nil {
-		panic(err) // this error should not happen
-	}
-	l.Log.Warn("sending a cancellation transaction to unblock txpool", "blocked_blob", isBlockedBlob)
-	l.queueTx(txData{}, true, candidate, queue, receiptsCh)
-}
-
 // sendTransaction creates & queues for sending a transaction to the batch inbox address with the given `txData`.
 // The method will block if the queue's MaxPendingTransactions is exceeded.
 func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, queue *txmgr.Queue[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) error {
@@ -591,22 +567,19 @@ func (l *BatchSubmitter) sendTransaction(ctx context.Context, txdata txData, que
 	if *candidate.To != l.RollupConfig.BatchInboxAddress {
 		return fmt.Errorf("candidate.To is not inbox")
 	}
-	if l.inboxIsEOA == nil {
+	isEOAPointer := l.inboxIsEOA.Load()
+	if isEOAPointer == nil {
 		var code []byte
 		code, err = l.L1Client.CodeAt(ctx, *candidate.To, nil)
 		if err != nil {
 			return fmt.Errorf("CodeAt failed:%w", err)
 		}
 		isEOA := len(code) == 0
-		l.inboxIsEOA = &isEOA
+		isEOAPointer = &isEOA
+		l.inboxIsEOA.Store(isEOAPointer)
 	}
-	l.queueTx(txdata, false, candidate, queue, receiptsCh)
-	return nil
-}
-
-func (l *BatchSubmitter) queueTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue *txmgr.Queue[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
-	// only set GasLimit when inbox is EOA so that later on `EstimateGas` will be called if inbox is a contract
-	if *l.inboxIsEOA {
+	// Don't set GasLimit when inbox is contract so that later on `EstimateGas` will be called
+	if !*isEOAPointer {
 		intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
 		if err != nil {
 			// we log instead of return an error here because txmgr can do its own gas estimation
@@ -615,7 +588,8 @@ func (l *BatchSubmitter) queueTx(txdata txData, isCancel bool, candidate *txmgr.
 			candidate.GasLimit = intrinsicGas
 		}
 	}
-	queue.Send(txRef{id: txdata.ID(), isCancel: isCancel, isBlob: txdata.asBlob}, *candidate, receiptsCh)
+	queue.Send(txRef{id: txdata.ID(), isCancel: false, isBlob: txdata.asBlob}, *candidate, receiptsCh)
+	return nil
 }
 
 func (l *BatchSubmitter) blobTxCandidate(data txData) (*txmgr.TxCandidate, error) {
@@ -664,6 +638,7 @@ func (l *BatchSubmitter) recordL1Tip(l1tip eth.L1BlockRef) {
 }
 
 func (l *BatchSubmitter) recordFailedTx(id txID, err error) {
+	l.inboxIsEOA.Store(nil)
 	l.Log.Warn("Transaction failed to send", logFields(id, err)...)
 	l.state.TxFailed(id)
 }

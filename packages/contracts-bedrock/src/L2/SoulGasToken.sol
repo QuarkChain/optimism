@@ -185,14 +185,14 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
 
     /// @notice chargeFromOrigin is called when IS_BACKED_BY_NATIVE to charge for native balance
     ///         from tx.origin if caller is whitelisted.
-    function chargeFromOrigin(uint256 amount) returns (uint256 amountCharged) {
+    function chargeFromOrigin(uint256 amount) external returns (uint256 amountCharged) {
         require(IS_BACKED_BY_NATIVE, "chargeFromOrigin should only be called when IS_BACKED_BY_NATIVE");
         SoulGasTokenStorage storage $ = _getSoulGasTokenStorage();
         require($._allowSgtValue[_msgSender()], "caller is not whitelisted");
         uint256 balance = balanceOf(tx.origin);
         if (balance == 0) {
             amountCharged = 0;
-            return;
+            return amountCharged;
         }
         if (balance >= amount) {
             amountCharged = amount;

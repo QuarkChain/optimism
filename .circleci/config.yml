@@ -151,11 +151,6 @@ commands:
             FOUNDRY_PROFILE: ci
 
 jobs:
-  runner-test:
-    machine: true
-    resource_class: swc/ax101
-    steps:
-      - run: echo "Hi I'm on Runners!"
   cannon-go-lint-and-test:
     machine: true
     resource_class: ethereum-optimism/latitude-1
@@ -1288,7 +1283,6 @@ workflows:
         - not:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - runner-test
       - go-mod-download
       - contracts-bedrock-build:
           # Build with just core + script contracts.

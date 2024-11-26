@@ -286,6 +286,7 @@ jobs:
   check-kontrol-build:
     docker:
       - image: <<pipeline.parameters.ci_builder_image>>
+    # machine: true
     resource_class: xlarge
     steps:
       - checkout
@@ -1287,9 +1288,9 @@ workflows:
       - contracts-bedrock-build:
           # Build with just core + script contracts.
           skip_pattern: test
-      # - check-kontrol-build:
-      #     requires:
-      #       - contracts-bedrock-build
+      - check-kontrol-build:
+          requires:
+            - contracts-bedrock-build
       # - contracts-bedrock-tests:
       #     # Test everything except PreimageOracle.t.sol since it's slow.
       #     name: contracts-bedrock-tests

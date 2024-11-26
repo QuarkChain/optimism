@@ -151,6 +151,11 @@ commands:
             FOUNDRY_PROFILE: ci
 
 jobs:
+  runner-test:
+    machine: true
+    resource_class: swc/ax101
+    steps:
+      - run: echo "Hi I'm on Runners!"
   cannon-go-lint-and-test:
     machine: true
     resource_class: ethereum-optimism/latitude-1
@@ -241,7 +246,7 @@ jobs:
 
   contracts-bedrock-build:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     parameters:
       skip_pattern:
         description: Glob pattern of tests to skip
@@ -1283,10 +1288,11 @@ workflows:
         - not:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
+      - runner-test
       - go-mod-download
-      # - contracts-bedrock-build:
-      #     # Build with just core + script contracts.
-      #     skip_pattern: test
+      - contracts-bedrock-build:
+          # Build with just core + script contracts.
+          skip_pattern: test
       # - check-kontrol-build:
       #     requires:
       #       - contracts-bedrock-build

@@ -850,7 +850,7 @@ func (l *BatchSubmitter) sendTransaction(txdata txData, queue *txmgr.Queue[txRef
 	}
 
 	// Don't set GasLimit when inbox is contract so that later on `EstimateGas` will be called
-	if !*isEOAPointer {
+	if *isEOAPointer {
 		intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
 		if err != nil {
 			// we log instead of return an error here because txmgr can do its own gas estimation

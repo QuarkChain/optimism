@@ -266,6 +266,14 @@ contract Initializer_Test is CommonTest {
                 initCalldata: abi.encodeCall(l2CrossDomainMessenger.initialize, (l1CrossDomainMessenger))
             })
         );
+        // SoulGasToken
+        contracts.push(
+            InitializeableContract({
+                name: "SoulGasToken",
+                target: address(soulGasToken),
+                initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
+            })
+        );
         // L1StandardBridgeImpl
         contracts.push(
             InitializeableContract({

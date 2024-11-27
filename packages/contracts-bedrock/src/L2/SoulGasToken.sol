@@ -45,6 +45,7 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
 
     constructor(bool isBackedByNative_) {
         IS_BACKED_BY_NATIVE = isBackedByNative_;
+        initialize("SoulGasToken", "SGT", msg.sender);
     }
 
     /// @notice Initializer.

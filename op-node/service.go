@@ -237,7 +237,8 @@ Conflicting configuration is deprecated, and will stop the op-node from starting
 
 	var rollupConfig rollup.Config
 	dec := json.NewDecoder(file)
-	dec.DisallowUnknownFields()
+	// Allow unknow fields for back compatibility: da_challenge_contract_address in rollup.json
+	// dec.DisallowUnknownFields()
 	if err := dec.Decode(&rollupConfig); err != nil {
 		return nil, fmt.Errorf("failed to decode rollup config: %w", err)
 	}

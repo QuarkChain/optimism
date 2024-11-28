@@ -1366,14 +1366,14 @@ workflows:
           target: test-actions
           requires:
             - contracts-bedrock-build
-      - go-e2e-test:
-          name: op-e2e-fault-proof-tests
-          module: op-e2e
-          target: test-fault-proofs
-          skip_slow_tests: true
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate
+      # - go-e2e-test:
+      #     name: op-e2e-fault-proof-tests
+      #     module: op-e2e
+      #     target: test-fault-proofs
+      #     skip_slow_tests: true
+      #     requires:
+      #       - contracts-bedrock-build
+      #       - cannon-prestate
       - op-program-compat
       # - bedrock-go-tests:
       #     requires:

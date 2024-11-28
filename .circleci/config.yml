@@ -153,7 +153,7 @@ commands:
 jobs:
   cannon-go-lint-and-test:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     parameters:
       skip_slow_tests:
         type: boolean
@@ -755,7 +755,7 @@ jobs:
         type: boolean
         default: false
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - check-changed:
@@ -770,7 +770,7 @@ jobs:
 
   go-lint:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - run:
@@ -838,7 +838,7 @@ jobs:
 
   go-test:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - attach_workspace:
@@ -899,7 +899,7 @@ jobs:
       resource_class:
         description: Machine resource class
         type: string
-        default: ethereum-optimism/latitude-1
+        default: swc/ax101
       skip_slow_tests:
         description: Indicates that slow tests should be skipped
         type: boolean
@@ -953,7 +953,7 @@ jobs:
 
   cannon-prestate:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - run:
@@ -1308,95 +1308,95 @@ workflows:
           test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
           test_timeout: 1h
           test_profile: ciheavy
-      # - contracts-bedrock-coverage
-      # - contracts-bedrock-checks:
-      #     requires:
-      #       - contracts-bedrock-build
-      # - contracts-bedrock-validate-spacers:
-      #     requires:
-      #       - contracts-bedrock-build
-      # - semgrep-scan:
-      #     name: semgrep-scan-local
-      #     scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
-      # - semgrep-scan:
-      #     name: semgrep-test
-      #     scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
-      # - go-lint
-      # - fuzz-golang:
-      #     name: fuzz-golang-<<matrix.package_name>>
-      #     on_changes: <<matrix.package_name>>
-      #     matrix:
-      #       parameters:
-      #         package_name:
-      #           - op-challenger
-      #           - op-node
-      #           - op-service
-      #           - op-chain-ops
-      # - fuzz-golang:
-      #     name: cannon-fuzz
-      #     package_name: cannon
-      #     on_changes: cannon,packages/contracts-bedrock/src/cannon
-      #     uses_artifacts: true
-      #     requires: ["contracts-bedrock-build"]
-      # - fuzz-golang:
-      #     name: op-e2e-fuzz
-      #     package_name: op-e2e
-      #     on_changes: op-e2e,packages/contracts-bedrock/src
-      #     uses_artifacts: true
-      #     requires: ["contracts-bedrock-build"]
-      # - go-test:
-      #     name: go-test-all
-      #     requires:
-      #       - contracts-bedrock-build
-      # - go-test-kurtosis:
-      #     name: op-deployer-integration
-      #     module: op-deployer
-      #     test_directory: ./pkg/deployer/integration_test
-      #     uses_artifacts: true
-      #     requires: ["contracts-bedrock-build"]
-      # - go-e2e-test:
-      #     name: op-e2e-HTTP-tests
-      #     module: op-e2e
-      #     target: test-http
-      #     requires:
-      #       - contracts-bedrock-build
-      # - go-e2e-test:
-      #     name: op-e2e-action-tests
-      #     module: op-e2e
-      #     target: test-actions
-      #     requires:
-      #       - contracts-bedrock-build
-      # - go-e2e-test:
-      #     name: op-e2e-fault-proof-tests
-      #     module: op-e2e
-      #     target: test-fault-proofs
-      #     skip_slow_tests: true
-      #     requires:
-      #       - contracts-bedrock-build
-      #       - cannon-prestate
-      # - op-program-compat
-      # - bedrock-go-tests:
-      #     requires:
-      #       - go-mod-download
-      #       - go-lint
-      #       - cannon-build-test-vectors
-      #       - cannon-go-lint-and-test-32-bit
-      #       - cannon-go-lint-and-test-64-bit
-      #       - check-generated-mocks-op-node
-      #       - check-generated-mocks-op-service
-      #       - go-mod-download
-      #       - op-deployer-integration
-      #       - op-program-compat
-      #       - op-e2e-HTTP-tests
-      #       - op-e2e-fault-proof-tests
-      #       - op-e2e-action-tests
-      #       # Not needed for the devnet but we want to make sure they build successfully
-      #       - cannon-docker-build
-      #       - op-dispute-mon-docker-build
-      #       - op-program-docker-build
-      #       - op-supervisor-docker-build
-      #       - proofs-tools-docker-build
-      #       - go-test-all
+      - contracts-bedrock-coverage
+      - contracts-bedrock-checks:
+          requires:
+            - contracts-bedrock-build
+      - contracts-bedrock-validate-spacers:
+          requires:
+            - contracts-bedrock-build
+      - semgrep-scan:
+          name: semgrep-scan-local
+          scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
+      - semgrep-scan:
+          name: semgrep-test
+          scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
+      - go-lint
+      - fuzz-golang:
+          name: fuzz-golang-<<matrix.package_name>>
+          on_changes: <<matrix.package_name>>
+          matrix:
+            parameters:
+              package_name:
+                - op-challenger
+                - op-node
+                - op-service
+                - op-chain-ops
+      - fuzz-golang:
+          name: cannon-fuzz
+          package_name: cannon
+          on_changes: cannon,packages/contracts-bedrock/src/cannon
+          uses_artifacts: true
+          requires: ["contracts-bedrock-build"]
+      - fuzz-golang:
+          name: op-e2e-fuzz
+          package_name: op-e2e
+          on_changes: op-e2e,packages/contracts-bedrock/src
+          uses_artifacts: true
+          requires: ["contracts-bedrock-build"]
+      - go-test:
+          name: go-test-all
+          requires:
+            - contracts-bedrock-build
+      - go-test-kurtosis:
+          name: op-deployer-integration
+          module: op-deployer
+          test_directory: ./pkg/deployer/integration_test
+          uses_artifacts: true
+          requires: ["contracts-bedrock-build"]
+      - go-e2e-test:
+          name: op-e2e-HTTP-tests
+          module: op-e2e
+          target: test-http
+          requires:
+            - contracts-bedrock-build
+      - go-e2e-test:
+          name: op-e2e-action-tests
+          module: op-e2e
+          target: test-actions
+          requires:
+            - contracts-bedrock-build
+      - go-e2e-test:
+          name: op-e2e-fault-proof-tests
+          module: op-e2e
+          target: test-fault-proofs
+          skip_slow_tests: true
+          requires:
+            - contracts-bedrock-build
+            - cannon-prestate
+      - op-program-compat
+      - bedrock-go-tests:
+          requires:
+            - go-mod-download
+            - go-lint
+            - cannon-build-test-vectors
+            - cannon-go-lint-and-test-32-bit
+            - cannon-go-lint-and-test-64-bit
+            - check-generated-mocks-op-node
+            - check-generated-mocks-op-service
+            - go-mod-download
+            - op-deployer-integration
+            - op-program-compat
+            - op-e2e-HTTP-tests
+            - op-e2e-fault-proof-tests
+            - op-e2e-action-tests
+            # Not needed for the devnet but we want to make sure they build successfully
+            - cannon-docker-build
+            - op-dispute-mon-docker-build
+            - op-program-docker-build
+            - op-supervisor-docker-build
+            - proofs-tools-docker-build
+            - go-test-all
       # - docker-build:
       #     name: <<matrix.docker_name>>-docker-build
       #     docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>

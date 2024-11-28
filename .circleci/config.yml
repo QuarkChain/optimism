@@ -1038,7 +1038,7 @@ jobs:
     parameters:
       diff_branch:
         type: string
-        default: es-op
+        default: op-es
       scan_command:
         type: string
         default: semgrep ci --timeout=100
@@ -1054,7 +1054,7 @@ jobs:
       - checkout
       - unless:
           condition:
-            equal: [ "es-op", << pipeline.git.branch >> ]
+            equal: [ "op-es", << pipeline.git.branch >> ]
           steps:
             - run:
                 # Scan changed files in PRs, block on new issues only (existing issues ignored)

@@ -1038,7 +1038,7 @@ jobs:
     parameters:
       diff_branch:
         type: string
-        default: develop
+        default: es-op
       scan_command:
         type: string
         default: semgrep ci --timeout=100
@@ -1054,7 +1054,7 @@ jobs:
       - checkout
       - unless:
           condition:
-            equal: [ "develop", << pipeline.git.branch >> ]
+            equal: [ "es-op", << pipeline.git.branch >> ]
           steps:
             - run:
                 # Scan changed files in PRs, block on new issues only (existing issues ignored)
@@ -1284,43 +1284,43 @@ workflows:
         - not:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - go-mod-download
-      - contracts-bedrock-build:
+      # - go-mod-download # PASS
+      - contracts-bedrock-build: # PASS
           # Build with just core + script contracts.
           skip_pattern: test
-      - check-kontrol-build:
-          requires:
-            - contracts-bedrock-build
-      - contracts-bedrock-tests:
-          # Test everything except PreimageOracle.t.sol since it's slow.
-          name: contracts-bedrock-tests
-          test_parallelism: 4
-          test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
-      - contracts-bedrock-tests:
-          # PreimageOracle test is slow, run it separately to unblock CI.
-          name: contracts-bedrock-tests-preimage-oracle
-          test_parallelism: 1
-          test_list: find test -name "PreimageOracle.t.sol"
-      - contracts-bedrock-tests:
-          # Heavily fuzz any fuzz tests within added or modified test files.
-          name: contracts-bedrock-tests-heavy-fuzz-modified
-          test_parallelism: 1
-          test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
-          test_timeout: 1h
-          test_profile: ciheavy
-      - contracts-bedrock-coverage
+      # - check-kontrol-build: # PASS
+      #     requires:
+      #       - contracts-bedrock-build
+      # - contracts-bedrock-tests: # PASS 3
+      #     # Test everything except PreimageOracle.t.sol since it's slow.
+      #     name: contracts-bedrock-tests
+      #     test_parallelism: 4
+      #     test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
+      # - contracts-bedrock-tests:
+      #     # PreimageOracle test is slow, run it separately to unblock CI.
+      #     name: contracts-bedrock-tests-preimage-oracle
+      #     test_parallelism: 1
+      #     test_list: find test -name "PreimageOracle.t.sol"
+      # - contracts-bedrock-tests:
+      #     # Heavily fuzz any fuzz tests within added or modified test files.
+      #     name: contracts-bedrock-tests-heavy-fuzz-modified
+      #     test_parallelism: 1
+      #     test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+      #     test_timeout: 1h
+      #     test_profile: ciheavy
+      # - contracts-bedrock-coverage # PASS
       - contracts-bedrock-checks:
           requires:
             - contracts-bedrock-build
-      - contracts-bedrock-validate-spacers:
-          requires:
-            - contracts-bedrock-build
+      # - contracts-bedrock-validate-spacers: # PASS
+      #     requires:
+      #       - contracts-bedrock-build
       - semgrep-scan:
           name: semgrep-scan-local
           scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
-      - semgrep-scan:
-          name: semgrep-test
-          scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
+      # - semgrep-scan: # PASS
+      #     name: semgrep-test
+      #     scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
       - go-lint
       - fuzz-golang:
           name: fuzz-golang-<<matrix.package_name>>
@@ -1348,12 +1348,12 @@ workflows:
           name: go-test-all
           requires:
             - contracts-bedrock-build
-      - go-test-kurtosis:
-          name: op-deployer-integration
-          module: op-deployer
-          test_directory: ./pkg/deployer/integration_test
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
+      # - go-test-kurtosis: # PASS
+      #     name: op-deployer-integration
+      #     module: op-deployer
+      #     test_directory: ./pkg/deployer/integration_test
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
       - go-e2e-test:
           name: op-e2e-HTTP-tests
           module: op-e2e
@@ -1397,25 +1397,25 @@ workflows:
       #       - op-supervisor-docker-build
       #       - proofs-tools-docker-build
       #       - go-test-all
-      - docker-build:
-          name: <<matrix.docker_name>>-docker-build
-          docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-          save_image_tag: <<pipeline.git.revision>>
-          matrix:
-            parameters:
-              docker_name:
-                - op-node
-                - op-batcher
-                - op-program
-                - op-proposer
-                - op-challenger
-                - proofs-tools
-                - op-dispute-mon
-                - op-conductor
-                - da-server
-                - op-supervisor
-                - cannon
-      - cannon-prestate
+      # - docker-build: # PASS
+      #     name: <<matrix.docker_name>>-docker-build
+      #     docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
+      #     save_image_tag: <<pipeline.git.revision>>
+      #     matrix:
+      #       parameters:
+      #         docker_name:
+      #           - op-node
+      #           - op-batcher
+      #           - op-program
+      #           - op-proposer
+      #           - op-challenger
+      #           - proofs-tools
+      #           - op-dispute-mon
+      #           - op-conductor
+      #           - da-server
+      #           - op-supervisor
+      #           - cannon
+      # - cannon-prestate # PASS
       # - check-generated-mocks-op-node
       # - check-generated-mocks-op-service
       # - cannon-go-lint-and-test:

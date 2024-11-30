@@ -835,20 +835,32 @@ func (l *BatchSubmitter) sendTransaction(txdata txData, queue *txmgr.Queue[txRef
 	if *candidate.To != l.RollupConfig.BatchInboxAddress {
 		return fmt.Errorf("candidate.To is not inbox")
 	}
+
+	l.sendTx(txdata, false, candidate, queue, receiptsCh)
+	return nil
+}
+
+// sendTx uses the txmgr queue to send the given transaction candidate after setting its
+// gaslimit. It will block if the txmgr queue has reached its MaxPendingTransactions limit.
+func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue *txmgr.Queue[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
 	isEOAPointer := l.inboxIsEOA.Load()
 	if isEOAPointer == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 		defer cancel()
 		var code []byte
-		code, err = l.L1Client.CodeAt(ctx, *candidate.To, nil)
+		code, err := l.L1Client.CodeAt(ctx, *candidate.To, nil)
 		if err != nil {
-			return fmt.Errorf("CodeAt failed:%w", err)
+			l.Log.Error("CodeAt failed, assuming code exists", "err", err)
+			// assume code exist, but don't persist the result
+			isEOA := false
+			isEOAPointer = &isEOA
+		} else {
+			isEOA := len(code) == 0
+			isEOAPointer = &isEOA
+			l.inboxIsEOA.Store(isEOAPointer)
 		}
-		isEOA := len(code) == 0
-		isEOAPointer = &isEOA
-		l.inboxIsEOA.Store(isEOAPointer)
-	}
 
+	}
 	// Don't set GasLimit when inbox is contract so that later on `EstimateGas` will be called
 	if *isEOAPointer {
 		intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
@@ -858,20 +870,6 @@ func (l *BatchSubmitter) sendTransaction(txdata txData, queue *txmgr.Queue[txRef
 		} else {
 			candidate.GasLimit = intrinsicGas
 		}
-	}
-	l.sendTx(txdata, false, candidate, queue, receiptsCh)
-	return nil
-}
-
-// sendTx uses the txmgr queue to send the given transaction candidate after setting its
-// gaslimit. It will block if the txmgr queue has reached its MaxPendingTransactions limit.
-func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue *txmgr.Queue[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
-	intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
-	if err != nil {
-		// we log instead of return an error here because txmgr can do its own gas estimation
-		l.Log.Error("Failed to calculate intrinsic gas", "err", err)
-	} else {
-		candidate.GasLimit = intrinsicGas
 	}
 
 	queue.Send(txRef{id: txdata.ID(), isCancel: isCancel, isBlob: txdata.asBlob}, *candidate, receiptsCh)

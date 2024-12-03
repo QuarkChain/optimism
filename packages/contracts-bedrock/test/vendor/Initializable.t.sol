@@ -45,6 +45,7 @@ contract Initializer_Test is CommonTest {
     function setUp() public override {
         super.enableAltDA();
         super.enableLegacyContracts();
+        super.enableSoulGasToken();
         super.setUp();
 
         // Initialize the `contracts` array with the addresses of the contracts to test, the

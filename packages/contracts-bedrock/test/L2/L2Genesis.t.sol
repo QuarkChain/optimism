@@ -169,6 +169,9 @@ contract L2GenesisTest is Test {
 
     /// @notice Tests the number of accounts in the genesis setup
     function _test_allocs_size(string memory _path) internal {
+        vm.mockCall(address(genesis.cfg()), abi.encodeCall(genesis.cfg().useSoulGasToken, ()), abi.encode(true));
+        vm.mockCall(address(genesis.cfg()), abi.encodeCall(genesis.cfg().isSoulBackedByNative, ()), abi.encode(true));
+
         genesis.cfg().setFundDevAccounts(false);
         genesis.runWithLatestLocal(_dummyL1Deps());
         genesis.writeGenesisAllocs(_path);
@@ -183,6 +186,8 @@ contract L2GenesisTest is Test {
         expected += 256; // precompiles
         // setPreinstalls function in SetPreinstalls.s.sol sets 15 preinstalls
         expected += 15; // preinstalls
+        expected += 1; // 4788 deployer account
+
         // 16 prefunded dev accounts are excluded
         assertEq(expected, getJSONKeyCount(_path), "key count check");
 

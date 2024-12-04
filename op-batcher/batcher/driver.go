@@ -861,7 +861,8 @@ func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.T
 		}
 
 	}
-	// Don't set GasLimit when inbox is contract so that later on `EstimateGas` will be called
+	// Set GasLimit as intrinstic gas if the inbox is EOA, otherwise
+	// Leave GasLimit unset when inbox is contract so that later on `EstimateGas` will be called
 	if *isEOAPointer {
 		intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, false, true, true, false)
 		if err != nil {

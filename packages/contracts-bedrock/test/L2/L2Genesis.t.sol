@@ -139,8 +139,8 @@ contract L2GenesisTest is Test {
         // 2 predeploys do not have proxies
         assertEq(getCodeCount(_path, "Proxy.sol:Proxy"), Predeploys.PREDEPLOY_COUNT - 2);
 
-        // 24 proxies have the implementation set if useInterop is true and 17 if useInterop is false
-        assertEq(getPredeployCountWithSlotSet(_path, Constants.PROXY_IMPLEMENTATION_ADDRESS), _useInterop ? 24 : 17);
+        // 25 proxies have the implementation set if useInterop is true and 18 if useInterop is false
+        assertEq(getPredeployCountWithSlotSet(_path, Constants.PROXY_IMPLEMENTATION_ADDRESS), _useInterop ? 25 : 18);
 
         // All proxies except 2 have the proxy 1967 admin slot set to the proxy admin
         assertEq(
@@ -169,16 +169,25 @@ contract L2GenesisTest is Test {
 
     /// @notice Tests the number of accounts in the genesis setup
     function _test_allocs_size(string memory _path) internal {
+        vm.mockCall(address(genesis.cfg()), abi.encodeCall(genesis.cfg().useSoulGasToken, ()), abi.encode(true));
+        vm.mockCall(address(genesis.cfg()), abi.encodeCall(genesis.cfg().isSoulBackedByNative, ()), abi.encode(true));
+
         genesis.cfg().setFundDevAccounts(false);
         genesis.runWithLatestLocal(_dummyL1Deps());
         genesis.writeGenesisAllocs(_path);
 
         uint256 expected = 0;
-        expected += 2048 - 2; // predeploy proxies
-        expected += 21; // predeploy implementations (excl. legacy erc20-style eth and legacy message sender)
+        // predeploy proxies; WETH and GovernanceToken are not behind proxies
+        expected += Predeploys.PREDEPLOY_COUNT - 2;
+        // predeploy implementations (excl. legacy erc20-style eth and legacy message sender)
+        // setPredeployImplementations function in L2Genesis.s.sol sets 20 predeploy implementations (useInterop ==
+        // false)
+        expected += 20;
         expected += 256; // precompiles
-        expected += 13; // preinstalls
+        // setPreinstalls function in SetPreinstalls.s.sol sets 15 preinstalls
+        expected += 15; // preinstalls
         expected += 1; // 4788 deployer account
+
         // 16 prefunded dev accounts are excluded
         assertEq(expected, getJSONKeyCount(_path), "key count check");
 

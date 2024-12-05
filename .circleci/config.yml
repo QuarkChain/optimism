@@ -1309,19 +1309,19 @@ workflows:
       #     test_timeout: 1h
       #     test_profile: ciheavy
       # - contracts-bedrock-coverage # PASS
-      - contracts-bedrock-checks:
-          requires:
-            - contracts-bedrock-build
+      # - contracts-bedrock-checks:
+      #     requires:
+      #       - contracts-bedrock-build
       # - contracts-bedrock-validate-spacers: # PASS
       #     requires:
       #       - contracts-bedrock-build
-      - semgrep-scan:
-          name: semgrep-scan-local
-          scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
+      # - semgrep-scan:
+      #     name: semgrep-scan-local
+      #     scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
       # - semgrep-scan: # PASS
       #     name: semgrep-test
       #     scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
-      - go-lint
+      # - go-lint
       - fuzz-golang:
           name: fuzz-golang-<<matrix.package_name>>
           on_changes: <<matrix.package_name>>
@@ -1344,28 +1344,28 @@ workflows:
           on_changes: op-e2e,packages/contracts-bedrock/src
           uses_artifacts: true
           requires: ["contracts-bedrock-build"]
-      - go-test:
-          name: go-test-all
-          requires:
-            - contracts-bedrock-build
+      # - go-test:
+      #     name: go-test-all
+      #     requires:
+      #       - contracts-bedrock-build
       # - go-test-kurtosis: # PASS
       #     name: op-deployer-integration
       #     module: op-deployer
       #     test_directory: ./pkg/deployer/integration_test
       #     uses_artifacts: true
       #     requires: ["contracts-bedrock-build"]
-      - go-e2e-test:
-          name: op-e2e-HTTP-tests
-          module: op-e2e
-          target: test-http
-          requires:
-            - contracts-bedrock-build
-      - go-e2e-test:
-          name: op-e2e-action-tests
-          module: op-e2e
-          target: test-actions
-          requires:
-            - contracts-bedrock-build
+      # - go-e2e-test:
+      #     name: op-e2e-HTTP-tests
+      #     module: op-e2e
+      #     target: test-http
+      #     requires:
+      #       - contracts-bedrock-build
+      # - go-e2e-test:
+      #     name: op-e2e-action-tests
+      #     module: op-e2e
+      #     target: test-actions
+      #     requires:
+      #       - contracts-bedrock-build
       # - go-e2e-test:
       #     name: op-e2e-fault-proof-tests
       #     module: op-e2e

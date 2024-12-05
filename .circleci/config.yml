@@ -1321,7 +1321,7 @@ workflows:
       # - semgrep-scan: # PASS
       #     name: semgrep-test
       #     scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
-      # - go-lint
+      - go-lint
       - fuzz-golang:
           name: fuzz-golang-<<matrix.package_name>>
           on_changes: <<matrix.package_name>>
@@ -1344,10 +1344,10 @@ workflows:
       #     on_changes: op-e2e,packages/contracts-bedrock/src
       #     uses_artifacts: true
       #     requires: ["contracts-bedrock-build"]
-      # - go-test:
-      #     name: go-test-all
-      #     requires:
-      #       - contracts-bedrock-build
+      - go-test:
+          name: go-test-all
+          requires:
+            - contracts-bedrock-build
       # - go-test-kurtosis: # PASS
       #     name: op-deployer-integration
       #     module: op-deployer

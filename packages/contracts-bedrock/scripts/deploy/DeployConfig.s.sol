@@ -236,6 +236,16 @@ contract DeployConfig is Script {
         useInterop = _useInterop;
     }
 
+    /// @notice Allow the `useSoulGasToken` config to be overridden in testing environments
+    function setUseSoulGasToken(bool _useSoulGasToken) public {
+        useSoulGasToken = _useSoulGasToken;
+    }
+
+    /// @notice Allow the `isSoulBackedByNative` config to be overridden in testing environments
+    function setIsSoulBackedByNative(bool _isSoulBackedByNative) public {
+        isSoulBackedByNative = _isSoulBackedByNative;
+    }
+
     /// @notice Allow the `fundDevAccounts` config to be overridden.
     function setFundDevAccounts(bool _fundDevAccounts) public {
         fundDevAccounts = _fundDevAccounts;

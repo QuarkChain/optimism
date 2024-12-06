@@ -286,7 +286,6 @@ jobs:
   check-kontrol-build:
     docker:
       - image: <<pipeline.parameters.ci_builder_image>>
-    # machine: true
     resource_class: xlarge
     steps:
       - checkout

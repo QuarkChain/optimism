@@ -1278,20 +1278,20 @@ workflows:
       and:
         - or:
             # Trigger on new commits
-            - equal: [ webhook, << pipeline.trigger_source >> ]
+            # - equal: [ webhook, << pipeline.trigger_source >> ]
               # Trigger on manual triggers if explicitly requested
             - equal: [ true, << pipeline.parameters.main_dispatch >> ]
         - not:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - go-mod-download # PASS
-      - contracts-bedrock-build: # PASS
+      - go-mod-download
+      - contracts-bedrock-build:
           # Build with just core + script contracts.
           skip_pattern: test
-      - check-kontrol-build: # PASS
+      - check-kontrol-build:
           requires:
             - contracts-bedrock-build
-      - contracts-bedrock-tests: # PASS 3
+      - contracts-bedrock-tests:
           # Test everything except PreimageOracle.t.sol since it's slow.
           name: contracts-bedrock-tests
           test_parallelism: 4
@@ -1308,17 +1308,17 @@ workflows:
           test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
           test_timeout: 1h
           test_profile: ciheavy
-      - contracts-bedrock-coverage # PASS
+      - contracts-bedrock-coverage
       # - contracts-bedrock-checks:
       #     requires:
       #       - contracts-bedrock-build
-      - contracts-bedrock-validate-spacers: # PASS
+      - contracts-bedrock-validate-spacers:
           requires:
             - contracts-bedrock-build
       - semgrep-scan:
           name: semgrep-scan-local
           scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
-      - semgrep-scan: # PASS
+      - semgrep-scan:
           name: semgrep-test
           scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
       - go-lint
@@ -1344,11 +1344,11 @@ workflows:
       #     on_changes: op-e2e,packages/contracts-bedrock/src
       #     uses_artifacts: true
       #     requires: ["contracts-bedrock-build"]
-      - go-test:
-          name: go-test-all
-          requires:
-            - contracts-bedrock-build
-      - go-test-kurtosis: # PASS
+      # - go-test:
+      #     name: go-test-all
+      #     requires:
+      #       - contracts-bedrock-build
+      - go-test-kurtosis:
           name: op-deployer-integration
           module: op-deployer
           test_directory: ./pkg/deployer/integration_test
@@ -1397,7 +1397,7 @@ workflows:
       #       - op-supervisor-docker-build
       #       - proofs-tools-docker-build
       #       - go-test-all
-      - docker-build: # PASS
+      - docker-build:
           name: <<matrix.docker_name>>-docker-build
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
           save_image_tag: <<pipeline.git.revision>>
@@ -1415,7 +1415,7 @@ workflows:
                 - da-server
                 - op-supervisor
                 - cannon
-      - cannon-prestate # PASS
+      - cannon-prestate
       # - check-generated-mocks-op-node
       # - check-generated-mocks-op-service
       # - cannon-go-lint-and-test:

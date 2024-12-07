@@ -153,7 +153,7 @@ commands:
 jobs:
   cannon-go-lint-and-test:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     parameters:
       skip_slow_tests:
         type: boolean
@@ -241,7 +241,7 @@ jobs:
 
   contracts-bedrock-build:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     parameters:
       skip_pattern:
         description: Glob pattern of tests to skip
@@ -754,7 +754,7 @@ jobs:
         type: boolean
         default: false
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - check-changed:
@@ -769,7 +769,7 @@ jobs:
 
   go-lint:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - run:
@@ -837,7 +837,7 @@ jobs:
 
   go-test:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - attach_workspace:
@@ -898,7 +898,7 @@ jobs:
       resource_class:
         description: Machine resource class
         type: string
-        default: ethereum-optimism/latitude-1
+        default: swc/ax101
       skip_slow_tests:
         description: Indicates that slow tests should be skipped
         type: boolean
@@ -952,7 +952,7 @@ jobs:
 
   cannon-prestate:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - run:
@@ -1037,7 +1037,7 @@ jobs:
     parameters:
       diff_branch:
         type: string
-        default: develop
+        default: op-es
       scan_command:
         type: string
         default: semgrep ci --timeout=100
@@ -1053,7 +1053,7 @@ jobs:
       - checkout
       - unless:
           condition:
-            equal: [ "develop", << pipeline.git.branch >> ]
+            equal: [ "op-es", << pipeline.git.branch >> ]
           steps:
             - run:
                 # Scan changed files in PRs, block on new issues only (existing issues ignored)
@@ -1277,60 +1277,60 @@ workflows:
       and:
         - or:
             # Trigger on new commits
-            - equal: [ webhook, << pipeline.trigger_source >> ]
+            # - equal: [ webhook, << pipeline.trigger_source >> ]
               # Trigger on manual triggers if explicitly requested
             - equal: [ true, << pipeline.parameters.main_dispatch >> ]
         - not:
             equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - go-mod-download
-      # - contracts-bedrock-build:
-      #     # Build with just core + script contracts.
-      #     skip_pattern: test
-      # - check-kontrol-build:
-      #     requires:
-      #       - contracts-bedrock-build
-      # - contracts-bedrock-tests:
-      #     # Test everything except PreimageOracle.t.sol since it's slow.
-      #     name: contracts-bedrock-tests
-      #     test_parallelism: 4
-      #     test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
-      # - contracts-bedrock-tests:
-      #     # PreimageOracle test is slow, run it separately to unblock CI.
-      #     name: contracts-bedrock-tests-preimage-oracle
-      #     test_parallelism: 1
-      #     test_list: find test -name "PreimageOracle.t.sol"
-      # - contracts-bedrock-tests:
-      #     # Heavily fuzz any fuzz tests within added or modified test files.
-      #     name: contracts-bedrock-tests-heavy-fuzz-modified
-      #     test_parallelism: 1
-      #     test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
-      #     test_timeout: 1h
-      #     test_profile: ciheavy
-      # - contracts-bedrock-coverage
+      - contracts-bedrock-build:
+          # Build with just core + script contracts.
+          skip_pattern: test
+      - check-kontrol-build:
+          requires:
+            - contracts-bedrock-build
+      - contracts-bedrock-tests:
+          # Test everything except PreimageOracle.t.sol since it's slow.
+          name: contracts-bedrock-tests
+          test_parallelism: 4
+          test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
+      - contracts-bedrock-tests:
+          # PreimageOracle test is slow, run it separately to unblock CI.
+          name: contracts-bedrock-tests-preimage-oracle
+          test_parallelism: 1
+          test_list: find test -name "PreimageOracle.t.sol"
+      - contracts-bedrock-tests:
+          # Heavily fuzz any fuzz tests within added or modified test files.
+          name: contracts-bedrock-tests-heavy-fuzz-modified
+          test_parallelism: 1
+          test_list: git diff origin/develop...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+          test_timeout: 1h
+          test_profile: ciheavy
+      - contracts-bedrock-coverage
       # - contracts-bedrock-checks:
       #     requires:
       #       - contracts-bedrock-build
-      # - contracts-bedrock-validate-spacers:
-      #     requires:
-      #       - contracts-bedrock-build
-      # - semgrep-scan:
-      #     name: semgrep-scan-local
-      #     scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
-      # - semgrep-scan:
-      #     name: semgrep-test
-      #     scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
-      # - go-lint
-      # - fuzz-golang:
-      #     name: fuzz-golang-<<matrix.package_name>>
-      #     on_changes: <<matrix.package_name>>
-      #     matrix:
-      #       parameters:
-      #         package_name:
-      #           - op-challenger
-      #           - op-node
-      #           - op-service
-      #           - op-chain-ops
+      - contracts-bedrock-validate-spacers:
+          requires:
+            - contracts-bedrock-build
+      - semgrep-scan:
+          name: semgrep-scan-local
+          scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
+      - semgrep-scan:
+          name: semgrep-test
+          scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
+      - go-lint
+      - fuzz-golang:
+          name: fuzz-golang-<<matrix.package_name>>
+          on_changes: <<matrix.package_name>>
+          matrix:
+            parameters:
+              package_name:
+                - op-challenger
+                - op-node
+                - op-service
+                - op-chain-ops
       # - fuzz-golang:
       #     name: cannon-fuzz
       #     package_name: cannon
@@ -1347,12 +1347,12 @@ workflows:
       #     name: go-test-all
       #     requires:
       #       - contracts-bedrock-build
-      # - go-test-kurtosis:
-      #     name: op-deployer-integration
-      #     module: op-deployer
-      #     test_directory: ./pkg/deployer/integration_test
-      #     uses_artifacts: true
-      #     requires: ["contracts-bedrock-build"]
+      - go-test-kurtosis:
+          name: op-deployer-integration
+          module: op-deployer
+          test_directory: ./pkg/deployer/integration_test
+          uses_artifacts: true
+          requires: ["contracts-bedrock-build"]
       # - go-e2e-test:
       #     name: op-e2e-HTTP-tests
       #     module: op-e2e
@@ -1396,25 +1396,25 @@ workflows:
       #       - op-supervisor-docker-build
       #       - proofs-tools-docker-build
       #       - go-test-all
-      # - docker-build:
-      #     name: <<matrix.docker_name>>-docker-build
-      #     docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-      #     save_image_tag: <<pipeline.git.revision>>
-      #     matrix:
-      #       parameters:
-      #         docker_name:
-      #           - op-node
-      #           - op-batcher
-      #           - op-program
-      #           - op-proposer
-      #           - op-challenger
-      #           - proofs-tools
-      #           - op-dispute-mon
-      #           - op-conductor
-      #           - da-server
-      #           - op-supervisor
-      #           - cannon
-      # - cannon-prestate
+      - docker-build:
+          name: <<matrix.docker_name>>-docker-build
+          docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
+          save_image_tag: <<pipeline.git.revision>>
+          matrix:
+            parameters:
+              docker_name:
+                - op-node
+                - op-batcher
+                - op-program
+                - op-proposer
+                - op-challenger
+                - proofs-tools
+                - op-dispute-mon
+                - op-conductor
+                - da-server
+                - op-supervisor
+                - cannon
+      - cannon-prestate
       # - check-generated-mocks-op-node
       # - check-generated-mocks-op-service
       # - cannon-go-lint-and-test:

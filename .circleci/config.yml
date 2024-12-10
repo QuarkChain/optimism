@@ -866,7 +866,7 @@ jobs:
             done
 
             export ENABLE_ANVIL=true
-            export SEPOLIA_RPC_URL="https://ci-sepolia-l1-archive.optimism.io"
+            export SEPOLIA_RPC_URL="http://88.99.30.186:8545"
 
             gotestsum --format=testname \
               --junitfile=./tmp/test-results/results.xml \
@@ -1343,10 +1343,10 @@ workflows:
       #     on_changes: op-e2e,packages/contracts-bedrock/src
       #     uses_artifacts: true
       #     requires: ["contracts-bedrock-build"]
-      # - go-test:
-      #     name: go-test-all
-      #     requires:
-      #       - contracts-bedrock-build
+      - go-test:
+          name: go-test-all
+          requires:
+            - contracts-bedrock-build
       - go-test-kurtosis:
           name: op-deployer-integration
           module: op-deployer

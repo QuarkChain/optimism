@@ -115,7 +115,8 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 		},
 		ConductorRpcTimeout: ctx.Duration(flags.ConductorRpcTimeoutFlag.Name),
 
-		AltDA: altda.ReadCLIConfig(ctx),
+		AltDA:     altda.ReadCLIConfig(ctx),
+		DACConfig: node.ReadDACConfigFromCLI(ctx),
 	}
 
 	if err := cfg.LoadPersisted(log); err != nil {

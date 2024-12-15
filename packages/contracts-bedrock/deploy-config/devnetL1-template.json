@@ -49,6 +49,7 @@
   "l2GenesisEcotoneTimeOffset": "0x0",
   "l2GenesisFjordTimeOffset": "0x0",
   "l2GenesisGraniteTimeOffset": "0x0",
+  "l2GenesisBlobTimeOffset": "0x0",
   "l1CancunTimeOffset": "0x0",
   "systemConfigStartBlock": 0,
   "requiredProtocolVersion": "0x0000000000000000000000000000000000000000000000000000000000000001",
@@ -72,5 +73,7 @@
   "daChallengeWindow": 16,
   "daResolveWindow": 16,
   "daBondSize": 1000000,
+  "useSoulGasToken": true,
+  "isSoulBackedByNative": true,
   "daResolverRefundPercentage": 0
 }

@@ -43,6 +43,10 @@ type ExecEngine interface {
 	L2BlockRefByLabel(ctx context.Context, label eth.BlockLabel) (eth.L2BlockRef, error)
 }
 
+type DACClient interface {
+	UploadBlobs(context.Context, *eth.ExecutionPayloadEnvelope) error
+}
+
 type EngineController struct {
 	engine     ExecEngine // Underlying execution engine RPC
 	log        log.Logger

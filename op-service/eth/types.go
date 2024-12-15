@@ -204,8 +204,9 @@ type (
 )
 
 type ExecutionPayloadEnvelope struct {
-	ParentBeaconBlockRoot *common.Hash      `json:"parentBeaconBlockRoot,omitempty"`
-	ExecutionPayload      *ExecutionPayload `json:"executionPayload"`
+	ParentBeaconBlockRoot *common.Hash          `json:"parentBeaconBlockRoot,omitempty"`
+	ExecutionPayload      *ExecutionPayload     `json:"executionPayload"`
+	BlobsBundle           *engine.BlobsBundleV1 `json:"blobsBundle"`
 }
 
 type ExecutionPayload struct {
@@ -281,6 +282,8 @@ func (envelope *ExecutionPayloadEnvelope) CheckBlockHash() (actual common.Hash, 
 		Nonce:            types.BlockNonce{}, // zeroed, proof-of-work legacy
 		BaseFee:          (*uint256.Int)(&payload.BaseFeePerGas).ToBig(),
 		ParentBeaconRoot: envelope.ParentBeaconBlockRoot,
+		BlobGasUsed:      (*uint64)(payload.BlobGasUsed),
+		ExcessBlobGas:    (*uint64)(payload.ExcessBlobGas),
 	}
 
 	if payload.CanyonBlock() {

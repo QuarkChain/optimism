@@ -120,6 +120,8 @@ func (s *EngineAPIClient) NewPayload(ctx context.Context, payload *eth.Execution
 	var err error
 	switch method := s.evp.NewPayloadVersion(uint64(payload.Timestamp)); method {
 	case eth.NewPayloadV3:
+		// now we pass empty array to skip checking versionedHashes
+		// TODO: sync with OP upstream once they support L2 blob tx
 		err = s.RPC.CallContext(execCtx, &result, string(method), payload, []common.Hash{}, parentBeaconBlockRoot)
 	case eth.NewPayloadV2:
 		err = s.RPC.CallContext(execCtx, &result, string(method), payload)

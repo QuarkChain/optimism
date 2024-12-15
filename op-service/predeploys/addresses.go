@@ -25,6 +25,7 @@ const (
 	L1FeeVault                    = "0x420000000000000000000000000000000000001a"
 	SchemaRegistry                = "0x4200000000000000000000000000000000000020"
 	EAS                           = "0x4200000000000000000000000000000000000021"
+	SoulGasToken                  = "0x4200000000000000000000000000000000000800"
 	CrossL2Inbox                  = "0x4200000000000000000000000000000000000022"
 	L2toL2CrossDomainMessenger    = "0x4200000000000000000000000000000000000023"
 	SuperchainWETH                = "0x4200000000000000000000000000000000000024"
@@ -65,6 +66,7 @@ var (
 	L1FeeVaultAddr                    = common.HexToAddress(L1FeeVault)
 	SchemaRegistryAddr                = common.HexToAddress(SchemaRegistry)
 	EASAddr                           = common.HexToAddress(EAS)
+	SoulGasTokenAddr                  = common.HexToAddress(SoulGasToken)
 	CrossL2InboxAddr                  = common.HexToAddress(CrossL2Inbox)
 	L2toL2CrossDomainMessengerAddr    = common.HexToAddress(L2toL2CrossDomainMessenger)
 	SuperchainWETHAddr                = common.HexToAddress(SuperchainWETH)
@@ -119,6 +121,7 @@ func init() {
 	Predeploys["L1FeeVault"] = &Predeploy{Address: L1FeeVaultAddr}
 	Predeploys["SchemaRegistry"] = &Predeploy{Address: SchemaRegistryAddr}
 	Predeploys["EAS"] = &Predeploy{Address: EASAddr}
+	Predeploys["SoulGasToken"] = &Predeploy{Address: SoulGasTokenAddr}
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,
 		ProxyDisabled: true,

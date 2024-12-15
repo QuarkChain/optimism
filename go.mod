@@ -17,6 +17,7 @@ require (
 	github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3
 	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241126105717-d31591e83048
 	github.com/ethereum/go-ethereum v1.14.11
+	github.com/ethstorage/da-server v0.0.0-20240925084712-169d238000e5
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/go-cmp v0.6.0
@@ -251,9 +252,9 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101411.3-rc.1.0.20241126165630-b84907bf4d95
+replace github.com/ethereum/go-ethereum => github.com/ethstorage/op-geth v0.0.0-20241215102240-7b4b3277d4ad
 
-//replace github.com/ethereum/go-ethereum => ../go-ethereum
+// replace github.com/ethereum/go-ethereum => ../op-geth
 
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 

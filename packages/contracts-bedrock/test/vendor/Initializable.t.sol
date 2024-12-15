@@ -45,6 +45,7 @@ contract Initializer_Test is CommonTest {
     function setUp() public override {
         super.enableAltDA();
         super.enableLegacyContracts();
+        super.enableSoulGasToken();
         super.setUp();
 
         // Initialize the `contracts` array with the addresses of the contracts to test, the
@@ -264,6 +265,14 @@ contract Initializer_Test is CommonTest {
                 name: "L2CrossDomainMessenger",
                 target: address(l2CrossDomainMessenger),
                 initCalldata: abi.encodeCall(l2CrossDomainMessenger.initialize, (l1CrossDomainMessenger))
+            })
+        );
+        // SoulGasToken
+        contracts.push(
+            InitializeableContract({
+                name: "SoulGasToken",
+                target: address(soulGasToken),
+                initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
             })
         );
         // L1StandardBridgeImpl

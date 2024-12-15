@@ -32,6 +32,8 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
+import { SoulGasToken } from "src/L2/SoulGasToken.sol";
+
 struct L1Dependencies {
     address payable l1CrossDomainMessengerProxy;
     address payable l1StandardBridgeProxy;
@@ -268,6 +270,7 @@ contract L2Genesis is Deployer {
         // 1B,1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
+        if (cfg.useSoulGasToken()) setSoulGasToken(); // 800
         setGovernanceToken(); // 42: OP (not behind a proxy)
         if (cfg.useInterop()) {
             setCrossL2Inbox(); // 22
@@ -294,6 +297,44 @@ contract L2Genesis is Deployer {
 
     function setL2ToL1MessagePasser() public {
         _setImplementationCode(Predeploys.L2_TO_L1_MESSAGE_PASSER);
+    }
+
+    /// @notice This predeploy is following the safety invariant #2.
+    function setSoulGasToken() public {
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.SOUL_GAS_TOKEN);
+        console.log(
+            "Setting %s implementation at: %s, isSoulBackedByNative:%d",
+            "SoulGasToken",
+            impl,
+            cfg.isSoulBackedByNative()
+        );
+        SoulGasToken token;
+        if (cfg.isSoulBackedByNative()) {
+            token = new SoulGasToken({ _isBackedByNative: true });
+        } else {
+            token = new SoulGasToken({ _isBackedByNative: false });
+        }
+        vm.etch(impl, address(token).code);
+
+        /// Reset so its not included state dump
+        vm.etch(address(token), "");
+        vm.resetNonce(address(token));
+
+        if (cfg.isSoulBackedByNative()) {
+            SoulGasToken(impl).initialize({ _name: "", _symbol: "", _owner: cfg.proxyAdminOwner() });
+            SoulGasToken(Predeploys.SOUL_GAS_TOKEN).initialize({
+                _name: "QKC",
+                _symbol: "QKC",
+                _owner: cfg.proxyAdminOwner()
+            });
+        } else {
+            SoulGasToken(impl).initialize({ _name: "", _symbol: "", _owner: cfg.proxyAdminOwner() });
+            SoulGasToken(Predeploys.SOUL_GAS_TOKEN).initialize({
+                _name: "QKC",
+                _symbol: "QKC",
+                _owner: cfg.proxyAdminOwner()
+            });
+        }
     }
 
     /// @notice This predeploy is following the safety invariant #1.

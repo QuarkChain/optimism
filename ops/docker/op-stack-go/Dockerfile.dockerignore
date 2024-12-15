@@ -18,6 +18,7 @@
 !/op-supervisor
 !/op-wheel
 !/op-alt-da
+!/da-server
 !/go.mod
 !/go.sum
 !/just

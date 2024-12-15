@@ -372,6 +372,12 @@ var (
 		Value:    time.Second * 1,
 		Category: SequencerCategory,
 	}
+	DACUrlsFlag = &cli.StringFlag{
+		Name:     "dac.urls",
+		Usage:    "dac urls for sequencer when l2 blob is enabled",
+		EnvVars:  prefixEnvVars("DAC_URLS"),
+		Category: SequencerCategory,
+	}
 )
 
 var requiredFlags = []cli.Flag{
@@ -419,6 +425,7 @@ var optionalFlags = []cli.Flag{
 	ConductorRpcTimeoutFlag,
 	SafeDBPath,
 	L2EngineKind,
+	DACUrlsFlag,
 }
 
 var DeprecatedFlags = []cli.Flag{

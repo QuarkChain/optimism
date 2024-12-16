@@ -628,7 +628,7 @@ jobs:
 
   contracts-bedrock-tests:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     parameters:
       test_list:
         description: List of test files to run
@@ -716,7 +716,7 @@ jobs:
 
   contracts-bedrock-checks:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: swc/ax101
     steps:
       - checkout
       - attach_workspace: { at: "." }
@@ -809,116 +809,6 @@ jobs:
 
   go-tests:
     parameters:
-<<<<<<< HEAD
-=======
-      module:
-        description: Go Module Name
-        type: string
-      uses_artifacts:
-        description: Uses contract artifacts
-        type: boolean
-        default: false
-      test_directory:
-        description: Test directory
-        type: string
-        default: "./..."
-    machine:
-      image: <<pipeline.parameters.base_image>>
-    resource_class: xlarge
-    steps:
-      - run:
-          name: Install components
-          command: |
-            go version
-            go install gotest.tools/gotestsum@v1.11.0
-      - run:
-          name: Install Kurtosis
-          command: |
-            echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
-            sudo apt update
-            sudo apt install kurtosis-cli=1.4.0
-            kurtosis engine start
-      - checkout
-      - when:
-          condition: <<parameters.uses_artifacts>>
-          steps:
-            - attach_workspace: { at: "." }
-      - run:
-          name: prep results dir
-          command: |
-            # Make sure the workspace is properly owned
-            mkdir -p ./tmp/test-results
-            mkdir -p ./tmp/testlogs
-      - run:
-          name: run tests
-          command: |
-            ENABLE_KURTOSIS=true gotestsum \
-              --format=testname \
-              --junitfile=../tmp/test-results/<<parameters.module>>.xml \
-              --jsonfile=../tmp/testlogs/log.json \
-              -- -parallel=$(nproc) \
-              -coverpkg=github.com/ethereum-optimism/optimism/... \
-              -coverprofile=coverage.out <<parameters.test_directory>>
-          working_directory: <<parameters.module>>
-      - store_test_results:
-          path: tmp/test-results
-      - store_artifacts:
-          path: tmp/testlogs
-          when: always
-
-  go-test:
-    machine: true
-    resource_class: swc/ax101
-    steps:
-      - checkout
-      - attach_workspace:
-          at: "."
-      - run:
-          name: run tests
-          command: |
-            mkdir -p ./tmp/test-results && mkdir -p ./tmp/testlogs
-
-            packages=(
-              op-batcher
-              op-chain-ops
-              op-node
-              op-proposer
-              op-challenger
-              op-dispute-mon
-              op-conductor
-              op-program
-              op-service
-              op-supervisor
-              op-deployer
-            )
-            formatted_packages=""
-            for package in "${packages[@]}"; do
-              formatted_packages="$formatted_packages ./$package/..."
-            done
-
-            export ENABLE_ANVIL=true
-            export SEPOLIA_RPC_URL="http://88.99.30.186:8545"
-
-            gotestsum --format=testname \
-              --junitfile=./tmp/test-results/results.xml \
-              --jsonfile=./tmp/testlogs/log.json \
-              -- -coverpkg=github.com/ethereum-optimism/optimism/... \
-              -coverprofile=coverage.out $formatted_packages
-      - store_test_results:
-          path: ./tmp/test-results
-      - store_artifacts:
-          path: ./tmp/testlogs
-          when: always
-
-  go-e2e-test:
-    parameters:
-      module:
-        description: Go Module Name
-        type: string
-      target:
-        description: The make target to execute
-        type: string
->>>>>>> op-es
       notify:
         description: Whether to notify on failure
         type: boolean
@@ -930,8 +820,7 @@ jobs:
       resource_class:
         description: Machine resource class
         type: string
-<<<<<<< HEAD
-        default: ethereum-optimism/latitude-1-go-e2e
+        default: swc/ax101
       no_output_timeout:
         description: Timeout for when CircleCI kills the job if there's no output
         type: string
@@ -947,13 +836,6 @@ jobs:
       packages:
         description: List of packages to test
         type: string
-=======
-        default: swc/ax101
-      skip_slow_tests:
-        description: Indicates that slow tests should be skipped
-        type: boolean
-        default: false
->>>>>>> op-es
     machine: true
     resource_class: <<parameters.resource_class>>
     steps:
@@ -1112,11 +994,7 @@ jobs:
       - checkout
       - unless:
           condition:
-<<<<<<< HEAD
-            equal: ["develop", << pipeline.git.branch >>]
-=======
             equal: [ "op-es", << pipeline.git.branch >> ]
->>>>>>> op-es
           steps:
             - run:
                 # Scan changed files in PRs, block on new issues only (existing issues ignored)
@@ -1353,11 +1231,7 @@ workflows:
       and:
         - or:
             # Trigger on new commits
-<<<<<<< HEAD
-            - equal: [webhook, << pipeline.trigger_source >>]
-=======
             # - equal: [ webhook, << pipeline.trigger_source >> ]
->>>>>>> op-es
               # Trigger on manual triggers if explicitly requested
             - equal: [true, << pipeline.parameters.main_dispatch >>]
         - not:
@@ -1374,41 +1248,24 @@ workflows:
       - check-kontrol-build:
           requires:
             - contracts-bedrock-build
-      - contracts-bedrock-tests:
-          # Test everything except PreimageOracle.t.sol since it's slow.
-          name: contracts-bedrock-tests
-          test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
-      - contracts-bedrock-tests:
-          # PreimageOracle test is slow, run it separately to unblock CI.
-          name: contracts-bedrock-tests-preimage-oracle
-          test_list: find test -name "PreimageOracle.t.sol"
-<<<<<<< HEAD
-      - contracts-bedrock-tests:
-          # Heavily fuzz any fuzz tests within added or modified test files.
-          name: contracts-bedrock-tests-heavy-fuzz-modified
-          test_list: git diff origin/develop...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
-          test_timeout: 1h
-          test_profile: ciheavy
-      - contracts-bedrock-checks:
-          requires:
-            - contracts-bedrock-build
-      - diff-asterisc-bytecode
-=======
+      # - contracts-bedrock-tests:
+      #     # Test everything except PreimageOracle.t.sol since it's slow.
+      #     name: contracts-bedrock-tests
+      #     test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
+      # - contracts-bedrock-tests:
+      #     # PreimageOracle test is slow, run it separately to unblock CI.
+      #     name: contracts-bedrock-tests-preimage-oracle
+      #     test_list: find test -name "PreimageOracle.t.sol"
       # - contracts-bedrock-tests:
       #     # Heavily fuzz any fuzz tests within added or modified test files.
       #     name: contracts-bedrock-tests-heavy-fuzz-modified
-      #     test_parallelism: 1
-      #     test_list: git diff origin/op-es...HEAD --name-only -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+      #     test_list: git diff origin/develop...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
       #     test_timeout: 1h
       #     test_profile: ciheavy
-      - contracts-bedrock-coverage
       # - contracts-bedrock-checks:
       #     requires:
       #       - contracts-bedrock-build
-      - contracts-bedrock-validate-spacers:
-          requires:
-            - contracts-bedrock-build
->>>>>>> op-es
+      # - diff-asterisc-bytecode
       - semgrep-scan:
           name: semgrep-scan-local
           scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
@@ -1426,19 +1283,18 @@ workflows:
                 - op-node
                 - op-service
                 - op-chain-ops
-<<<<<<< HEAD
-      - fuzz-golang:
-          name: cannon-fuzz
-          package_name: cannon
-          on_changes: cannon,packages/contracts-bedrock/src/cannon
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
-      - fuzz-golang:
-          name: op-e2e-fuzz
-          package_name: op-e2e
-          on_changes: op-e2e,packages/contracts-bedrock/src
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
+      # - fuzz-golang:
+      #     name: cannon-fuzz
+      #     package_name: cannon
+      #     on_changes: cannon,packages/contracts-bedrock/src/cannon
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
+      # - fuzz-golang:
+      #     name: op-e2e-fuzz
+      #     package_name: op-e2e
+      #     on_changes: op-e2e,packages/contracts-bedrock/src
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
       - go-tests:
           packages: |
             op-batcher
@@ -1462,68 +1318,6 @@ workflows:
           requires:
             - contracts-bedrock-build
             - cannon-prestate
-      - op-program-compat
-      - bedrock-go-tests:
-          requires:
-            - go-mod-download
-            - go-lint
-            - cannon-build-test-vectors
-            - cannon-go-lint-and-test-32-bit
-            - cannon-go-lint-and-test-64-bit
-            - check-generated-mocks-op-node
-            - check-generated-mocks-op-service
-            - go-mod-download
-            - op-program-compat
-            # Not needed for the devnet but we want to make sure they build successfully
-            - cannon-docker-build
-            - op-dispute-mon-docker-build
-            - op-program-docker-build
-            - op-supervisor-docker-build
-            - proofs-tools-docker-build
-            - go-tests
-=======
-      # - fuzz-golang:
-      #     name: cannon-fuzz
-      #     package_name: cannon
-      #     on_changes: cannon,packages/contracts-bedrock/src/cannon
-      #     uses_artifacts: true
-      #     requires: ["contracts-bedrock-build"]
-      # - fuzz-golang:
-      #     name: op-e2e-fuzz
-      #     package_name: op-e2e
-      #     on_changes: op-e2e,packages/contracts-bedrock/src
-      #     uses_artifacts: true
-      #     requires: ["contracts-bedrock-build"]
-      - go-test:
-          name: go-test-all
-          requires:
-            - contracts-bedrock-build
-      - go-test-kurtosis:
-          name: op-deployer-integration
-          module: op-deployer
-          test_directory: ./pkg/deployer/integration_test
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
-      # - go-e2e-test:
-      #     name: op-e2e-HTTP-tests
-      #     module: op-e2e
-      #     target: test-http
-      #     requires:
-      #       - contracts-bedrock-build
-      # - go-e2e-test:
-      #     name: op-e2e-action-tests
-      #     module: op-e2e
-      #     target: test-actions
-      #     requires:
-      #       - contracts-bedrock-build
-      # - go-e2e-test:
-      #     name: op-e2e-fault-proof-tests
-      #     module: op-e2e
-      #     target: test-fault-proofs
-      #     skip_slow_tests: true
-      #     requires:
-      #       - contracts-bedrock-build
-      #       - cannon-prestate
       # - op-program-compat
       # - bedrock-go-tests:
       #     requires:
@@ -1535,19 +1329,14 @@ workflows:
       #       - check-generated-mocks-op-node
       #       - check-generated-mocks-op-service
       #       - go-mod-download
-      #       - op-deployer-integration
       #       - op-program-compat
-      #       - op-e2e-HTTP-tests
-      #       - op-e2e-fault-proof-tests
-      #       - op-e2e-action-tests
       #       # Not needed for the devnet but we want to make sure they build successfully
       #       - cannon-docker-build
       #       - op-dispute-mon-docker-build
       #       - op-program-docker-build
       #       - op-supervisor-docker-build
       #       - proofs-tools-docker-build
-      #       - go-test-all
->>>>>>> op-es
+      #       - go-tests
       - docker-build:
           name: <<matrix.docker_name>>-docker-build
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
@@ -1567,28 +1356,6 @@ workflows:
                 - op-supervisor
                 - cannon
       - cannon-prestate
-<<<<<<< HEAD
-      - check-generated-mocks-op-node
-      - check-generated-mocks-op-service
-      - cannon-go-lint-and-test:
-          name: cannon-go-lint-and-test-<<matrix.mips_word_size>>-bit
-          requires:
-            - contracts-bedrock-build
-          skip_slow_tests: true
-          notify: true
-          matrix:
-            parameters:
-              mips_word_size: [32, 64]
-      - cannon-build-test-vectors
-      - todo-issues:
-          name: todo-issues-check
-          check_closed: false
-      - shellcheck/check:
-          name: shell-check
-          # We don't need the `exclude` key as the orb detects the `.shellcheckrc`
-          dir: .
-          ignore-dirs: ./packages/contracts-bedrock/lib
-=======
       # - check-generated-mocks-op-node
       # - check-generated-mocks-op-service
       # - cannon-go-lint-and-test:
@@ -1599,7 +1366,7 @@ workflows:
       #     notify: true
       #     matrix:
       #       parameters:
-      #         mips_word_size: [ 32, 64 ]
+      #         mips_word_size: [32, 64]
       # - cannon-build-test-vectors
       # - todo-issues:
       #     name: todo-issues-check
@@ -1608,9 +1375,7 @@ workflows:
       #     name: shell-check
       #     # We don't need the `exclude` key as the orb detects the `.shellcheckrc`
       #     dir: .
-      #     ignore-dirs:
-      #       ./packages/contracts-bedrock/lib
->>>>>>> op-es
+      #     ignore-dirs: ./packages/contracts-bedrock/lib
 
   # go-release-deployer:
   #   jobs:
@@ -1624,273 +1389,10 @@ workflows:
   #         context:
   #           - oplabs-gcr-release
 
-<<<<<<< HEAD
-  release:
-    when:
-      not:
-        equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-    jobs:
-      # Wait for approval on the release
-      - hold:
-          type: approval
-          filters:
-            tags:
-              only: /^(da-server|ci-builder(-rust)?|proofs-tools|cannon|ufm-[a-z0-9\-]*|op-[a-z0-9\-]*)\/v.*/
-            branches:
-              ignore: /.*/
-      # Standard (medium) cross-platform docker images go here
-      - docker-build:
-          matrix:
-            parameters:
-              docker_name:
-                - op-node
-                - op-batcher
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - da-server
-                - op-ufm
-                - op-supervisor
-                - op-deployer
-                - cannon
-          name: <<matrix.docker_name>>-docker-release
-          docker_tags: <<pipeline.git.revision>>
-          platforms: "linux/amd64,linux/arm64"
-          publish: true
-          release: true
-          filters:
-            tags:
-              only: /^<<matrix.docker_name>>\/v.*/
-            branches:
-              ignore: /.*/
-          context:
-            - oplabs-gcr-release
-          requires:
-            - hold
-      # Checks for cross-platform images go here
-      - check-cross-platform:
-          matrix:
-            parameters:
-              op_component:
-                - op-node
-                - op-batcher
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - da-server
-                - op-ufm
-                - op-supervisor
-                - op-deployer
-                - cannon
-          name: <<matrix.op_component>>-cross-platform
-          requires:
-            - op-node-docker-release
-            - op-batcher-docker-release
-            - op-proposer-docker-release
-            - op-challenger-docker-release
-            - op-dispute-mon-docker-release
-            - op-conductor-docker-release
-            - da-server-docker-release
-            - op-ufm-docker-release
-            - op-supervisor-docker-release
-            - cannon-docker-release
-      # Standard (xlarge) AMD-only docker images go here
-      - docker-build:
-          matrix:
-            parameters:
-              docker_name:
-                - ci-builder
-                - ci-builder-rust
-                - proofs-tools
-          name: <<matrix.docker_name>>-docker-release
-          resource_class: xlarge
-          docker_tags: <<pipeline.git.revision>>
-          publish: true
-          release: true
-          filters:
-            tags:
-              only: /^<<matrix.docker_name>>\/v.*/
-            branches:
-              ignore: /.*/
-          context:
-            - oplabs-gcr-release
-          requires:
-            - hold
-
-  scheduled-todo-issues:
-    when:
-      equal: [build_four_hours, <<pipeline.schedule.name>>]
-    jobs:
-      - todo-issues:
-          name: todo-issue-checks
-          context:
-            - slack
-
-  scheduled-fpp:
-    when:
-      equal: [build_hourly, <<pipeline.schedule.name>>]
-    jobs:
-      - fpp-verify:
-          context:
-            - slack
-            - oplabs-fpp-nodes
-
-  develop-publish-contract-artifacts:
-    when:
-      or:
-        - equal: ["develop", <<pipeline.git.branch>>]
-        - equal:
-            [true, <<pipeline.parameters.publish_contract_artifacts_dispatch>>]
-    jobs:
-      - publish-contract-artifacts
-
-  develop-forge-coverage:
-    when:
-      and:
-        - or:
-            - equal: ["develop", <<pipeline.git.branch>>]
-            - equal: [true, <<pipeline.parameters.contracts_coverage_dispatch>>]
-        - not:
-            equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-    jobs:
-      - contracts-bedrock-coverage
-
-  develop-fault-proofs:
-    when:
-      and:
-        - or:
-            - equal: ["develop", <<pipeline.git.branch>>]
-            - equal: [true, <<pipeline.parameters.fault_proofs_dispatch>>]
-        - not:
-            equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-    jobs:
-      - go-mod-download
-      - cannon-prestate
-      - cannon-stf-verify:
-          requires:
-            - go-mod-download
-          context:
-            - slack
-      - contracts-bedrock-build:
-          build_args: --deny-warnings --skip test
-          context:
-            - slack
-      - go-tests:
-          name: op-e2e-cannon-tests
-          notify: true
-          mentions: "@proofs-team"
-          no_output_timeout: 60m
-          test_timeout: 59m
-          resource_class: ethereum-optimism/latitude-fps-1
-          environment_overrides: |
-            export OP_E2E_CANNON_ENABLED="true"
-          packages: |
-            op-e2e/faultproofs
-          context:
-            - slack
-
-  develop-kontrol-tests:
-    when:
-      and:
-        - or:
-            - equal: ["develop", <<pipeline.git.branch>>]
-            - equal: [true, <<pipeline.parameters.kontrol_dispatch>>]
-        - not:
-            equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-    jobs:
-      - kontrol-tests:
-          context:
-            - slack
-            - runtimeverification
-
-  scheduled-cannon-full-tests:
-    when:
-      or:
-        - equal: [build_four_hours, <<pipeline.schedule.name>>]
-        - equal: [true, << pipeline.parameters.cannon_full_test_dispatch >>]
-    jobs:
-      - contracts-bedrock-build:
-          build_args: --deny-warnings --skip test
-      - cannon-go-lint-and-test:
-          name: cannon-go-lint-and-test-<<matrix.mips_word_size>>-bit
-          requires:
-            - contracts-bedrock-build
-          context:
-            - slack
-          matrix:
-            parameters:
-              mips_word_size: [32, 64]
-
-  scheduled-docker-publish:
-    when:
-      or:
-        - equal: [build_hourly, <<pipeline.schedule.name>>]
-        # Trigger on manual triggers if explicitly requested
-        - equal: [true, << pipeline.parameters.docker_publish_dispatch >>]
-    jobs:
-      - docker-build:
-          matrix:
-            parameters:
-              docker_name:
-                - op-node
-                - op-batcher
-                - op-program
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - op-supervisor
-                - cannon
-          name: <<matrix.docker_name>>-docker-publish
-          docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-          platforms: "linux/amd64,linux/arm64"
-          publish: true
-          context:
-            - oplabs-gcr
-            - slack
-      - check-cross-platform:
-          matrix:
-            parameters:
-              op_component:
-                - op-node
-                - op-batcher
-                - op-program
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - op-supervisor
-                - cannon
-          name: <<matrix.op_component>>-cross-platform
-          requires:
-            - <<matrix.op_component>>-docker-publish
-
-  scheduled-preimage-reproducibility:
-    when:
-      or:
-        - equal: [build_daily, <<pipeline.schedule.name>>]
-        # Trigger on manual triggers if explicitly requested
-        - equal: [true, << pipeline.parameters.reproducibility_dispatch >>]
-    jobs:
-      - preimage-reproducibility:
-          context: slack
-
-  scheduled-stale-check:
-    when:
-      or:
-        - equal: [build_daily, <<pipeline.schedule.name>>]
-          # Trigger on manual triggers if explicitly requested
-        - equal: [true, << pipeline.parameters.stale_check_dispatch >>]
-    jobs:
-      - stale-check:
-          context: github-token-stale-check
-=======
   # release:
   #   when:
   #     not:
-  #       equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+  #       equal: [scheduled_pipeline, << pipeline.trigger_source >>]
   #   jobs:
   #     # Wait for approval on the release
   #     - hold:
@@ -1983,7 +1485,7 @@ workflows:
 
   # scheduled-todo-issues:
   #   when:
-  #     equal: [ build_four_hours, <<pipeline.schedule.name>> ]
+  #     equal: [build_four_hours, <<pipeline.schedule.name>>]
   #   jobs:
   #     - todo-issues:
   #         name: todo-issue-checks
@@ -1992,7 +1494,7 @@ workflows:
 
   # scheduled-fpp:
   #   when:
-  #     equal: [ build_hourly, <<pipeline.schedule.name>> ]
+  #     equal: [build_hourly, <<pipeline.schedule.name>>]
   #   jobs:
   #     - fpp-verify:
   #         context:
@@ -2002,19 +1504,31 @@ workflows:
   # develop-publish-contract-artifacts:
   #   when:
   #     or:
-  #       - equal: [ "develop", <<pipeline.git.branch>> ]
-  #       - equal: [ true, <<pipeline.parameters.publish_contract_artifacts_dispatch>> ]
+  #       - equal: ["develop", <<pipeline.git.branch>>]
+  #       - equal:
+  #           [true, <<pipeline.parameters.publish_contract_artifacts_dispatch>>]
   #   jobs:
   #     - publish-contract-artifacts
+
+  # develop-forge-coverage:
+  #   when:
+  #     and:
+  #       - or:
+  #           - equal: ["develop", <<pipeline.git.branch>>]
+  #           - equal: [true, <<pipeline.parameters.contracts_coverage_dispatch>>]
+  #       - not:
+  #           equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+  #   jobs:
+  #     - contracts-bedrock-coverage
 
   # develop-fault-proofs:
   #   when:
   #     and:
   #       - or:
-  #         - equal: [ "develop", <<pipeline.git.branch>> ]
-  #         - equal: [ true, <<pipeline.parameters.fault_proofs_dispatch>> ]
+  #           - equal: ["develop", <<pipeline.git.branch>>]
+  #           - equal: [true, <<pipeline.parameters.fault_proofs_dispatch>>]
   #       - not:
-  #           equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+  #           equal: [scheduled_pipeline, << pipeline.trigger_source >>]
   #   jobs:
   #     - go-mod-download
   #     - cannon-prestate
@@ -2024,19 +1538,20 @@ workflows:
   #         context:
   #           - slack
   #     - contracts-bedrock-build:
-  #         skip_pattern: test
+  #         build_args: --deny-warnings --skip test
   #         context:
   #           - slack
-  #     - go-e2e-test:
+  #     - go-tests:
   #         name: op-e2e-cannon-tests
-  #         module: op-e2e
-  #         target: test-cannon
   #         notify: true
   #         mentions: "@proofs-team"
+  #         no_output_timeout: 60m
+  #         test_timeout: 59m
   #         resource_class: ethereum-optimism/latitude-fps-1
-  #         requires:
-  #           - contracts-bedrock-build
-  #           - cannon-prestate
+  #         environment_overrides: |
+  #           export OP_E2E_CANNON_ENABLED="true"
+  #         packages: |
+  #           op-e2e/faultproofs
   #         context:
   #           - slack
 
@@ -2044,10 +1559,10 @@ workflows:
   #   when:
   #     and:
   #       - or:
-  #         - equal: [ "develop", <<pipeline.git.branch>> ]
-  #         - equal: [ true, <<pipeline.parameters.kontrol_dispatch>> ]
+  #           - equal: ["develop", <<pipeline.git.branch>>]
+  #           - equal: [true, <<pipeline.parameters.kontrol_dispatch>>]
   #       - not:
-  #          equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+  #           equal: [scheduled_pipeline, << pipeline.trigger_source >>]
   #   jobs:
   #     - kontrol-tests:
   #         context:
@@ -2057,11 +1572,11 @@ workflows:
   # scheduled-cannon-full-tests:
   #   when:
   #     or:
-  #       - equal: [ build_four_hours, <<pipeline.schedule.name>> ]
-  #       - equal: [ true, << pipeline.parameters.cannon_full_test_dispatch >> ]
+  #       - equal: [build_four_hours, <<pipeline.schedule.name>>]
+  #       - equal: [true, << pipeline.parameters.cannon_full_test_dispatch >>]
   #   jobs:
   #     - contracts-bedrock-build:
-  #         skip_pattern: test
+  #         build_args: --deny-warnings --skip test
   #     - cannon-go-lint-and-test:
   #         name: cannon-go-lint-and-test-<<matrix.mips_word_size>>-bit
   #         requires:
@@ -2070,14 +1585,14 @@ workflows:
   #           - slack
   #         matrix:
   #           parameters:
-  #             mips_word_size: [ 32, 64 ]
+  #             mips_word_size: [32, 64]
 
   # scheduled-docker-publish:
   #   when:
   #     or:
-  #       - equal: [ build_hourly, <<pipeline.schedule.name>> ]
+  #       - equal: [build_hourly, <<pipeline.schedule.name>>]
   #       # Trigger on manual triggers if explicitly requested
-  #       - equal: [ true, << pipeline.parameters.docker_publish_dispatch >> ]
+  #       - equal: [true, << pipeline.parameters.docker_publish_dispatch >>]
   #   jobs:
   #     - docker-build:
   #         matrix:
@@ -2115,24 +1630,23 @@ workflows:
   #         name: <<matrix.op_component>>-cross-platform
   #         requires:
   #           - <<matrix.op_component>>-docker-publish
-  #     - docker-build:
-  #         name: contracts-bedrock-docker-publish
-  #         docker_name: contracts-bedrock
-  #         docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-  #         resource_class: xlarge
-  #         publish: true
-  #         context:
-  #           - oplabs-gcr
-  #           - slack
 
   # scheduled-preimage-reproducibility:
   #   when:
   #     or:
-  #       - equal: [build_daily, <<pipeline.schedule.name>> ]
+  #       - equal: [build_daily, <<pipeline.schedule.name>>]
   #       # Trigger on manual triggers if explicitly requested
-  #       - equal: [ true, << pipeline.parameters.reproducibility_dispatch >> ]
+  #       - equal: [true, << pipeline.parameters.reproducibility_dispatch >>]
   #   jobs:
   #     - preimage-reproducibility:
-  #         context:
-  #           slack
->>>>>>> op-es
+  #         context: slack
+
+  # scheduled-stale-check:
+  #   when:
+  #     or:
+  #       - equal: [build_daily, <<pipeline.schedule.name>>]
+  #         # Trigger on manual triggers if explicitly requested
+  #       - equal: [true, << pipeline.parameters.stale_check_dispatch >>]
+  #   jobs:
+  #     - stale-check:
+  #         context: github-token-stale-check

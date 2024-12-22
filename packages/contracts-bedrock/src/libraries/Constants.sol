@@ -34,6 +34,8 @@ library Constants {
     /// @notice The address that represents ether when dealing with ERC20 token addresses.
     address internal constant ETHER = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    address internal constant CGT = 0xe6ABD81D16a20606a661D4e075cdE5734AB62519;
+
     /// @notice The address that represents the system caller responsible for L1 attributes
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;

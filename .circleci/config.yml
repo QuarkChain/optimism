@@ -665,7 +665,7 @@ jobs:
             TEST_FILES=$(<<parameters.test_list>>)
             if [ -z "$TEST_FILES" ]; then
               echo "No test files to run. Exiting early."
-              circleci-agent step halt
+              exit 0
             fi
           working_directory: packages/contracts-bedrock
       - check-changed:
@@ -690,7 +690,6 @@ jobs:
           name: Run tests
           command: |
             TEST_FILES=$(<<parameters.test_list>>)
-            TEST_FILES=$(echo "$TEST_FILES" | circleci tests split --split-by=timings)
             TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
             MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
             forge test --match-path "$MATCH_PATH"
@@ -1248,20 +1247,20 @@ workflows:
       - check-kontrol-build:
           requires:
             - contracts-bedrock-build
-      # - contracts-bedrock-tests:
-      #     # Test everything except PreimageOracle.t.sol since it's slow.
-      #     name: contracts-bedrock-tests
-      #     test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
-      # - contracts-bedrock-tests:
-      #     # PreimageOracle test is slow, run it separately to unblock CI.
-      #     name: contracts-bedrock-tests-preimage-oracle
-      #     test_list: find test -name "PreimageOracle.t.sol"
-      # - contracts-bedrock-tests:
-      #     # Heavily fuzz any fuzz tests within added or modified test files.
-      #     name: contracts-bedrock-tests-heavy-fuzz-modified
-      #     test_list: git diff origin/develop...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
-      #     test_timeout: 1h
-      #     test_profile: ciheavy
+      - contracts-bedrock-tests:
+          # Test everything except PreimageOracle.t.sol since it's slow.
+          name: contracts-bedrock-tests
+          test_list: find test -name "*.t.sol" -not -name "PreimageOracle.t.sol"
+      - contracts-bedrock-tests:
+          # PreimageOracle test is slow, run it separately to unblock CI.
+          name: contracts-bedrock-tests-preimage-oracle
+          test_list: find test -name "PreimageOracle.t.sol"
+      - contracts-bedrock-tests:
+          # Heavily fuzz any fuzz tests within added or modified test files.
+          name: contracts-bedrock-tests-heavy-fuzz-modified
+          test_list: git diff origin/develop...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+          test_timeout: 3h
+          test_profile: ciheavy
       - contracts-bedrock-checks:
           requires:
             - contracts-bedrock-build
@@ -1318,25 +1317,25 @@ workflows:
           requires:
             - contracts-bedrock-build
             - cannon-prestate
-      # - op-program-compat
-      # - bedrock-go-tests:
-      #     requires:
-      #       - go-mod-download
-      #       - go-lint
-      #       - cannon-build-test-vectors
-      #       - cannon-go-lint-and-test-32-bit
-      #       - cannon-go-lint-and-test-64-bit
-      #       - check-generated-mocks-op-node
-      #       - check-generated-mocks-op-service
-      #       - go-mod-download
-      #       - op-program-compat
-      #       # Not needed for the devnet but we want to make sure they build successfully
-      #       - cannon-docker-build
-      #       - op-dispute-mon-docker-build
-      #       - op-program-docker-build
-      #       - op-supervisor-docker-build
-      #       - proofs-tools-docker-build
-      #       - go-tests
+      - op-program-compat
+      - bedrock-go-tests:
+          requires:
+            - go-mod-download
+            - go-lint
+            - cannon-build-test-vectors
+            - cannon-go-lint-and-test-32-bit
+            - cannon-go-lint-and-test-64-bit
+            - check-generated-mocks-op-node
+            - check-generated-mocks-op-service
+            - go-mod-download
+            - op-program-compat
+            # Not needed for the devnet but we want to make sure they build successfully
+            - cannon-docker-build
+            - op-dispute-mon-docker-build
+            - op-program-docker-build
+            - op-supervisor-docker-build
+            - proofs-tools-docker-build
+            - go-tests
       - docker-build:
           name: <<matrix.docker_name>>-docker-build
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>

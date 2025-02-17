@@ -5,9 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	gosync "sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/ethereum-optimism/optimism/op-node/rollup/interop/managed"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -15,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	gethevent "github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/params"
 
 	altda "github.com/ethereum-optimism/optimism/op-alt-da"
 	"github.com/ethereum-optimism/optimism/op-node/metrics"
@@ -24,6 +28,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup/conductor"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/driver"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/event"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/interop"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/sequencing"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
 	"github.com/ethereum-optimism/optimism/op-service/client"
@@ -32,6 +37,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
 	"github.com/ethereum-optimism/optimism/op-service/retry"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
+	"github.com/ethereum-optimism/optimism/op-service/superutil"
 )
 
 var ErrAlreadyClosed = errors.New("node is already closed")
@@ -75,7 +81,7 @@ type OpNode struct {
 
 	beacon *sources.L1BeaconClient
 
-	supervisor *sources.SupervisorClient
+	interopSys interop.SubSystem
 
 	// some resources cannot be stopped directly, like the p2p gossipsub router (not our design),
 	// and depend on this ctx to be closed.
@@ -185,13 +191,13 @@ func (n *OpNode) initTracer(ctx context.Context, cfg *Config) error {
 }
 
 func (n *OpNode) initL1(ctx context.Context, cfg *Config) error {
-	l1Node, rpcCfg, err := cfg.L1.Setup(ctx, n.log, &cfg.Rollup)
+	l1RPC, l1Cfg, err := cfg.L1.Setup(ctx, n.log, &cfg.Rollup)
 	if err != nil {
 		return fmt.Errorf("failed to get L1 RPC client: %w", err)
 	}
 
 	n.l1Source, err = sources.NewL1Client(
-		client.NewInstrumentedRPC(l1Node, &n.metrics.RPCMetrics.RPCClientMetrics), n.log, n.metrics.L1SourceCache, rpcCfg)
+		client.NewInstrumentedRPC(l1RPC, &n.metrics.RPCMetrics.RPCClientMetrics), n.log, n.metrics.L1SourceCache, l1Cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create L1 source: %w", err)
 	}
@@ -397,12 +403,17 @@ func (n *OpNode) initL2(ctx context.Context, cfg *Config) error {
 		return err
 	}
 
+	managedMode := false
 	if cfg.Rollup.InteropTime != nil {
-		cl, err := cfg.Supervisor.SupervisorClient(ctx, n.log)
+		sys, err := cfg.InteropConfig.Setup(ctx, n.log, &n.cfg.Rollup, n.l1Source, n.l2Source)
 		if err != nil {
-			return fmt.Errorf("failed to setup supervisor RPC client: %w", err)
+			return fmt.Errorf("failed to setup interop: %w", err)
 		}
-		n.supervisor = cl
+		if _, ok := sys.(*managed.ManagedMode); ok {
+			managedMode = ok
+		}
+		n.interopSys = sys
+		n.eventSys.Register("interop", n.interopSys, event.DefaultRegisterOpts())
 	}
 
 	var sequencerConductor conductor.SequencerConductor = &conductor.NoOpConductor{}
@@ -428,9 +439,33 @@ func (n *OpNode) initL2(ctx context.Context, cfg *Config) error {
 	}
 
 	dacClient := cfg.DACConfig.Client()
+	if cfg.Rollup.ChainOpConfig == nil {
+		chainCfg, err := loadOrFetchChainConfig(ctx, cfg.Rollup.L2ChainID, rpcClient)
+		if err != nil {
+			return fmt.Errorf("failed to load or fetch chain config for id %v: %w", cfg.Rollup.L2ChainID, err)
+		}
+		cfg.Rollup.ChainOpConfig = chainCfg.Optimism
+	}
+
 	n.l2Driver = driver.NewDriver(n.eventSys, n.eventDrain, &cfg.Driver, &cfg.Rollup, n.l2Source, n.l1Source,
-		n.supervisor, n.beacon, n, n, n.log, n.metrics, cfg.ConfigPersistence, n.safeDB, &cfg.Sync, sequencerConductor, altDA, dacClient)
+		n.beacon, n, n, n.log, n.metrics, cfg.ConfigPersistence, n.safeDB, &cfg.Sync, sequencerConductor, altDA, managedMode, dacClient)
 	return nil
+}
+
+func loadOrFetchChainConfig(ctx context.Context, id *big.Int, cl client.RPC) (*params.ChainConfig, error) {
+	if id.IsUint64() {
+		cfg, err := superutil.LoadOPStackChainConfigFromChainID(id.Uint64())
+		if err == nil {
+			return cfg, nil
+		}
+		// ignore error, try to fetch chain config in full
+	}
+	// if not already recognized, then fetch the chain config manually
+	var config params.ChainConfig
+	if err := cl.CallContext(ctx, &config, "debug_chainConfig"); err != nil {
+		return nil, fmt.Errorf("fetching: %w", err)
+	}
+	return &config, nil
 }
 
 func (n *OpNode) initRPCServer(cfg *Config) error {
@@ -521,6 +556,12 @@ func (n *OpNode) initP2PSigner(ctx context.Context, cfg *Config) (err error) {
 }
 
 func (n *OpNode) Start(ctx context.Context) error {
+	if n.interopSys != nil {
+		if err := n.interopSys.Start(ctx); err != nil {
+			n.log.Error("Could not start interop sub system", "err", err)
+			return err
+		}
+	}
 	n.log.Info("Starting execution engine driver")
 	// start driving engine: sync blocks by deriving them from L1 and driving them into the engine
 	if err := n.l2Driver.Start(); err != nil {
@@ -719,6 +760,13 @@ func (n *OpNode) Stop(ctx context.Context) error {
 		}
 	}
 
+	// close the interop sub system
+	if n.interopSys != nil {
+		if err := n.interopSys.Stop(ctx); err != nil {
+			result = multierror.Append(result, fmt.Errorf("failed to close interop sub-system: %w", err))
+		}
+	}
+
 	if n.eventSys != nil {
 		n.eventSys.Stop()
 	}
@@ -737,11 +785,6 @@ func (n *OpNode) Stop(ctx context.Context) error {
 	// close L2 engine RPC client
 	if n.l2Source != nil {
 		n.l2Source.Close()
-	}
-
-	// close the supervisor RPC client
-	if n.supervisor != nil {
-		n.supervisor.Close()
 	}
 
 	// close L1 data source
@@ -788,6 +831,14 @@ func (n *OpNode) HTTPEndpoint() string {
 		return ""
 	}
 	return fmt.Sprintf("http://%s", n.server.Addr().String())
+}
+
+func (n *OpNode) InteropRPC() (rpcEndpoint string, jwtSecret eth.Bytes32) {
+	m, ok := n.interopSys.(*managed.ManagedMode)
+	if !ok {
+		return "", [32]byte{}
+	}
+	return m.WSEndpoint(), m.JWTSecret()
 }
 
 func (n *OpNode) getP2PNodeIfEnabled() *p2p.NodeP2P {

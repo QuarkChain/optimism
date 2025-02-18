@@ -307,14 +307,8 @@ jobs:
           mentions: "@clabby @proofs-team"
 
   contracts-bedrock-build:
-<<<<<<< HEAD
     machine: true
     resource_class: swc/ax101
-=======
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
->>>>>>> b6b7429
     parameters:
       build_args:
         description: Forge build arguments
@@ -416,13 +410,7 @@ jobs:
       resource_class: "<<parameters.resource_class>>"
       docker_layer_caching: true # we rely on this for faster builds, and actively warm it up for builds with common stages
     steps:
-<<<<<<< HEAD
-      - checkout
-      - run:
-          command: git submodule update --init
-=======
       - utils/checkout-with-mise
->>>>>>> b6b7429
       - attach_workspace:
           at: /tmp/docker_images
       - run:
@@ -617,10 +605,7 @@ jobs:
 
   contracts-bedrock-frozen-code:
     machine: true
-<<<<<<< HEAD
     resource_class: swc/ax101
-=======
-    resource_class: ethereum-optimism/latitude-1
     steps:
       - utils/checkout-with-mise
       - attach_workspace: { at: "." }
@@ -651,7 +636,6 @@ jobs:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: xlarge
->>>>>>> b6b7429
     parameters:
       test_list:
         description: List of test files to run
@@ -935,14 +919,8 @@ jobs:
         description: should load in foundry artifacts
         type: boolean
         default: false
-<<<<<<< HEAD
     machine: true
     resource_class: swc/ax101
-=======
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
->>>>>>> b6b7429
     steps:
       - utils/checkout-with-mise
       - check-changed:
@@ -1042,13 +1020,8 @@ jobs:
             export OP_E2E_SKIP_SLOW_TEST=true
             export OP_E2E_USE_HTTP=true
             export ENABLE_ANVIL=true
-<<<<<<< HEAD
-=======
-            export SEPOLIA_RPC_URL="https://ci-sepolia-l1-archive.optimism.io"
-            export MAINNET_RPC_URL="https://ci-mainnet-l1-archive.optimism.io"
             export PARALLEL=$(nproc)
             export OP_TESTLOG_FILE_LOGGER_OUTDIR=$(realpath ./tmp/testlogs)
->>>>>>> b6b7429
 
             <<parameters.environment_overrides>>
 
@@ -1077,16 +1050,9 @@ jobs:
             - notify-failures-on-develop:
                 mentions: "<<parameters.mentions>>"
 
-<<<<<<< HEAD
-  cannon-prestate:
+  sanitize-op-program:
     machine: true
     resource_class: swc/ax101
-=======
-  sanitize-op-program:
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
->>>>>>> b6b7429
     steps:
       - utils/checkout-with-mise
       - run:
@@ -1593,7 +1559,6 @@ workflows:
   #         context:
   #           - oplabs-gcr-release
 
-<<<<<<< HEAD
   # release:
   #   when:
   #     not:
@@ -1604,7 +1569,7 @@ workflows:
   #         type: approval
   #         filters:
   #           tags:
-  #             only: /^(da-server|ci-builder(-rust)?|proofs-tools|cannon|ufm-[a-z0-9\-]*|op-[a-z0-9\-]*)\/v.*/
+  #             only: /^(da-server|proofs-tools|cannon|ufm-[a-z0-9\-]*|op-[a-z0-9\-]*)\/v.*/
   #           branches:
   #             ignore: /.*/
   #     # Standard (medium) cross-platform docker images go here
@@ -1623,6 +1588,7 @@ workflows:
   #               - op-supervisor
   #               - op-deployer
   #               - cannon
+  #               - op-dripper
   #         name: <<matrix.docker_name>>-docker-release
   #         docker_tags: <<pipeline.git.revision>>
   #         platforms: "linux/amd64,linux/arm64"
@@ -1653,6 +1619,7 @@ workflows:
   #               - op-supervisor
   #               - op-deployer
   #               - cannon
+  #               - op-dripper
   #         name: <<matrix.op_component>>-cross-platform
   #         requires:
   #           - op-node-docker-release
@@ -1665,13 +1632,12 @@ workflows:
   #           - op-ufm-docker-release
   #           - op-supervisor-docker-release
   #           - cannon-docker-release
+  #           - op-dripper-docker-release
   #     # Standard (xlarge) AMD-only docker images go here
   #     - docker-build:
   #         matrix:
   #           parameters:
   #             docker_name:
-  #               - ci-builder
-  #               - ci-builder-rust
   #               - proofs-tools
   #         name: <<matrix.docker_name>>-docker-release
   #         resource_class: xlarge
@@ -1687,120 +1653,24 @@ workflows:
   #           - oplabs-gcr-release
   #         requires:
   #           - hold
-=======
-  release:
-    when:
-      not:
-        equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-    jobs:
-      # Wait for approval on the release
-      - hold:
-          type: approval
-          filters:
-            tags:
-              only: /^(da-server|proofs-tools|cannon|ufm-[a-z0-9\-]*|op-[a-z0-9\-]*)\/v.*/
-            branches:
-              ignore: /.*/
-      # Standard (medium) cross-platform docker images go here
-      - docker-build:
-          matrix:
-            parameters:
-              docker_name:
-                - op-node
-                - op-batcher
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - da-server
-                - op-ufm
-                - op-supervisor
-                - op-deployer
-                - cannon
-                - op-dripper
-          name: <<matrix.docker_name>>-docker-release
-          docker_tags: <<pipeline.git.revision>>
-          platforms: "linux/amd64,linux/arm64"
-          publish: true
-          release: true
-          filters:
-            tags:
-              only: /^<<matrix.docker_name>>\/v.*/
-            branches:
-              ignore: /.*/
-          context:
-            - oplabs-gcr-release
-          requires:
-            - hold
-      # Checks for cross-platform images go here
-      - check-cross-platform:
-          matrix:
-            parameters:
-              op_component:
-                - op-node
-                - op-batcher
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - da-server
-                - op-ufm
-                - op-supervisor
-                - op-deployer
-                - cannon
-                - op-dripper
-          name: <<matrix.op_component>>-cross-platform
-          requires:
-            - op-node-docker-release
-            - op-batcher-docker-release
-            - op-proposer-docker-release
-            - op-challenger-docker-release
-            - op-dispute-mon-docker-release
-            - op-conductor-docker-release
-            - da-server-docker-release
-            - op-ufm-docker-release
-            - op-supervisor-docker-release
-            - cannon-docker-release
-            - op-dripper-docker-release
-      # Standard (xlarge) AMD-only docker images go here
-      - docker-build:
-          matrix:
-            parameters:
-              docker_name:
-                - proofs-tools
-          name: <<matrix.docker_name>>-docker-release
-          resource_class: xlarge
-          docker_tags: <<pipeline.git.revision>>
-          publish: true
-          release: true
-          filters:
-            tags:
-              only: /^<<matrix.docker_name>>\/v.*/
-            branches:
-              ignore: /.*/
-          context:
-            - oplabs-gcr-release
-          requires:
-            - hold
-      - cannon-prestate:
-          filters:
-            tags:
-              only: /^op-program\/v.*/
-            branches:
-              ignore: /.*/
-      - publish-cannon-prestates:
-          context:
-            - slack
-            - oplabs-network-optimism-io-bucket
-          requires:
-            - hold
-            - cannon-prestate
-          filters:
-            tags:
-              only: /^op-program\/v.*/
-            branches:
-              ignore: /.*/
->>>>>>> b6b7429
+  #     - cannon-prestate:
+  #         filters:
+  #           tags:
+  #             only: /^op-program\/v.*/
+  #           branches:
+  #             ignore: /.*/
+  #     - publish-cannon-prestates:
+  #         context:
+  #           - slack
+  #           - oplabs-network-optimism-io-bucket
+  #         requires:
+  #           - hold
+  #           - cannon-prestate
+  #         filters:
+  #           tags:
+  #             only: /^op-program\/v.*/
+  #           branches:
+  #             ignore: /.*/
 
   # scheduled-todo-issues:
   #   when:
@@ -1829,20 +1699,6 @@ workflows:
   #   jobs:
   #     - publish-contract-artifacts
 
-<<<<<<< HEAD
-  # develop-forge-coverage:
-  #   when:
-  #     and:
-  #       - or:
-  #           - equal: ["develop", <<pipeline.git.branch>>]
-  #           - equal: [true, <<pipeline.parameters.contracts_coverage_dispatch>>]
-  #       - not:
-  #           equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-  #   jobs:
-  #     - contracts-bedrock-coverage
-
-=======
->>>>>>> b6b7429
   develop-fault-proofs:
     when:
       and:
@@ -1923,11 +1779,10 @@ workflows:
             parameters:
               mips_word_size: [32, 64]
 
-<<<<<<< HEAD
   # scheduled-docker-publish:
   #   when:
   #     or:
-  #       - equal: [build_hourly, <<pipeline.schedule.name>>]
+  #       - equal: [build_daily, <<pipeline.schedule.name>>]
   #       # Trigger on manual triggers if explicitly requested
   #       - equal: [true, << pipeline.parameters.docker_publish_dispatch >>]
   #   jobs:
@@ -1944,6 +1799,7 @@ workflows:
   #               - op-conductor
   #               - op-supervisor
   #               - cannon
+  #               - op-dripper
   #         name: <<matrix.docker_name>>-docker-publish
   #         docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
   #         platforms: "linux/amd64,linux/arm64"
@@ -1964,56 +1820,10 @@ workflows:
   #               - op-conductor
   #               - op-supervisor
   #               - cannon
+  #               - op-dripper
   #         name: <<matrix.op_component>>-cross-platform
   #         requires:
   #           - <<matrix.op_component>>-docker-publish
-=======
-  scheduled-docker-publish:
-    when:
-      or:
-        - equal: [build_daily, <<pipeline.schedule.name>>]
-        # Trigger on manual triggers if explicitly requested
-        - equal: [true, << pipeline.parameters.docker_publish_dispatch >>]
-    jobs:
-      - docker-build:
-          matrix:
-            parameters:
-              docker_name:
-                - op-node
-                - op-batcher
-                - op-program
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - op-supervisor
-                - cannon
-                - op-dripper
-          name: <<matrix.docker_name>>-docker-publish
-          docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-          platforms: "linux/amd64,linux/arm64"
-          publish: true
-          context:
-            - oplabs-gcr
-            - slack
-      - check-cross-platform:
-          matrix:
-            parameters:
-              op_component:
-                - op-node
-                - op-batcher
-                - op-program
-                - op-proposer
-                - op-challenger
-                - op-dispute-mon
-                - op-conductor
-                - op-supervisor
-                - cannon
-                - op-dripper
-          name: <<matrix.op_component>>-cross-platform
-          requires:
-            - <<matrix.op_component>>-docker-publish
->>>>>>> b6b7429
 
   scheduled-preimage-reproducibility:
     when:

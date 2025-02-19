@@ -172,15 +172,17 @@ func (c *OpConductor) initConsensus(ctx context.Context) error {
 	raftConsensusConfig := &consensus.RaftConsensusConfig{
 		ServerID: c.cfg.RaftServerID,
 		// AdvertisedAddr may be empty: the server will then default to what it binds to.
-		AdvertisedAddr:    raft.ServerAddress(c.cfg.ConsensusAdvertisedAddr),
-		ListenAddr:        c.cfg.ConsensusAddr,
-		ListenPort:        c.cfg.ConsensusPort,
-		StorageDir:        c.cfg.RaftStorageDir,
-		Bootstrap:         c.cfg.RaftBootstrap,
-		RollupCfg:         &c.cfg.RollupCfg,
-		SnapshotInterval:  c.cfg.RaftSnapshotInterval,
-		SnapshotThreshold: c.cfg.RaftSnapshotThreshold,
-		TrailingLogs:      c.cfg.RaftTrailingLogs,
+		AdvertisedAddr:     raft.ServerAddress(c.cfg.ConsensusAdvertisedAddr),
+		ListenAddr:         c.cfg.ConsensusAddr,
+		ListenPort:         c.cfg.ConsensusPort,
+		StorageDir:         c.cfg.RaftStorageDir,
+		Bootstrap:          c.cfg.RaftBootstrap,
+		RollupCfg:          &c.cfg.RollupCfg,
+		SnapshotInterval:   c.cfg.RaftSnapshotInterval,
+		SnapshotThreshold:  c.cfg.RaftSnapshotThreshold,
+		TrailingLogs:       c.cfg.RaftTrailingLogs,
+		HeartbeatTimeout:   c.cfg.RaftHeartbeatTimeout,
+		LeaderLeaseTimeout: c.cfg.RaftLeaderLeaseTimeout,
 	}
 	cons, err := consensus.NewRaftConsensus(c.log, raftConsensusConfig)
 	if err != nil {
@@ -381,9 +383,7 @@ func (oc *OpConductor) Start(ctx context.Context) error {
 	oc.log.Info("OpConductor started")
 	// queue an action in case sequencer is not in the desired state.
 	oc.prevState = NewState(oc.leader.Load(), oc.healthy.Load(), oc.seqActive.Load())
-	// Immediately queue an action. This is made blocking to ensure that start is not
-	// considered complete until the first action is executed.
-	oc.actionCh <- struct{}{}
+	oc.queueAction()
 
 	return nil
 }

@@ -166,7 +166,7 @@ commands:
 jobs:
   cannon-go-lint-and-test:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     parameters:
       skip_slow_tests:
         type: boolean
@@ -308,7 +308,7 @@ jobs:
 
   contracts-bedrock-build:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     parameters:
       build_args:
         description: Forge build arguments
@@ -605,7 +605,7 @@ jobs:
 
   contracts-bedrock-frozen-code:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - attach_workspace: { at: "." }
@@ -855,7 +855,7 @@ jobs:
 
   contracts-bedrock-checks:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - attach_workspace: { at: "." }
@@ -920,7 +920,7 @@ jobs:
         type: boolean
         default: false
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - check-changed:
@@ -945,7 +945,7 @@ jobs:
 
   go-lint:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - run:
@@ -967,7 +967,7 @@ jobs:
       resource_class:
         description: Machine resource class
         type: string
-        default: swc/ax101
+        default: qkc/ax101
       no_output_timeout:
         description: Timeout for when CircleCI kills the job if there's no output
         type: string
@@ -984,7 +984,7 @@ jobs:
         description: List of packages to test
         type: string
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - attach_workspace:
@@ -1052,7 +1052,7 @@ jobs:
 
   sanitize-op-program:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - run:
@@ -1236,7 +1236,7 @@ jobs:
   fpp-verify:
     circleci_ip_ranges: true
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - run:
@@ -1722,7 +1722,7 @@ workflows:
           mentions: "@proofs-team"
           no_output_timeout: 60m
           test_timeout: 59m
-          resource_class: swc/ax101
+          resource_class: qkc/ax101
           environment_overrides: |
             export OP_E2E_CANNON_ENABLED="true"
             export PARALLEL=24

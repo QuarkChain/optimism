@@ -49,8 +49,8 @@ func TestRecommendedProtocolVersionChange(t *testing.T) {
 	protVersions, err := bindings.NewProtocolVersions(cfg.L1Deployments.ProtocolVersionsProxy, l1)
 	require.NoError(t, err)
 
-	// ProtocolVersions contract is owned by same key as SystemConfig in devnet
-	opts, err := bind.NewKeyedTransactorWithChainID(cfg.Secrets.SysCfgOwner, cfg.L1ChainIDBig())
+	// ProtocolVersions contract is owned by the deployer in devnet
+	opts, err := bind.NewKeyedTransactorWithChainID(cfg.Secrets.Deployer, cfg.L1ChainIDBig())
 	require.NoError(t, err)
 
 	// Change recommended protocol version
@@ -105,7 +105,7 @@ func TestRequiredProtocolVersionChangeAndHalt(t *testing.T) {
 	require.NoError(t, err)
 
 	// ProtocolVersions contract is owned by same key as SystemConfig in devnet
-	opts, err := bind.NewKeyedTransactorWithChainID(cfg.Secrets.SysCfgOwner, cfg.L1ChainIDBig())
+	opts, err := bind.NewKeyedTransactorWithChainID(cfg.Secrets.Deployer, cfg.L1ChainIDBig())
 	require.NoError(t, err)
 
 	// Change required protocol version
@@ -130,7 +130,13 @@ func TestRequiredProtocolVersionChangeAndHalt(t *testing.T) {
 	_, err = retry.Do(context.Background(), 10, retry.Fixed(time.Second*10), func() (struct{}, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		available := client.IsURLAvailable(ctx, sys.NodeEndpoint("verifier").(endpoint.HttpRPC).HttpRPC())
+		url := sys.NodeEndpoint("verifier").(endpoint.HttpRPC).HttpRPC()
+		// The URL of the verifier op-geth becomes empty after it is stopped.
+		// In this case, IsURLAvailable() returns an incorrect value when port 80 happens to be occupied by another process.
+		if url == "http://" {
+			return struct{}{}, nil
+		}
+		available := client.IsURLAvailable(ctx, url)
 		if !available && ctx.Err() == nil { // waiting for client to stop responding to RPC requests (slow dials with timeout don't count)
 			return struct{}{}, nil
 		}

@@ -12,7 +12,7 @@ cd "${TMP_DIR}"
 
 # Need to check out a fresh copy of the monorepo so we can switch to specific tags without it also affecting the
 # contents of this script (which is checked into the repo).
-git clone https://github.com/ethereum-optimism/optimism --recurse-submodules
+git clone https://github.com/ethstorage/optimism --recurse-submodules
 
 STATES_DIR="${SCRIPTS_DIR}/../temp/states"
 LOGS_DIR="${SCRIPTS_DIR}/../temp/logs"
@@ -43,9 +43,15 @@ do
     else
       cp "${BIN_DIR}/prestate.json" "${STATES_DIR}/${HASH}.json"
     fi
-
     VERSIONS_JSON=$(echo "${VERSIONS_JSON}" | jq ". += [{\"version\": \"${SHORT_VERSION}\", \"hash\": \"${HASH}\"}]")
     echo "Built ${VERSION}: ${HASH}"
+
+    if [ -f "${BIN_DIR}/prestate-proof-mt64.json" ]; then
+      HASH=$(cat "${BIN_DIR}/prestate-proof-mt64.json" | jq -r .pre)
+      cp "${BIN_DIR}/prestate-mt64.bin.gz" "${STATES_DIR}/${HASH}.mt64.bin.gz"
+      VERSIONS_JSON=$(echo "${VERSIONS_JSON}" | jq ". += [{\"version\": \"${SHORT_VERSION}\", \"hash\": \"${HASH}\", \"type\": \"cannon64\"}]")
+      echo "Built cannon64 ${VERSION}: ${HASH}"
+    fi
 done
 echo "${VERSIONS_JSON}" > "${VERSIONS_FILE}"
 

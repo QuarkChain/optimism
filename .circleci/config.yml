@@ -54,7 +54,7 @@ orbs:
   slack: circleci/slack@4.10.1
   shellcheck: circleci/shellcheck@3.2.0
   codecov: codecov/codecov@5.0.3
-  utils: ethereum-optimism/circleci-utils@1.0.8
+  utils: karlb/circleci-utils@0.1.0
 
 commands:
   gcp-oidc-authenticate:
@@ -143,7 +143,7 @@ commands:
           channel: << parameters.channel >>
           event: fail
           template: basic_fail_1
-          branch_pattern: develop
+          branch_pattern: op-es
           mentions: "<< parameters.mentions >>"
 
   run-contracts-check:
@@ -269,7 +269,7 @@ jobs:
 
   diff-asterisc-bytecode:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - run:
@@ -536,7 +536,7 @@ jobs:
                   - "<<parameters.release>>"
               - and:
                   - "<<parameters.publish>>"
-                  - equal: [develop, << pipeline.git.branch >>]
+                  - equal: [op-es, << pipeline.git.branch >>]
           steps:
             - gcp-oidc-authenticate:
                 service_account_email: GCP_SERVICE_ATTESTOR_ACCOUNT_EMAIL
@@ -613,7 +613,7 @@ jobs:
       - check-changed:
           patterns: contracts-bedrock
       - run:
-          name: Check if target branch is develop
+          name: Check if target branch is op-es
           command: |
             # Get PR number from CIRCLE_PULL_REQUEST
             PR_NUMBER=$(echo $CIRCLE_PULL_REQUEST | rev | cut -d/ -f1 | rev)
@@ -621,9 +621,9 @@ jobs:
             # Use GitHub API to get target branch
             TARGET_BRANCH=$(curl -s "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}" | jq -r .base.ref)
 
-            # If the target branch is not develop, do not run this check
-            if [ "$TARGET_BRANCH" != "develop" ]; then
-              echo "Target branch is not develop, skipping frozen files check"
+            # If the target branch is not op-es, do not run this check
+            if [ "$TARGET_BRANCH" != "op-es" ]; then
+              echo "Target branch is not op-es, skipping frozen files check"
               exit 0
             fi
       - run:
@@ -1074,7 +1074,7 @@ jobs:
 
   cannon-prestate-quick:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - restore_cache:
@@ -1114,7 +1114,7 @@ jobs:
 
   publish-cannon-prestates:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - attach_workspace:
@@ -1249,7 +1249,7 @@ jobs:
 
   op-program-compat:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - run:
@@ -1260,7 +1260,7 @@ jobs:
 
   check-generated-mocks-op-node:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - check-changed:
@@ -1271,7 +1271,7 @@ jobs:
 
   check-generated-mocks-op-service:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - check-changed:
@@ -1314,7 +1314,7 @@ jobs:
 
   publish-contract-artifacts:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - gcp-cli/install
       - gcp-oidc-authenticate:
@@ -1409,7 +1409,7 @@ workflows:
       - contracts-bedrock-tests:
           # Heavily fuzz any fuzz tests within added or modified test files.
           name: contracts-bedrock-tests-heavy-fuzz-modified
-          test_list: git diff origin/develop...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+          test_list: git diff origin/op-es...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
           test_timeout: 3h
           test_profile: ciheavy
       - contracts-bedrock-coverage:
@@ -1703,7 +1703,7 @@ workflows:
     when:
       and:
         - or:
-            - equal: ["develop", <<pipeline.git.branch>>]
+            - equal: ["op-es", <<pipeline.git.branch>>]
             - equal: [true, <<pipeline.parameters.fault_proofs_dispatch>>]
         - not:
             equal: [scheduled_pipeline, << pipeline.trigger_source >>]
@@ -1743,7 +1743,7 @@ workflows:
           filters:
             branches:
               only:
-                - develop
+                - op-es
 
   # develop-kontrol-tests:
   #   when:

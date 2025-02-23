@@ -6,6 +6,7 @@
 !/op-batcher
 !/op-chain-ops
 !/op-deployer
+!/op-dripper
 !/op-challenger
 !/packages/contracts-bedrock/snapshots
 !/op-dispute-mon
@@ -21,5 +22,5 @@
 !/da-server
 !/go.mod
 !/go.sum
-!/just
+!/justfiles
 !/mise.toml

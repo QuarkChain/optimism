@@ -1461,9 +1461,11 @@ workflows:
             equal: [scheduled_pipeline, << pipeline.trigger_source >>]
     jobs:
       - initialize:
-          name: checkout-and-init-mise
+          name: initialize-mise-environment
       - contracts-bedrock-build:
           name: contracts-bedrock-build
+          requires:
+            - initialize-mise-environment
           # Build with just core + script contracts.
           build_args: --deny-warnings --skip test
       - check-kontrol-build:
@@ -1499,7 +1501,9 @@ workflows:
       - contracts-bedrock-frozen-code:
           requires:
             - contracts-bedrock-build
-      - diff-asterisc-bytecode
+      - diff-asterisc-bytecode:
+          requires:
+            - initialize-mise-environment
       - semgrep-scan:
           name: semgrep-scan-local
           scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
@@ -1510,6 +1514,8 @@ workflows:
       - fuzz-golang:
           name: fuzz-golang-<<matrix.package_name>>
           on_changes: <<matrix.package_name>>
+          requires:
+            - initialize-mise-environment
           matrix:
             parameters:
               package_name:

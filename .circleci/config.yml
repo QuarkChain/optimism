@@ -1262,7 +1262,7 @@ jobs:
       - image: returntocorp/semgrep
     resource_class: xlarge
     steps:
-      - checkout-with-mise # no need to use mise here since the docker image contains the only dependency
+      - checkout # no need to use mise here since the docker image contains the only dependency
       - unless:
           condition:
             equal: [ "op-es", << pipeline.git.branch >> ]

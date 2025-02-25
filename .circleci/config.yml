@@ -56,6 +56,65 @@ orbs:
   codecov: codecov/codecov@5.0.3
 
 commands:
+  checkout-with-mise:
+    description: "Checkout then initialize the mise environment"
+    steps:
+      - checkout
+      - run:
+          name: "Initialize mise environment"
+          command: |
+            # This is used to create a per-user cache key to preserve permissions across different
+            # executor types.
+            user=$(whoami)
+            echo "$user" > .executor-user
+            echo "Set executor user to $user."
+            if [[ "$user" == "root" ]]; then
+              rm -rf /data/mise-data
+              echo "Cleaned up cache data."
+              mkdir -p /data/mise-data
+              echo "Created Mise data dir."
+              mkdir -p ~/.cache
+              echo "Created Mise cache dir."
+            else
+              sudo rm -rf /data/mise-data
+              echo "Cleaned up cache data."
+              sudo mkdir -p /data/mise-data
+              sudo chown -R "$user:$user" /data/mise-data
+              echo "Created Mise data dir."
+              sudo mkdir -p ~/.cache
+              sudo chown -R "$user:$user" ~/.cache
+              echo "Created Mise cache dir."
+            fi
+      - restore_cache:
+          name: Restore mise cache
+          keys:
+            - mise-v5-{{ checksum ".executor-user" }}-{{ checksum "mise.toml" }}
+      - run:
+          name: Install mise
+          command: |
+            if command -v mise &> /dev/null; then
+              echo "mise already installed at $(command -v mise)"
+            else
+              curl https://mise.run | sh
+            fi
+            echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> "$BASH_ENV"
+            echo "export MISE_DATA_DIR=/data/mise-data" >> "$BASH_ENV"
+            echo "export MISE_JOBS=$(nproc)" >> "$BASH_ENV"
+            echo "eval \"\$($HOME/.local/bin/mise activate --shims)\"" >> "$BASH_ENV"
+      - run:
+          name: Install mise deps
+          command: |
+            mise install -v -y
+      - save_cache:
+          name: Save mise cache
+          key: mise-v5-{{ checksum ".executor-user" }}-{{ checksum "mise.toml" }}
+          paths:
+            - /data/mise-data
+      - run:
+          name: Delete executor file
+          command: |
+            rm -f .executor-user
+
   gcp-oidc-authenticate:
     description: "Authenticate with GCP using a CircleCI OIDC token."
     parameters:
@@ -163,74 +222,6 @@ commands:
             FOUNDRY_PROFILE: ci
 
 jobs:
-  initialize:
-    machine: true
-    resource_class: qkc/ax101
-    environment:
-      MISE_CACHE_DIR: ~/circleci/.cache
-      MISE_DATA_DIR: ~/circleci/data/mise-data
-    steps:
-      - run:
-          name: Initialize mise environment
-          command: |
-            # This is used to create a per-user cache key to preserve permissions across different
-            # executor types.
-            user=$(whoami)
-            echo "$user" > .executor-user
-            echo "Set executor user to $user."
-
-            if [[ "$user" == "root" ]]; then
-              # Self-hosted runners will persist this cache between runs. Cleaning it up means that we
-              # preserve the semantics of the cache regardless of executor type. It's also much faster
-              # to delete the cache and recreate it than it is to overwrite it in place.
-              rm -rf "$MISE_DATA_DIR"
-              echo "Cleaned up cache data."
-
-              mkdir -p "$MISE_DATA_DIR"
-              echo "Created Mise data dir."
-              mkdir -p "$MISE_CACHE_DIR"
-              echo "Created Mise cache dir."
-            else
-              sudo rm -rf "$MISE_DATA_DIR"
-              echo "Cleaned up cache data."
-              sudo mkdir -p "$MISE_DATA_DIR"
-              sudo chown -R "$user:$user" "$MISE_DATA_DIR"
-              echo "Created Mise data dir."
-              sudo mkdir -p "$MISE_CACHE_DIR"
-              sudo chown -R "$user:$user" "$MISE_CACHE_DIR"
-              echo "Created Mise cache dir."
-            fi
-      - restore_cache:
-          name: Restore mise cache
-          keys:
-            - mise-v5-{{ checksum ".executor-user" }}-{{ checksum "mise.toml" }}
-      - run:
-          name: Install mise
-          command: |
-            if command -v mise &> /dev/null; then
-              echo "mise already installed at $(command -v mise)"
-            else
-              curl https://mise.run | sh
-            fi
-
-            echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> "$BASH_ENV"
-            echo "export MISE_DATA_DIR=$MISE_DATA_DIR" >> "$BASH_ENV"
-            echo "export MISE_JOBS=$(nproc)" >> "$BASH_ENV"
-            echo "eval \"\$($HOME/.local/bin/mise activate --shims)\"" >> "$BASH_ENV"
-      - run:
-          name: Install mise deps
-          command: |
-            mise install -v -y
-      - save_cache:
-          name: Save mise cache
-          key: mise-v5-{{ checksum ".executor-user" }}-{{ checksum "mise.toml" }}
-          paths:
-            - "$MISE_DATA_DIR"
-      - run:
-          name: Delete executor file
-          command: |
-            rm -f .executor-user
-
   cannon-go-lint-and-test:
     machine: true
     resource_class: qkc/ax101
@@ -246,7 +237,7 @@ jobs:
         type: integer
         default: 32
     steps:
-      - checkout
+      - checkout-with-mise
       - check-changed:
           patterns: cannon,packages/contracts-bedrock/src/cannon,op-preimage,go.mod
       - attach_workspace:
@@ -319,7 +310,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: large
     steps:
-      - checkout
+      - checkout-with-mise
       - check-changed:
           patterns: cannon/mipsevm/tests/open_mips_tests/test
       - run:
@@ -338,7 +329,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - run:
           name: Check `RISCV.sol` bytecode
           working_directory: packages/contracts-bedrock
@@ -374,8 +365,9 @@ jobs:
           mentions: "@clabby @proofs-team"
 
   contracts-bedrock-build:
-    machine: true
-    resource_class: qkc/ax101
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: large
     parameters:
       build_args:
         description: Forge build arguments
@@ -386,7 +378,7 @@ jobs:
         type: string
         default: ci
     steps:
-      - checkout
+      - checkout-with-mise
       - install-contracts-dependencies
       - run:
           name: Print forge version
@@ -416,7 +408,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: xlarge
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -477,7 +469,7 @@ jobs:
       resource_class: "<<parameters.resource_class>>"
       docker_layer_caching: true # we rely on this for faster builds, and actively warm it up for builds with common stages
     steps:
-      - checkout
+      - checkout-with-mise
       - run:
           command: git submodule update --init
       - attach_workspace:
@@ -676,7 +668,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -726,7 +718,7 @@ jobs:
         type: string
         default: ci
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - run:
@@ -804,7 +796,7 @@ jobs:
         type: string
         default: ci
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -863,7 +855,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: large
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -926,7 +918,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -967,7 +959,7 @@ jobs:
     machine:
       image: <<pipeline.parameters.base_image>>
     steps:
-      - checkout
+      - checkout-with-mise
       - run:
           name: Install ripgrep
           command: sudo apt-get install -y ripgrep
@@ -988,10 +980,11 @@ jobs:
         description: should load in foundry artifacts
         type: boolean
         default: false
-    machine: true
-    resource_class: qkc/ax101
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: xlarge
     steps:
-      - checkout
+      - checkout-with-mise
       - check-changed:
           patterns: "<<parameters.package_name>>"
       - attach_workspace:
@@ -1016,7 +1009,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - run:
           name: run Go linter
           command: |
@@ -1053,9 +1046,9 @@ jobs:
         description: List of packages to test
         type: string
     machine: true
-    resource_class: qkc/ax101
+    resource_class: <<parameters.resource_class>>
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace:
           at: "."
       - run:
@@ -1120,10 +1113,11 @@ jobs:
                 mentions: "<<parameters.mentions>>"
 
   sanitize-op-program:
-    machine: true
-    resource_class: qkc/ax101
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: large
     steps:
-      - checkout
+      - checkout-with-mise
       - run:
           name: Install tools
           command: |
@@ -1145,7 +1139,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - restore_cache:
           name: Restore cannon prestate cache
           key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
@@ -1170,7 +1164,7 @@ jobs:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     steps:
-      - checkout
+      - checkout-with-mise
       - setup_remote_docker
       - run:
           name: Build prestates
@@ -1185,7 +1179,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - attach_workspace:
           at: "."
       - gcp-cli/install
@@ -1230,7 +1224,7 @@ jobs:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     steps:
-      - checkout
+      - checkout-with-mise
       - setup_remote_docker
       - run: make -C op-program verify-reproducibility
       - notify-failures-on-develop:
@@ -1240,7 +1234,7 @@ jobs:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     steps:
-      - checkout
+      - checkout-with-mise
       - setup_remote_docker
       - run:
           name: Build cannon
@@ -1268,7 +1262,7 @@ jobs:
       - image: returntocorp/semgrep
     resource_class: xlarge
     steps:
-      - checkout # no need to use mise here since the docker image contains the only dependency
+      - checkout-with-mise # no need to use mise here since the docker image contains the only dependency
       - unless:
           condition:
             equal: [ "op-es", << pipeline.git.branch >> ]
@@ -1307,7 +1301,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - run:
           name: verify-sepolia
           command: |
@@ -1320,7 +1314,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - run:
           name: compat-sepolia
           command: |
@@ -1331,7 +1325,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - check-changed:
           patterns: op-node
       - run:
@@ -1342,7 +1336,7 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
-      - checkout
+      - checkout-with-mise
       - check-changed:
           patterns: op-service
       - run:
@@ -1354,7 +1348,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: xlarge
     steps:
-      - checkout
+      - checkout-with-mise
       - install-contracts-dependencies
       - check-changed:
           no_go_deps: "true"
@@ -1391,7 +1385,7 @@ jobs:
           oidc_token_file_path: /tmp/oidc_token.json
           project_id: GCP_TOOLS_ARTIFACTS_PROJECT_ID
           service_account_email: GCP_CONTRACTS_PUBLISHER_SERVICE_ACCOUNT_EMAIL
-      - checkout
+      - checkout-with-mise
       - install-contracts-dependencies
       - run:
           name: Pull artifacts
@@ -1426,7 +1420,7 @@ jobs:
       - gcp-oidc-authenticate:
           gcp_cred_config_file_path: /tmp/gcp_cred_config.json
           oidc_token_file_path: /tmp/oidc_token.json
-      - checkout
+      - checkout-with-mise
       - run:
           name: Configure Docker
           command: |
@@ -1460,12 +1454,8 @@ workflows:
         - not:
             equal: [scheduled_pipeline, << pipeline.trigger_source >>]
     jobs:
-      - initialize:
-          name: initialize-mise-environment
       - contracts-bedrock-build:
           name: contracts-bedrock-build
-          requires:
-            - initialize-mise-environment
           # Build with just core + script contracts.
           build_args: --deny-warnings --skip test
       - check-kontrol-build:
@@ -1501,9 +1491,7 @@ workflows:
       - contracts-bedrock-frozen-code:
           requires:
             - contracts-bedrock-build
-      - diff-asterisc-bytecode:
-          requires:
-            - initialize-mise-environment
+      - diff-asterisc-bytecode
       - semgrep-scan:
           name: semgrep-scan-local
           scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
@@ -1514,8 +1502,6 @@ workflows:
       - fuzz-golang:
           name: fuzz-golang-<<matrix.package_name>>
           on_changes: <<matrix.package_name>>
-          requires:
-            - initialize-mise-environment
           matrix:
             parameters:
               package_name:

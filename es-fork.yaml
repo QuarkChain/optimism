@@ -82,7 +82,7 @@ def:
         - "op-service/testutils/random.go"
         - "op-program/client/l2/engineapi/block_processor.go"
         - "packages/contracts-bedrock/deploy-config/devnetL1-template.json"
-    - title: "L2 Randao modifications"
+    - title: "L1 Header Hash History modifications"
       description: |
         In order to simplify the integration with EthStorage as L3, The `L1Block` contract is extended to allow
         fetching 8191 history L1 blockhash not including the current one.

@@ -91,7 +91,7 @@ commands:
       - restore_cache:
           name: "Restore mise cache"
           keys:
-            - "mise-v5-<< parameters.mise_data_dir >>-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+            - "mise-v5-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
       - run:
           name: "Install mise"
           command: |
@@ -110,7 +110,7 @@ commands:
             mise install -v -y
       - save_cache:
           name: "Save mise cache"
-          key: "mise-v5-<< parameters.mise_data_dir >>-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+          key: "mise-v5-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
           paths:
             - << parameters.mise_data_dir >>
       - run:

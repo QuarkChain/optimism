@@ -58,39 +58,41 @@ orbs:
 commands:
   checkout-with-mise:
     description: "Checkout then initialize the mise environment"
+    parameters:
+      mise_data_dir:
+        type: string
+        default: "~/.mise-data"
     steps:
       - checkout
       - run:
           name: "Initialize mise environment"
           command: |
-            # This is used to create a per-user cache key to preserve permissions across different
-            # executor types.
             user=$(whoami)
             echo "$user" > .executor-user
             echo "Set executor user to $user."
             if [[ "$user" == "root" ]]; then
-              rm -rf /data/mise-data
+              rm -rf << parameters.mise_data_dir >>
               echo "Cleaned up cache data."
-              mkdir -p /data/mise-data
+              mkdir -p << parameters.mise_data_dir >>
               echo "Created Mise data dir."
               mkdir -p ~/.cache
               echo "Created Mise cache dir."
             else
-              sudo rm -rf /data/mise-data
+              rm -rf << parameters.mise_data_dir >>
               echo "Cleaned up cache data."
-              sudo mkdir -p /data/mise-data
-              sudo chown -R "$user:$user" /data/mise-data
+              mkdir -p << parameters.mise_data_dir >>
+              chown -R "$user:$user" << parameters.mise_data_dir >>
               echo "Created Mise data dir."
-              sudo mkdir -p ~/.cache
-              sudo chown -R "$user:$user" ~/.cache
+              mkdir -p ~/.cache
+              chown -R "$user:$user" ~/.cache
               echo "Created Mise cache dir."
             fi
       - restore_cache:
-          name: Restore mise cache
+          name: "Restore mise cache"
           keys:
-            - mise-v5-{{ checksum ".executor-user" }}-{{ checksum "mise.toml" }}
+            - "mise-v5-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
       - run:
-          name: Install mise
+          name: "Install mise"
           command: |
             if command -v mise &> /dev/null; then
               echo "mise already installed at $(command -v mise)"
@@ -98,20 +100,20 @@ commands:
               curl https://mise.run | sh
             fi
             echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> "$BASH_ENV"
-            echo "export MISE_DATA_DIR=/data/mise-data" >> "$BASH_ENV"
+            echo "export MISE_DATA_DIR=<< parameters.mise_data_dir >>" >> "$BASH_ENV"
             echo "export MISE_JOBS=$(nproc)" >> "$BASH_ENV"
             echo "eval \"\$($HOME/.local/bin/mise activate --shims)\"" >> "$BASH_ENV"
       - run:
-          name: Install mise deps
+          name: "Install mise deps"
           command: |
             mise install -v -y
       - save_cache:
-          name: Save mise cache
-          key: mise-v5-{{ checksum ".executor-user" }}-{{ checksum "mise.toml" }}
+          name: "Save mise cache"
+          key: "mise-v5-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
           paths:
-            - /data/mise-data
+            - << parameters.mise_data_dir >>
       - run:
-          name: Delete executor file
+          name: "Delete executor file"
           command: |
             rm -f .executor-user
 

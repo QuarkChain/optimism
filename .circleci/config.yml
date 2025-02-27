@@ -367,9 +367,8 @@ jobs:
           mentions: "@clabby @proofs-team"
 
   contracts-bedrock-build:
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    machine: true
+    resource_class: qkc/ax101
     parameters:
       build_args:
         description: Forge build arguments
@@ -982,9 +981,8 @@ jobs:
         description: should load in foundry artifacts
         type: boolean
         default: false
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    machine: true
+    resource_class: qkc/ax101
     steps:
       - checkout-with-mise
       - check-changed:
@@ -1115,9 +1113,8 @@ jobs:
                 mentions: "<<parameters.mentions>>"
 
   sanitize-op-program:
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    machine: true
+    resource_class: qkc/ax101
     steps:
       - checkout-with-mise
       - run:

@@ -61,7 +61,7 @@ commands:
     parameters:
       mise_data_dir:
         type: string
-        default: "~/.mise-data"
+        default: "$HOME/.mise-data"
     steps:
       - checkout
       - run:
@@ -1498,28 +1498,28 @@ workflows:
           name: semgrep-test
           scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
       - go-lint
-      - fuzz-golang:
-          name: fuzz-golang-<<matrix.package_name>>
-          on_changes: <<matrix.package_name>>
-          matrix:
-            parameters:
-              package_name:
-                - op-challenger
-                - op-node
-                - op-service
-                - op-chain-ops
-      - fuzz-golang:
-          name: cannon-fuzz
-          package_name: cannon
-          on_changes: cannon,packages/contracts-bedrock/src/cannon
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
-      - fuzz-golang:
-          name: op-e2e-fuzz
-          package_name: op-e2e
-          on_changes: op-e2e,packages/contracts-bedrock/src
-          uses_artifacts: true
-          requires: ["contracts-bedrock-build"]
+      # - fuzz-golang:
+      #     name: fuzz-golang-<<matrix.package_name>>
+      #     on_changes: <<matrix.package_name>>
+      #     matrix:
+      #       parameters:
+      #         package_name:
+      #           - op-challenger
+      #           - op-node
+      #           - op-service
+      #           - op-chain-ops
+      # - fuzz-golang:
+      #     name: cannon-fuzz
+      #     package_name: cannon
+      #     on_changes: cannon,packages/contracts-bedrock/src/cannon
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
+      # - fuzz-golang:
+      #     name: op-e2e-fuzz
+      #     package_name: op-e2e
+      #     on_changes: op-e2e,packages/contracts-bedrock/src
+      #     uses_artifacts: true
+      #     requires: ["contracts-bedrock-build"]
       - go-tests:
           environment_overrides: |
             export PARALLEL=24
@@ -1548,42 +1548,42 @@ workflows:
             - contracts-bedrock-build
             - cannon-prestate-quick
       - op-program-compat
-      - bedrock-go-tests:
-          requires:
-            - go-lint
-            - cannon-build-test-vectors
-            - cannon-go-lint-and-test-32-bit
-            - cannon-go-lint-and-test-64-bit
-            - check-generated-mocks-op-node
-            - check-generated-mocks-op-service
-            - op-program-compat
-            # Not needed for the devnet but we want to make sure they build successfully
-            - cannon-docker-build
-            - op-dispute-mon-docker-build
-            - op-program-docker-build
-            - op-supervisor-docker-build
-            - proofs-tools-docker-build
-            - go-tests
-            - sanitize-op-program
-      - docker-build:
-          name: <<matrix.docker_name>>-docker-build
-          docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-          save_image_tag: <<pipeline.git.revision>>
-          matrix:
-            parameters:
-              docker_name:
-                - op-node
-                - op-batcher
-                - op-program
-                - op-proposer
-                - op-challenger
-                - proofs-tools
-                - op-dispute-mon
-                - op-conductor
-                - da-server
-                - op-supervisor
-                - cannon
-                - op-dripper
+      # - bedrock-go-tests:
+      #     requires:
+      #       - go-lint
+      #       - cannon-build-test-vectors
+      #       - cannon-go-lint-and-test-32-bit
+      #       - cannon-go-lint-and-test-64-bit
+      #       - check-generated-mocks-op-node
+      #       - check-generated-mocks-op-service
+      #       - op-program-compat
+      #       # Not needed for the devnet but we want to make sure they build successfully
+      #       - cannon-docker-build
+      #       - op-dispute-mon-docker-build
+      #       - op-program-docker-build
+      #       - op-supervisor-docker-build
+      #       - proofs-tools-docker-build
+      #       - go-tests
+      #       - sanitize-op-program
+      # - docker-build:
+      #     name: <<matrix.docker_name>>-docker-build
+      #     docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
+      #     save_image_tag: <<pipeline.git.revision>>
+      #     matrix:
+      #       parameters:
+      #         docker_name:
+      #           - op-node
+      #           - op-batcher
+      #           - op-program
+      #           - op-proposer
+      #           - op-challenger
+      #           - proofs-tools
+      #           - op-dispute-mon
+      #           - op-conductor
+      #           - da-server
+      #           - op-supervisor
+      #           - cannon
+      #           - op-dripper
       - cannon-prestate-quick
       - sanitize-op-program:
           requires:

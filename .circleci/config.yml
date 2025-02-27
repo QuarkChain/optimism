@@ -61,7 +61,7 @@ commands:
     parameters:
       mise_data_dir:
         type: string
-        default: "$HOME/.mise-data"
+        default: "~/.mise-data"
     steps:
       - checkout
       - run:
@@ -70,6 +70,7 @@ commands:
             user=$(whoami)
             echo "$user" > .executor-user
             echo "Set executor user to $user."
+            echo "Mise data dir: << parameters.mise_data_dir >>."
             if [[ "$user" == "root" ]]; then
               rm -rf << parameters.mise_data_dir >>
               echo "Cleaned up cache data."

@@ -18,57 +18,53 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 
 /// @title UpgradeAnchorStateRegistry
 contract UpgradeAnchorStateRegistry is Script {
     function run(
+        address _portal,
         address _disputeGameFactoryProxy,
         address _opChainProxyAdmin,
         address _anchorStateRegistryProxy,
         address _superchainConfig,
         address _storageSetter,
-        uint32 _type,
         uint256 _l2BlockNumber,
         bytes32 _outputRoot
     )
         public
     {
+        console.log("_portal: %s", _portal);
         console.log("_disputeGameFactoryProxy: %s", _disputeGameFactoryProxy);
         console.log("_opChainProxyAdmin: %s", _opChainProxyAdmin);
         console.log("_anchorStateRegistryProxy: %s", _anchorStateRegistryProxy);
         console.log("_superchainConfig: %s", _superchainConfig);
         console.log("_storageSetter: %s", _storageSetter);
-        console.log("_type: %s", _type);
         console.log("_l2BlockNumber: %s", _l2BlockNumber);
         console.log("_outputRoot: %s", bytes32ToHex(_outputRoot));
 
         vm.startBroadcast();
         upgradeAnchorStateRegistryImpl(
+            IOptimismPortal2(payable(_portal)),
             IDisputeGameFactory(_disputeGameFactoryProxy),
             IProxyAdmin(_opChainProxyAdmin),
             IAnchorStateRegistry(_anchorStateRegistryProxy),
             ISuperchainConfig(_superchainConfig),
             _storageSetter,
-            GameType.wrap(_type),
             _l2BlockNumber,
             Hash.wrap(_outputRoot)
         );
         vm.stopBroadcast();
-        checkOutput(
-            IAnchorStateRegistry(_anchorStateRegistryProxy),
-            GameType.wrap(_type),
-            _l2BlockNumber,
-            Hash.wrap(_outputRoot)
-        );
+        checkOutput(IAnchorStateRegistry(_anchorStateRegistryProxy), _l2BlockNumber, Hash.wrap(_outputRoot));
     }
 
     function upgradeAnchorStateRegistryImpl(
+        IOptimismPortal2 _portal,
         IDisputeGameFactory _disputeGameFactoryProxy,
         IProxyAdmin _opChainProxyAdmin,
         IAnchorStateRegistry _anchorStateRegistryProxy,
         ISuperchainConfig _superchainConfig,
         address _storageSetter,
-        GameType _type,
         uint256 _l2BlockNumber,
         Hash _outputRoot
     )
@@ -76,9 +72,7 @@ contract UpgradeAnchorStateRegistry is Script {
     {
         address anchorStateRegistryImpl = DeployUtils.create1({
             _name: "AnchorStateRegistry",
-            _args: DeployUtils.encodeConstructor(
-                abi.encodeCall(IAnchorStateRegistry.__constructor__, (_disputeGameFactoryProxy))
-            )
+            _args: DeployUtils.encodeConstructor(abi.encodeCall(IAnchorStateRegistry.__constructor__, ()))
         });
 
         if (_storageSetter == address(0)) {
@@ -91,7 +85,10 @@ contract UpgradeAnchorStateRegistry is Script {
         bytes memory data;
         data = encodeStorageSetterZeroOutInitializedSlot();
         upgradeAndCall(_opChainProxyAdmin, address(_anchorStateRegistryProxy), _storageSetter, data);
-        data = encodeAnchorStateRegistryInitializer(_type, _l2BlockNumber, _outputRoot, _superchainConfig);
+
+        data = encodeAnchorStateRegistryInitializer(
+            _l2BlockNumber, _outputRoot, _superchainConfig, _disputeGameFactoryProxy, _portal
+        );
         upgradeAndCall(_opChainProxyAdmin, address(_anchorStateRegistryProxy), anchorStateRegistryImpl, data);
     }
 
@@ -100,23 +97,26 @@ contract UpgradeAnchorStateRegistry is Script {
     }
 
     function encodeAnchorStateRegistryInitializer(
-        GameType _type,
         uint256 _l2BlockNumber,
         Hash _outputRoot,
-        ISuperchainConfig _superchainConfig
+        ISuperchainConfig _superchainConfig,
+        IDisputeGameFactory _disputeGameFactory,
+        IOptimismPortal2 _portal
     )
         internal
         view
         virtual
         returns (bytes memory)
     {
-        IAnchorStateRegistry.StartingAnchorRoot[] memory startingAnchorRoots =
-            new IAnchorStateRegistry.StartingAnchorRoot[](1);
-        startingAnchorRoots[0] = IAnchorStateRegistry.StartingAnchorRoot({
-            gameType: _type,
-            outputRoot: OutputRoot({ root: _outputRoot, l2BlockNumber: _l2BlockNumber })
-        });
-        return abi.encodeCall(IAnchorStateRegistry.initialize, (startingAnchorRoots, _superchainConfig));
+        return abi.encodeCall(
+            IAnchorStateRegistry.initialize,
+            (
+                _superchainConfig,
+                _disputeGameFactory,
+                _portal,
+                OutputRoot({ root: _outputRoot, l2BlockNumber: _l2BlockNumber })
+            )
+        );
     }
 
     /// @notice Makes an external call to the target to initialize the proxy with the specified data.
@@ -138,14 +138,13 @@ contract UpgradeAnchorStateRegistry is Script {
 
     function checkOutput(
         IAnchorStateRegistry _anchorStateRegistryProxy,
-        GameType _type,
         uint256 _l2BlockNumber,
         Hash _outputRoot
     )
         public
         view
     {
-        (Hash root, uint256 l2BlockNumber) = IAnchorStateRegistry(_anchorStateRegistryProxy).anchors(_type);
+        (Hash root, uint256 l2BlockNumber) = IAnchorStateRegistry(_anchorStateRegistryProxy).getAnchorRoot();
         require(Hash.unwrap(root) == Hash.unwrap(_outputRoot), "UpgradeAnchorStateRegistryOutput: root mismatch");
         require(l2BlockNumber == _l2BlockNumber, "UpgradeAnchorStateRegistryOutput: l2BlockNumber mismatch");
     }

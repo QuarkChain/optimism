@@ -9,7 +9,7 @@ import { console } from "forge-std/console.sol";
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
 // Libraries
-import { GameType, Hash, OutputRoot } from "src/dispute/lib/Types.sol";
+import { Hash, OutputRoot } from "src/dispute/lib/Types.sol";
 // Contracts
 import { IStorageSetter } from "interfaces/universal/IStorageSetter.sol";
 // Interfaces

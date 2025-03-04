@@ -13,7 +13,6 @@ import { StorageSetter } from "src/universal/StorageSetter.sol";
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IStorageSetter } from "interfaces/universal/IStorageSetter.sol";
-import { IProxy } from "interfaces/universal/IProxy.sol";
 import { ISoulGasToken } from "interfaces/L2/ISoulGasToken.sol";
 
 /// @title UpgradeSoulGasToken
@@ -81,12 +80,18 @@ contract UpgradeSoulGasToken is Script {
 
     function preCheck() public view {
         address sgtAdmin = proxyAdmin.getProxyAdmin(payable(address(soulGasToken)));
-        require(sgtAdmin == address(proxyAdmin));
+        require(sgtAdmin == address(proxyAdmin), "UpgradeSoulGasToken: admin not match");
     }
 
     function postCheck(address _sgtOwner) public view {
-        require(keccak256(abi.encodePacked(soulGasToken.name())) == keccak256("SoulQKC"));
-        require(keccak256(abi.encodePacked(soulGasToken.symbol())) == keccak256("SoulQKC"));
-        require(soulGasToken.owner() == _sgtOwner);
+        require(
+            keccak256(abi.encodePacked(soulGasToken.name())) == keccak256("SoulQKC"),
+            "UpgradeSoulGasToken: name not match"
+        );
+        require(
+            keccak256(abi.encodePacked(soulGasToken.symbol())) == keccak256("SoulQKC"),
+            "UpgradeSoulGasToken: symbol not match"
+        );
+        require(soulGasToken.owner() == _sgtOwner, "UpgradeSoulGasToken: owner not match");
     }
 }

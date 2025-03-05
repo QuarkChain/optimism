@@ -678,9 +678,9 @@ jobs:
       - run:
           name: Check if target branch is op-es
           command: |
-            if [ CIRCLE_PULL_REQUEST = "" ]; then
-              echo "No pull request, skipping frozen files check"
-              exit 0
+            if [ -z "$CIRCLE_PULL_REQUEST" ]; then
+                echo "No pull request, skipping frozen files check"
+                exit 0
             fi
 
             # Get PR number from CIRCLE_PULL_REQUEST

@@ -678,11 +678,16 @@ jobs:
       - run:
           name: Check if target branch is op-es
           command: |
+            echo "CIRCLE_PULL_REQUEST=$CIRCLE_PULL_REQUEST"
             # Get PR number from CIRCLE_PULL_REQUEST
             PR_NUMBER=$(echo $CIRCLE_PULL_REQUEST | rev | cut -d/ -f1 | rev)
+            echo "PR_NUMBER=$PR_NUMBER"
+            echo "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}"
 
             # Use GitHub API to get target branch
             TARGET_BRANCH=$(curl -s "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}" | jq -r .base.ref)
+
+            echo "TARGET_BRANCH=$TARGET_BRANCH"
 
             # If the target branch is not op-es, do not run this check
             if [ "$TARGET_BRANCH" != "op-es" ]; then

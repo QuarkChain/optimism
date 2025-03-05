@@ -54,9 +54,70 @@ orbs:
   slack: circleci/slack@4.10.1
   shellcheck: circleci/shellcheck@3.2.0
   codecov: codecov/codecov@5.0.3
-  utils: ethereum-optimism/circleci-utils@1.0.8
 
 commands:
+  checkout-with-mise:
+    description: "Checkout then initialize the mise environment"
+    parameters:
+      mise_data_dir:
+        type: string
+        default: "~/.mise-data"
+    steps:
+      - checkout
+      - run:
+          name: "Initialize mise environment"
+          command: |
+            user=$(whoami)
+            echo "$user" > .executor-user
+            echo "Set executor user to $user."
+            echo "Mise data dir: << parameters.mise_data_dir >>."
+            if [[ "$user" == "root" ]]; then
+              rm -rf << parameters.mise_data_dir >>
+              echo "Cleaned up cache data."
+              mkdir -p << parameters.mise_data_dir >>
+              echo "Created Mise data dir."
+              mkdir -p ~/.cache
+              echo "Created Mise cache dir."
+            else
+              rm -rf << parameters.mise_data_dir >>
+              echo "Cleaned up cache data."
+              mkdir -p << parameters.mise_data_dir >>
+              chown -R "$user:$user" << parameters.mise_data_dir >>
+              echo "Created Mise data dir."
+              mkdir -p ~/.cache
+              chown -R "$user:$user" ~/.cache
+              echo "Created Mise cache dir."
+            fi
+      - restore_cache:
+          name: "Restore mise cache"
+          keys:
+            - "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+      - run:
+          name: "Install mise"
+          command: |
+            if command -v mise &> /dev/null; then
+              echo "mise already installed at $(command -v mise)"
+            else
+              curl https://mise.run | sh
+            fi
+            echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> "$BASH_ENV"
+            echo "export MISE_DATA_DIR=<< parameters.mise_data_dir >>" >> "$BASH_ENV"
+            echo "export MISE_JOBS=$(nproc)" >> "$BASH_ENV"
+            echo "eval \"\$($HOME/.local/bin/mise activate --shims)\"" >> "$BASH_ENV"
+      - run:
+          name: "Install mise deps"
+          command: |
+            mise install -v -y
+      - save_cache:
+          name: "Save mise cache"
+          key: "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+          paths:
+            - << parameters.mise_data_dir >>
+      - run:
+          name: "Delete executor file"
+          command: |
+            rm -f .executor-user
+
   gcp-oidc-authenticate:
     description: "Authenticate with GCP using a CircleCI OIDC token."
     parameters:
@@ -143,7 +204,7 @@ commands:
           channel: << parameters.channel >>
           event: fail
           template: basic_fail_1
-          branch_pattern: develop
+          branch_pattern: op-es
           mentions: "<< parameters.mentions >>"
 
   run-contracts-check:
@@ -166,7 +227,7 @@ commands:
 jobs:
   cannon-go-lint-and-test:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     parameters:
       skip_slow_tests:
         type: boolean
@@ -179,7 +240,7 @@ jobs:
         type: integer
         default: 32
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - check-changed:
           patterns: cannon,packages/contracts-bedrock/src/cannon,op-preimage,go.mod
       - attach_workspace:
@@ -252,7 +313,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: large
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - check-changed:
           patterns: cannon/mipsevm/tests/open_mips_tests/test
       - run:
@@ -269,9 +330,9 @@ jobs:
 
   diff-asterisc-bytecode:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - run:
           name: Check `RISCV.sol` bytecode
           working_directory: packages/contracts-bedrock
@@ -308,7 +369,7 @@ jobs:
 
   contracts-bedrock-build:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     parameters:
       build_args:
         description: Forge build arguments
@@ -319,7 +380,7 @@ jobs:
         type: string
         default: ci
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - install-contracts-dependencies
       - run:
           name: Print forge version
@@ -349,7 +410,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: xlarge
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -410,7 +471,9 @@ jobs:
       resource_class: "<<parameters.resource_class>>"
       docker_layer_caching: true # we rely on this for faster builds, and actively warm it up for builds with common stages
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
+      - run:
+          command: git submodule update --init
       - attach_workspace:
           at: /tmp/docker_images
       - run:
@@ -536,7 +599,7 @@ jobs:
                   - "<<parameters.release>>"
               - and:
                   - "<<parameters.publish>>"
-                  - equal: [develop, << pipeline.git.branch >>]
+                  - equal: [op-es, << pipeline.git.branch >>]
           steps:
             - gcp-oidc-authenticate:
                 service_account_email: GCP_SERVICE_ATTESTOR_ACCOUNT_EMAIL
@@ -605,15 +668,15 @@ jobs:
 
   contracts-bedrock-frozen-code:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
           patterns: contracts-bedrock
       - run:
-          name: Check if target branch is develop
+          name: Check if target branch is op-es
           command: |
             # Get PR number from CIRCLE_PULL_REQUEST
             PR_NUMBER=$(echo $CIRCLE_PULL_REQUEST | rev | cut -d/ -f1 | rev)
@@ -621,9 +684,9 @@ jobs:
             # Use GitHub API to get target branch
             TARGET_BRANCH=$(curl -s "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${PR_NUMBER}" | jq -r .base.ref)
 
-            # If the target branch is not develop, do not run this check
-            if [ "$TARGET_BRANCH" != "develop" ]; then
-              echo "Target branch is not develop, skipping frozen files check"
+            # If the target branch is not op-es, do not run this check
+            if [ "$TARGET_BRANCH" != "op-es" ]; then
+              echo "Target branch is not op-es, skipping frozen files check"
               exit 0
             fi
       - run:
@@ -657,7 +720,7 @@ jobs:
         type: string
         default: ci
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - run:
@@ -735,7 +798,7 @@ jobs:
         type: string
         default: ci
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -794,7 +857,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: large
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -855,9 +918,9 @@ jobs:
 
   contracts-bedrock-checks:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace: { at: "." }
       - install-contracts-dependencies
       - check-changed:
@@ -898,7 +961,7 @@ jobs:
     machine:
       image: <<pipeline.parameters.base_image>>
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - run:
           name: Install ripgrep
           command: sudo apt-get install -y ripgrep
@@ -920,9 +983,9 @@ jobs:
         type: boolean
         default: false
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - check-changed:
           patterns: "<<parameters.package_name>>"
       - attach_workspace:
@@ -945,9 +1008,9 @@ jobs:
 
   go-lint:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - run:
           name: run Go linter
           command: |
@@ -967,7 +1030,7 @@ jobs:
       resource_class:
         description: Machine resource class
         type: string
-        default: swc/ax101
+        default: qkc/ax101
       no_output_timeout:
         description: Timeout for when CircleCI kills the job if there's no output
         type: string
@@ -984,9 +1047,9 @@ jobs:
         description: List of packages to test
         type: string
     machine: true
-    resource_class: swc/ax101
+    resource_class: <<parameters.resource_class>>
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace:
           at: "."
       - run:
@@ -1052,9 +1115,9 @@ jobs:
 
   sanitize-op-program:
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - run:
           name: Install tools
           command: |
@@ -1074,9 +1137,9 @@ jobs:
 
   cannon-prestate-quick:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - restore_cache:
           name: Restore cannon prestate cache
           key: cannon-prestate-{{ checksum "./cannon/bin/cannon" }}-{{ checksum "op-program/bin/op-program-client.elf" }}
@@ -1101,7 +1164,7 @@ jobs:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - setup_remote_docker
       - run:
           name: Build prestates
@@ -1114,9 +1177,9 @@ jobs:
 
   publish-cannon-prestates:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - attach_workspace:
           at: "."
       - gcp-cli/install
@@ -1161,7 +1224,7 @@ jobs:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - setup_remote_docker
       - run: make -C op-program verify-reproducibility
       - notify-failures-on-develop:
@@ -1171,7 +1234,7 @@ jobs:
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - setup_remote_docker
       - run:
           name: Build cannon
@@ -1236,9 +1299,9 @@ jobs:
   fpp-verify:
     circleci_ip_ranges: true
     machine: true
-    resource_class: swc/ax101
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - run:
           name: verify-sepolia
           command: |
@@ -1249,9 +1312,9 @@ jobs:
 
   op-program-compat:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - run:
           name: compat-sepolia
           command: |
@@ -1260,9 +1323,9 @@ jobs:
 
   check-generated-mocks-op-node:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - check-changed:
           patterns: op-node
       - run:
@@ -1271,9 +1334,9 @@ jobs:
 
   check-generated-mocks-op-service:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - check-changed:
           patterns: op-service
       - run:
@@ -1285,7 +1348,7 @@ jobs:
       - image: <<pipeline.parameters.default_docker_image>>
     resource_class: xlarge
     steps:
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - install-contracts-dependencies
       - check-changed:
           no_go_deps: "true"
@@ -1314,7 +1377,7 @@ jobs:
 
   publish-contract-artifacts:
     machine: true
-    resource_class: ethereum-optimism/latitude-1
+    resource_class: qkc/ax101
     steps:
       - gcp-cli/install
       - gcp-oidc-authenticate:
@@ -1322,7 +1385,7 @@ jobs:
           oidc_token_file_path: /tmp/oidc_token.json
           project_id: GCP_TOOLS_ARTIFACTS_PROJECT_ID
           service_account_email: GCP_CONTRACTS_PUBLISHER_SERVICE_ACCOUNT_EMAIL
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - install-contracts-dependencies
       - run:
           name: Pull artifacts
@@ -1357,7 +1420,7 @@ jobs:
       - gcp-oidc-authenticate:
           gcp_cred_config_file_path: /tmp/gcp_cred_config.json
           oidc_token_file_path: /tmp/oidc_token.json
-      - utils/checkout-with-mise
+      - checkout-with-mise
       - run:
           name: Configure Docker
           command: |
@@ -1409,7 +1472,7 @@ workflows:
       - contracts-bedrock-tests:
           # Heavily fuzz any fuzz tests within added or modified test files.
           name: contracts-bedrock-tests-heavy-fuzz-modified
-          test_list: git diff origin/develop...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+          test_list: git diff origin/op-es...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
           test_timeout: 3h
           test_profile: ciheavy
       - contracts-bedrock-coverage:
@@ -1703,7 +1766,7 @@ workflows:
     when:
       and:
         - or:
-            - equal: ["develop", <<pipeline.git.branch>>]
+            - equal: ["op-es", <<pipeline.git.branch>>]
             - equal: [true, <<pipeline.parameters.fault_proofs_dispatch>>]
         - not:
             equal: [scheduled_pipeline, << pipeline.trigger_source >>]
@@ -1722,7 +1785,7 @@ workflows:
           mentions: "@proofs-team"
           no_output_timeout: 60m
           test_timeout: 59m
-          resource_class: swc/ax101
+          resource_class: qkc/ax101
           environment_overrides: |
             export OP_E2E_CANNON_ENABLED="true"
             export PARALLEL=24
@@ -1743,7 +1806,7 @@ workflows:
           filters:
             branches:
               only:
-                - develop
+                - op-es
 
   # develop-kontrol-tests:
   #   when:

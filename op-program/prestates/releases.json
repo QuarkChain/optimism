@@ -2,6 +2,11 @@
   {
     "version": "0.1",
     "hash": "0x03a9deca8ceb15b1bfe60c98bed2305353b33859a2ffa4dd8c2f5641c4d99a23",
+    "type": "cannon64"
+  },
+  {
+    "version": "0.1",
+    "hash": "0x0319f8ab85189655821325a8367aa56a1848e0845403d83e7426fad8a0224010",
     "governanceApproved": true
   }
 ]

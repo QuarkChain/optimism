@@ -96,7 +96,8 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 		vmenv := vm.NewEVM(context, statedb, provider.Config(), vm.Config{PrecompileOverrides: precompileOverrides})
 		return vmenv
 	}
-	vmenv := mkEVM()
+	var vmenv *vm.EVM
+
 	if h.ParentBeaconRoot != nil {
 		if provider.Config().IsCancun(header.Number, header.Time) {
 			// Blob tx not supported on optimism chains but fields must be set when Cancun is active.
@@ -111,7 +112,10 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 			}
 			header.ExcessBlobGas = &excessBlobGas
 		}
+		vmenv = mkEVM()
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv)
+	} else {
+		vmenv = mkEVM()
 	}
 	if provider.Config().IsPrague(header.Number, header.Time) {
 		core.ProcessParentBlockHash(header.ParentHash, vmenv)

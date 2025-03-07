@@ -109,8 +109,6 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 				// For the first post-fork block, both parent.data_gas_used and parent.excess_data_gas are evaluated as 0
 				excessBlobGas = eip4844.CalcExcessBlobGas(0, 0)
 			}
-			fmt.Printf("header.ExcessBlobGas %d \n=====", header.ExcessBlobGas)
-
 			header.ExcessBlobGas = &excessBlobGas
 			vmenv.Context.BlobBaseFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
 		}

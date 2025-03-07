@@ -98,7 +98,6 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 	}
 	vmenv := mkEVM()
 	if h.ParentBeaconRoot != nil {
-		fmt.Printf("ParentBeaconRoot is not nil\n=====")
 		if provider.Config().IsCancun(header.Number, header.Time) {
 			fmt.Printf("IsCancun %d %d\n=====", header.Number, header.Time)
 			// Blob tx not supported on optimism chains but fields must be set when Cancun is active.
@@ -115,6 +114,7 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 			fmt.Printf("header.ExcessBlobGas %d \n=====", header.ExcessBlobGas)
 
 			header.ExcessBlobGas = &excessBlobGas
+			vmenv.Context.BlobBaseFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
 		}
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv)
 	}

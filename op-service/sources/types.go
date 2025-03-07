@@ -133,7 +133,7 @@ func (hdr *RPCHeader) Info(trustCache bool, mustBePostMerge bool) (eth.BlockInfo
 	}
 	if !trustCache {
 		if computed := hdr.computeBlockHash(); computed != hdr.Hash {
-			return nil, fmt.Errorf("failed to verify block hash: computed %s but RPC said %s", computed, hdr.Hash)
+			return nil, fmt.Errorf("failed to verify block hash: computed %s but RPC said %s, height:%s", computed, hdr.Hash, hdr.Number)
 		}
 	}
 	return eth.HeaderBlockInfoTrusted(hdr.Hash, hdr.CreateGethHeader()), nil
@@ -154,7 +154,7 @@ type RPCBlock struct {
 
 func (block *RPCBlock) Verify() error {
 	if computed := block.computeBlockHash(); computed != block.Hash {
-		return fmt.Errorf("failed to verify block hash: computed %s but RPC said %s", computed, block.Hash)
+		return fmt.Errorf("failed to verify block hash: computed %s but RPC said %s, height:%s", computed, block.Hash, block.Number)
 	}
 	for i, tx := range block.Transactions {
 		if tx == nil {

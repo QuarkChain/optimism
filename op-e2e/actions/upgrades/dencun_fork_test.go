@@ -230,6 +230,7 @@ func TestDencunBlobTxInclusion(gt *testing.T) {
 
 	_, engine, sequencer := helpers.SetupSequencerTest(t, sd, log)
 	sequencer.ActL2PipelineFull(t)
+	verifyEcotoneBlock(gt, engine.L2Chain().CurrentBlock())
 
 	tx := aliceSimpleBlobTx(t, dp)
 

@@ -1033,6 +1033,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Header, l2GenesisBlockHa
 			L2BlobTime: d.L2BlobTime(l1StartTime),
 		}
 	}
+	fmt.Printf("l2BlobConfig %v\n===================", *l2BlobConfig)
 	var inboxContractConfig *rollup.InboxContractConfig
 	if d.UseInboxContract {
 		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}

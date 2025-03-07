@@ -112,6 +112,7 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 			}
 			header.ExcessBlobGas = &excessBlobGas
 		}
+		// core.NewEVMBlockContext need to be called after the blob gas fields are set
 		vmenv = mkEVM()
 		core.ProcessBeaconBlockRoot(*header.ParentBeaconRoot, vmenv)
 	} else {

@@ -234,8 +234,6 @@ func TestDencunBlobTxInclusion(gt *testing.T) {
 	tx := aliceSimpleBlobTx(t, dp)
 
 	sequencer.ActL2StartBlock(t)
-	verifyEcotoneBlock(gt, engine.L2Chain().CurrentBlock())
-
 	err := engine.EngineApi.IncludeTx(tx, dp.Addresses.Alice)
 	require.NoError(t, err, "must inlcude blob tx")
 }

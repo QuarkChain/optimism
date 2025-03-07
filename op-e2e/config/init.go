@@ -293,7 +293,7 @@ func initAllocType(root string, allocType AllocType) {
 				// SWC changes
 				"useSoulGasToken":         true,
 				"isSoulBackedByNative":    true,
-				"l2GenesisBlobTimeOffset": 0,
+				"l2GenesisBlobTimeOffset": "0x0",
 			}
 
 			upgradeSchedule := new(genesis.UpgradeScheduleDeployConfig)

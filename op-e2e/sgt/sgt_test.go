@@ -134,7 +134,12 @@ func setUpTestAccount(t *testing.T, ctx context.Context, index int64, sgt *SgtHe
 }
 
 // balance invariant check: preTotalBalance = postTotalBalance + gasCost + txValue
-func invariantBalanceCheck(t *testing.T, ctx context.Context, sgt *SgtHelper, addr common.Address, gasCost *big.Int, txValue *big.Int, preSgtBalance *big.Int, preL2Balance *big.Int, postSgtBalance *big.Int) {
+func invariantBalanceCheck(t *testing.T, ctx context.Context, sgt *SgtHelper, addr common.Address, gasCost *big.Int, txValue *big.Int, preSgtBalance *big.Int, preL2Balance *big.Int, postSgtBalance *big.Int, sgtShouldChange bool) {
+	if sgtShouldChange {
+		require.True(t, preSgtBalance.Cmp(postSgtBalance) != 0)
+	} else {
+		require.True(t, preSgtBalance.Cmp(postSgtBalance) == 0)
+	}
 	postL2Balance, err := sgt.L2Client.BalanceAt(ctx, addr, nil)
 	require.NoError(t, err)
 	preBalance := new(big.Int).Add(preSgtBalance, preL2Balance)
@@ -167,7 +172,7 @@ func nativaGasPaymentWithoutSGTSuccess(t *testing.T, ctx context.Context, index 
 	require.NoError(t, err)
 	require.Equal(t, common.Big0.Cmp(postSgtBalance), 0)
 	// balance invariant check
-	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance)
+	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance, false)
 }
 
 func fullSGTGasPaymentWithoutNativeBalanceSuccess(t *testing.T, ctx context.Context, index int64, sgt *SgtHelper) {
@@ -192,7 +197,7 @@ func fullSGTGasPaymentWithoutNativeBalanceSuccess(t *testing.T, ctx context.Cont
 	require.NoError(t, err)
 	require.Equal(t, new(big.Int).Add(postSgtBalance, gasCost).Cmp(depositSgtValue), 0)
 	// balance invariant check
-	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance)
+	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance, true)
 }
 
 func fullSGTGasPaymentWithNativeBalanceSuccess(t *testing.T, ctx context.Context, index int64, sgt *SgtHelper) {
@@ -217,7 +222,7 @@ func fullSGTGasPaymentWithNativeBalanceSuccess(t *testing.T, ctx context.Context
 	require.NoError(t, err)
 	require.Equal(t, new(big.Int).Add(postSgtBalance, gasCost).Cmp(depositSgtValue), 0)
 	// balance invariant check
-	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance)
+	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance, true)
 }
 
 func partialSGTGasPaymentSuccess(t *testing.T, ctx context.Context, index int64, sgt *SgtHelper) {
@@ -243,7 +248,7 @@ func partialSGTGasPaymentSuccess(t *testing.T, ctx context.Context, index int64,
 	require.NoError(t, err)
 	require.Equal(t, common.Big0.Cmp(postSgtBalance), 0)
 	// balance invariant check
-	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance)
+	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance, true)
 }
 
 func fullSGTGasPaymentAndNonZeroTxValueWithSufficientNativeBalanceSuccess(t *testing.T, ctx context.Context, index int64, sgt *SgtHelper) {
@@ -268,7 +273,7 @@ func fullSGTGasPaymentAndNonZeroTxValueWithSufficientNativeBalanceSuccess(t *tes
 	require.NoError(t, err)
 	require.Equal(t, new(big.Int).Add(postSgtBalance, gasCost).Cmp(depositSgtValue), 0)
 	// balance invariant check
-	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance)
+	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance, true)
 }
 
 func partialSGTGasPaymentAndNonZeroTxValueWithSufficientNativeBalanceSuccess(t *testing.T, ctx context.Context, index int64, sgt *SgtHelper) {
@@ -293,7 +298,7 @@ func partialSGTGasPaymentAndNonZeroTxValueWithSufficientNativeBalanceSuccess(t *
 	require.NoError(t, err)
 	require.Equal(t, common.Big0.Cmp(postSgtBalance), 0)
 	// balance invariant check
-	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance)
+	invariantBalanceCheck(t, ctx, sgt, testAddr, gasCost, txValue, depositSgtValue, depositL2Value, postSgtBalance, true)
 }
 
 func fullSGTInsufficientGasPaymentFail(t *testing.T, ctx context.Context, index int64, sgt *SgtHelper) {

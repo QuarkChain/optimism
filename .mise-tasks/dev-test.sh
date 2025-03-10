@@ -54,8 +54,6 @@ cd op-program && make op-program-client && cd ..
 cd cannon && make elf && cd ..
 cd op-e2e && make pre-test && cd ..
 
-make devnet-allocs
-
 export ENABLE_KURTOSIS=true
 export OP_E2E_CANNON_ENABLED="false"
 export OP_E2E_SKIP_SLOW_TEST=true
@@ -65,6 +63,7 @@ export ENABLE_ANVIL=true
 # Note: not all packages are tested.
 # For example the test `TestFinalization` in `op-alt-da` package fails even in upstream.
 packages=(
+    op-alt-da
     op-batcher
     op-chain-ops
     op-node
@@ -86,6 +85,7 @@ packages=(
     op-e2e/inbox
     op-e2e/sgt
     packages/contracts-bedrock/scripts/checks
+    op-dripper
 )
 formatted_packages=""
 for package in "${packages[@]}"; do

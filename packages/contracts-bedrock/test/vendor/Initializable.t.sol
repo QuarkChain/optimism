@@ -245,7 +245,7 @@ contract Initializer_Test is CommonTest {
         contracts.push(
             InitializeableContract({
                 name: "SoulGasTokenImpl",
-                target: address(soulGasToken),
+                target: EIP1967Helper.getImplementation(address(soulGasToken)),
                 initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
             })
         );

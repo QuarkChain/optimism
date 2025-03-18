@@ -435,13 +435,9 @@ contract Initializer_Test is CommonTest {
             InitializeableContract memory _contract = contracts[i];
             string memory deploymentName = _getRealContractName(_contract.name);
 
-            string memory contractName = deploymentName;
-            if (!LibString.eq(deploymentName, "SoulGasToken")) {
-                contractName = _removeSuffix(deploymentName);
-            }
             // Assert that the contract is already initialized.
             assertTrue(
-                ForgeArtifacts.isInitialized({ _name: contractName, _address: _contract.target }),
+                ForgeArtifacts.isInitialized({ _name: _removeSuffix(deploymentName), _address: _contract.target }),
                 "Initializable: contract is not initialized"
             );
 

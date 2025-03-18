@@ -111,7 +111,6 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 				excessBlobGas = eip4844.CalcExcessBlobGas(0, 0)
 			}
 			header.ExcessBlobGas = &excessBlobGas
-			vmenv.Context.BlobBaseFee = eip4844.CalcBlobFee(*header.ExcessBlobGas)
 		}
 		// core.NewEVMBlockContext need to be called after the blob gas fields are set
 		vmenv = mkEVM()

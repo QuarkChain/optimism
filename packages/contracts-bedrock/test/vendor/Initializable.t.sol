@@ -241,10 +241,18 @@ contract Initializer_Test is CommonTest {
                 )
             })
         );
-        // SoulGasToken
+        // SoulGasTokenImpl
         contracts.push(
             InitializeableContract({
-                name: "SoulGasToken",
+                name: "SoulGasTokenImpl",
+                target: EIP1967Helper.getImplementation(address(soulGasToken)),
+                initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
+            })
+        );
+        // SoulGasTokenProxy
+        contracts.push(
+            InitializeableContract({
+                name: "SoulGasTokenProxy",
                 target: address(soulGasToken),
                 initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
             })

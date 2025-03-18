@@ -696,9 +696,8 @@ jobs:
 
   contracts-bedrock-tests:
     circleci_ip_ranges: true
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    machine: true
+    resource_class: swc/ax101
     parameters:
       test_list:
         description: List of test files to run
@@ -781,9 +780,8 @@ jobs:
 
   contracts-bedrock-coverage:
     circleci_ip_ranges: true
-    docker:
-        - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    machine: true
+    resource_class: swc/ax101
     parameters:
       test_flags:
         description: Additional flags to pass to the test command
@@ -853,9 +851,8 @@ jobs:
 
   contracts-bedrock-tests-upgrade:
     circleci_ip_ranges: true
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    machine: true
+    resource_class: swc/ax101
     steps:
       - checkout-with-mise
       - attach_workspace: { at: "." }
@@ -958,8 +955,8 @@ jobs:
       check_closed:
         type: boolean
         default: true
-    machine:
-      image: <<pipeline.parameters.base_image>>
+    machine: true
+    resource_class: swc/ax101
     steps:
       - checkout-with-mise
       - run:

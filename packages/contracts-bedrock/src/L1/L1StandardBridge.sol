@@ -82,10 +82,10 @@ contract L1StandardBridge is StandardBridge, ISemver {
     /// @notice Address of the SuperchainConfig contract.
     ISuperchainConfig public superchainConfig;
 
-    /// @custom:legacy
-    /// @custom:spacer systemConfig
-    /// @notice Spacer taking up the legacy `systemConfig` slot.
-    address private spacer_51_0_20;
+    // /// @custom:legacy
+    // /// @custom:spacer systemConfig
+    // /// @notice Spacer taking up the legacy `systemConfig` slot.
+    // address private spacer_51_0_20;
 
     /// @notice Address of the SystemConfig contract.
     ISystemConfig public systemConfig;

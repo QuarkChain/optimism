@@ -468,6 +468,7 @@ contract OPContractsManager is ISemver {
         }
 
         for (uint256 i = 0; i < _opChainConfigs.length; i++) {
+            (address gasPayingToken,) = _opChainConfigs[i].systemConfigProxy.gasPayingToken();
             // After Upgrade 13, we will be able to use systemConfigProxy.getAddresses() here.
             ISystemConfig.Addresses memory opChainAddrs = ISystemConfig.Addresses({
                 l1CrossDomainMessenger: _opChainConfigs[i].systemConfigProxy.l1CrossDomainMessenger(),
@@ -475,7 +476,8 @@ contract OPContractsManager is ISemver {
                 l1StandardBridge: _opChainConfigs[i].systemConfigProxy.l1StandardBridge(),
                 disputeGameFactory: address(getDisputeGameFactory(_opChainConfigs[i].systemConfigProxy)),
                 optimismPortal: _opChainConfigs[i].systemConfigProxy.optimismPortal(),
-                optimismMintableERC20Factory: _opChainConfigs[i].systemConfigProxy.optimismMintableERC20Factory()
+                optimismMintableERC20Factory: _opChainConfigs[i].systemConfigProxy.optimismMintableERC20Factory(),
+                gasPayingToken: gasPayingToken
             });
 
             if (IOptimismPortal2(payable(opChainAddrs.optimismPortal)).superchainConfig() != superchainConfig) {
@@ -856,7 +858,10 @@ contract OPContractsManager is ISemver {
         virtual
         returns (bytes memory)
     {
-        return abi.encodeCall(IL1StandardBridge.initialize, (_output.l1CrossDomainMessengerProxy, superchainConfig));
+        return abi.encodeCall(
+            IL1StandardBridge.initialize,
+            (_output.l1CrossDomainMessengerProxy, superchainConfig, _output.systemConfigProxy)
+        );
     }
 
     function encodeDisputeGameFactoryInitializer() internal view virtual returns (bytes memory) {
@@ -929,7 +934,8 @@ contract OPContractsManager is ISemver {
             l1StandardBridge: address(_output.l1StandardBridgeProxy),
             disputeGameFactory: address(_output.disputeGameFactoryProxy),
             optimismPortal: address(_output.optimismPortalProxy),
-            optimismMintableERC20Factory: address(_output.optimismMintableERC20FactoryProxy)
+            optimismMintableERC20Factory: address(_output.optimismMintableERC20FactoryProxy),
+            gasPayingToken: Constants.ETHER
         });
 
         assertValidContractAddress(opChainAddrs_.l1CrossDomainMessenger);

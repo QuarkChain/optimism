@@ -12,8 +12,8 @@
     "sourceCodeHash": "0x79730cdb479b034943319c4c7a465befb0c93d5d286d2e2f716d12dfd75e7d79"
   },
   "src/L1/L1StandardBridge.sol": {
-    "initCodeHash": "0x68f2cdcf1d956a47fd223430d22d553d7ce2645c454ec622a92c270a7e65eacb",
-    "sourceCodeHash": "0x6dd09e943fe36fd50e49dbdcfe4e9029159d4112ed167f9b0d5b8884ff25dc6b"
+    "initCodeHash": "0xc0b5ea20835225286898827fd1241372402dae5d0c9a4423c57a44799c2a7a97",
+    "sourceCodeHash": "0x37176f2a34dd75e9f3032dce10d69524af86a2902eec9c5029b7df3a806eed9b"
   },
   "src/L1/OPContractsManager.sol": {
     "initCodeHash": "0x4f949618b7e238584b87d917be151aef89f46d6148a7393a63c3bb3be5a2970f",

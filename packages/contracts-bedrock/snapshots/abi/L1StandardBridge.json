@@ -35,6 +35,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "SYSTEM_CONFIG_SLOT",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -495,19 +508,6 @@
     "outputs": [
       {
         "internalType": "contract ISuperchainConfig",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "systemConfig",
-    "outputs": [
-      {
-        "internalType": "contract ISystemConfig",
         "name": "",
         "type": "address"
       }

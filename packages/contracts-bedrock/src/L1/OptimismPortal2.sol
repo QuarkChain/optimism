@@ -240,7 +240,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
             return address(this).balance;
         } else {
             // Temporary revert till we support custom gas tokens
-            if (true) revert CustomGasTokenNotSupported();
+            // if (true) revert CustomGasTokenNotSupported();
 
             return _balance;
         }
@@ -449,7 +449,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
             success = SafeCall.callWithMinGas(_tx.target, _tx.gasLimit, _tx.value, _tx.data);
         } else {
             // Temporary revert till we support custom gas tokens
-            if (true) revert CustomGasTokenNotSupported();
+            // if (true) revert CustomGasTokenNotSupported();
 
             // Cannot call the token contract directly from the portal. This would allow an attacker
             // to call approve from a withdrawal and drain the balance of the portal.
@@ -521,7 +521,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         metered(_gasLimit)
     {
         // Temporary revert till we support custom gas tokens
-        if (true) revert CustomGasTokenNotSupported();
+        // if (true) revert CustomGasTokenNotSupported();
 
         // Can only be called if an ERC20 token is used for gas paying on L2
         (address token,) = gasPayingToken();
@@ -639,7 +639,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
     ///         L2 native asset. Only the SystemConfig contract can call this function.
     function setGasPayingToken(address _token, uint8 _decimals, bytes32 _name, bytes32 _symbol) external {
         // Temporary revert till we support custom gas tokens
-        if (true) revert CustomGasTokenNotSupported();
+        // if (true) revert CustomGasTokenNotSupported();
 
         if (msg.sender != address(systemConfig)) revert Unauthorized();
 

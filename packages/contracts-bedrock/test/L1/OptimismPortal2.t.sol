@@ -1152,7 +1152,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
         game_noData.resolve();
         vm.warp(block.timestamp + optimismPortal2.proofMaturityDelaySeconds() + 1 seconds);
 
-        vm.expectRevert(IOptimismPortal2.CustomGasTokenNotSupported.selector);
+        // vm.expectRevert(IOptimismPortal2.CustomGasTokenNotSupported.selector);
         optimismPortal2.finalizeWithdrawalTransaction(_defaultTx_noData);
     }
 

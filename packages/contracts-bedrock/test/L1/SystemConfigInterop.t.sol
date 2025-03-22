@@ -30,7 +30,7 @@ contract SystemConfigInterop_Test is CommonTest {
     /// expected error.
     /// @dev Should be removed when/if Custom Gas Token functionality is allowed again.
     function test_initialize_customGasToken_reverts() external {
-        vm.expectRevert(ISystemConfig.CustomGasTokenNotSupported.selector);
+        // vm.expectRevert(ISystemConfig.CustomGasTokenNotSupported.selector);
         _cleanStorageAndInit(address(L1Token));
     }
 

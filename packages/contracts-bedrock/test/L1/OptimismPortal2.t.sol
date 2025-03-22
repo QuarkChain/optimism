@@ -434,7 +434,7 @@ contract OptimismPortal2_Test is CommonTest {
     function test_depositERC20Transaction_customGasToken_reverts() external {
         skipIfForkTest("Custom gas token is still supported on forked tests");
 
-        vm.expectRevert(IOptimismPortal2.CustomGasTokenNotSupported.selector);
+        vm.expectRevert(IOptimismPortal2.OnlyCustomGasToken.selector);
         optimismPortal2.depositERC20Transaction(address(0), 0, 0, 0, false, "");
     }
 

@@ -323,7 +323,7 @@ contract OptimismPortal2_Test is CommonTest {
     {
         skipIfForkTest("Custom gas token is still supported on forked tests");
 
-        vm.expectRevert(IOptimismPortal2.CustomGasTokenNotSupported.selector);
+        vm.expectRevert(Unauthorized.selector);
         optimismPortal2.setGasPayingToken({ _token: _token, _decimals: _decimals, _name: _name, _symbol: _symbol });
     }
 

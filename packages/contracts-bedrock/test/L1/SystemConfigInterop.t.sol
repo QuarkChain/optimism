@@ -36,7 +36,7 @@ contract SystemConfigInterop_Test is CommonTest {
 
     /// @dev Tests that when the decimals is not 18, initialization reverts.
     function test_initialize_decimalsIsNot18_reverts(uint8 decimals) external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         vm.assume(decimals != 18);
         address _token = address(L1Token);
@@ -91,7 +91,7 @@ contract SystemConfigInterop_Test is CommonTest {
     )
         public
     {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         assumeNotForgeAddress(_token);
         vm.assume(_token != address(0));

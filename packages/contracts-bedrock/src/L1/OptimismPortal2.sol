@@ -574,7 +574,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ISemver {
         (address token,) = gasPayingToken();
 
         // Temporary revert till we support custom gas tokens
-        if (token != Constants.ETHER) revert CustomGasTokenNotSupported();
+        // if (token != Constants.ETHER) revert CustomGasTokenNotSupported();
 
         if (token != Constants.ETHER && msg.value != 0) revert NoValue();
 

@@ -715,13 +715,13 @@ contract L1CrossDomainMessenger_Test is CommonTest {
         );
 
         vm.prank(alice);
-        vm.expectRevert(IOptimismPortal2.CustomGasTokenNotSupported.selector);
+        // vm.expectRevert(IOptimismPortal2.CustomGasTokenNotSupported.selector);
         l1CrossDomainMessenger.sendMessage(recipient, hex"ff", uint32(100));
     }
 
     /// @dev Tests that sendMessage succeeds with a custom gas token when the call value is zero.
     function test_sendMessage_customGasTokenButNoValue_succeeds() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mock the gasPayingToken function to return a custom gas token
         vm.mockCall(

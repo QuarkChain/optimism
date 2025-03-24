@@ -336,7 +336,7 @@ contract OptimismPortal2_Test is CommonTest {
     )
         external
     {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
         skipIfForkTest("OptimismPortal2_Test: gas paying token functionality DNE on op mainnet");
@@ -369,7 +369,7 @@ contract OptimismPortal2_Test is CommonTest {
     )
         external
     {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
         skipIfForkTest("OptimismPortal2_Test: gas paying token functionality DNE on op mainnet");
@@ -416,7 +416,7 @@ contract OptimismPortal2_Test is CommonTest {
 
     /// @dev Tests that the gas paying token cannot be set by a non-system config.
     function test_setGasPayingToken_notSystemConfig_fails(address _caller) external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
         skipIfForkTest("OptimismPortal2_Test: gas paying token functionality DNE on op mainnet");
@@ -440,7 +440,7 @@ contract OptimismPortal2_Test is CommonTest {
 
     /// @dev Tests that `depositERC20Transaction` reverts when the gas paying token is ether.
     function test_depositERC20Transaction_noCustomGasToken_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
         skipIfForkTest("OptimismPortal2_Test: gas paying token functionality DNE on op mainnet");
@@ -454,7 +454,7 @@ contract OptimismPortal2_Test is CommonTest {
     }
 
     function test_depositERC20Transaction_balanceOverflow_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // TODO(opcm upgrades): remove skip once upgrade path is implemented
         skipIfForkTest("OptimismPortal2_Test: gas paying token functionality DNE on op mainnet");
@@ -1158,7 +1158,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds when _tx.data is empty and with a custom gas token.
     function test_finalizeWithdrawalTransaction_noTxDataNonEtherGasToken_succeeds() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         Types.WithdrawalTransaction memory _defaultTx_noData = Types.WithdrawalTransaction({
             nonce: 0,
@@ -1322,7 +1322,7 @@ contract OptimismPortal2_FinalizeWithdrawal_Test is CommonTest {
 
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
     function test_finalizeWithdrawalTransaction_provenWithdrawalHashNonEtherTargetToken_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         vm.mockCall(
             address(systemConfig),
@@ -2152,7 +2152,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
     )
         external
     {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Ensure that msg.sender == tx.origin
         vm.startPrank(address(this), address(this));
@@ -2179,7 +2179,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
     )
         external
     {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Ensure that msg.sender != tx.origin
         vm.startPrank(address(this), address(1));
@@ -2197,7 +2197,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `depositERC20Transaction` reverts when not enough of the token is approved.
     function test_depositERC20Transaction_notEnoughAmount_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mock the gas paying token to be the ERC20 token
         vm.mockCall(
@@ -2210,7 +2210,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `depositERC20Transaction` reverts when token balance does not update correctly after transfer.
     function test_depositERC20Transaction_incorrectTokenBalance_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mint the token to the contract and approve the token for the portal
         token.mint(address(this), 100);
@@ -2235,7 +2235,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `depositERC20Transaction` reverts when creating a contract with a non-zero target.
     function test_depositERC20Transaction_isCreationNotZeroTarget_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mock the gas paying token to be the ERC20 token
         vm.mockCall(
@@ -2252,7 +2252,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `depositERC20Transaction` reverts when the gas limit is too low.
     function test_depositERC20Transaction_gasLimitTooLow_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mock the gas paying token to be the ERC20 token
         vm.mockCall(
@@ -2266,7 +2266,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `depositERC20Transaction` reverts when the data is too large.
     function test_depositERC20Transaction_dataTooLarge_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         bytes memory data = new bytes(120_001);
         data[120_000] = 0x01;
@@ -2284,7 +2284,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `balance()` returns the correct balance when the gas paying token is not ether.
     function testFuzz_balance_nonEther_succeeds(uint256 _amount) external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mint the token to the contract and approve the token for the portal
         token.mint(address(this), _amount);
@@ -2304,7 +2304,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `finalizeWithdrawalTransaction` succeeds.
     function test_finalizeWithdrawalTransaction_provenWithdrawalHashWithNonEther_succeeds() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mint the token to the contract and approve the token for the portal
         token.mint(address(this), _defaultTx.value);
@@ -2404,7 +2404,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
     )
         external
     {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Ensure that msg.sender == tx.origin
         vm.startPrank(address(this), address(this));
@@ -2429,7 +2429,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
     )
         external
     {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Ensure that msg.sender != tx.origin
         vm.startPrank(address(this), address(1));
@@ -2446,7 +2446,7 @@ contract OptimismPortal2WithMockERC20_Test is OptimismPortal2_FinalizeWithdrawal
 
     /// @dev Tests that `depositTransaction` fails when a custom gas token is used and msg.value is non-zero.
     function test_depositTransaction_customGasTokenWithValue_reverts() external {
-        vm.skip(true, "Custom gas token not supported");
+        // vm.skip(true, "Custom gas token not supported");
 
         // Mock the gas paying token to be the ERC20 token
         vm.mockCall(

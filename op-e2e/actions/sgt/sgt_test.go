@@ -55,8 +55,6 @@ func TestDynamicSGT(gt *testing.T) {
 	})
 	require.NoError(t, cl.SendTransaction(t.Ctx(), tx))
 
-	sequencer.ActL2PipelineFull(t)
-
 	// Make L2 block
 	sequencer.ActL2StartBlock(t)
 	engine.ActL2IncludeTx(dp.Addresses.Alice)(t)
@@ -83,8 +81,6 @@ func TestDynamicSGT(gt *testing.T) {
 		To:        &dp.Addresses.Bob,
 	})
 	require.NoError(t, cl.SendTransaction(t.Ctx(), tx))
-
-	sequencer.ActL2PipelineFull(t)
 
 	// Make L2 block
 	sequencer.ActL2StartBlock(t)

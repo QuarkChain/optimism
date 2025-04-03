@@ -20,6 +20,7 @@
 !/op-wheel
 !/op-alt-da
 !/da-server
+!/op-geth
 !/go.mod
 !/go.sum
 !/justfiles

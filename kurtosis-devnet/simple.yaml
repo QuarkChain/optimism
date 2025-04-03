@@ -2,7 +2,7 @@ optimism_package:
   chains:
     - participants:
       - el_type: op-geth
-        el_image: ""
+        el_image: {{ localDockerImage "op-node" }}
         el_log_level: ""
         el_extra_env_vars: {}
         el_extra_labels: {}
@@ -62,6 +62,7 @@ optimism_package:
     global_deploy_overrides:
       faultGameAbsolutePrestate: {{ localPrestate.Hashes.prestate }}
       useSoulGasToken: true
+      soulGasTokenBlock: 0
       isSoulBackedByNative: true
       l2GenesisBlobTimeOffset: "0x0"
   global_log_level: "info"
@@ -69,6 +70,9 @@ optimism_package:
   global_tolerations: []
   persistent: false
 ethereum_package:
+  participants:
+    - el_type: geth
+      cl_type: teku
   network_params:
     preset: minimal
     genesis_delay: 5

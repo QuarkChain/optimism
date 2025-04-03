@@ -85,13 +85,6 @@ var (
 	genesisTime      = hexutil.Uint64(0)
 )
 
-func DefaultSystemConfigForSoulGasToken(t *testing.T, enable, isBackedByNative bool) SystemConfig {
-	config := DefaultSystemConfig(t)
-	config.UseSoulGasToken = enable
-	config.IsSoulBackedByNative = isBackedByNative
-	return config
-}
-
 type SystemConfigOpts struct {
 	AllocType config.AllocType
 }

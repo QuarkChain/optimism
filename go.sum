@@ -21,8 +21,8 @@ github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
-github.com/Quarkchain/op-geth v0.0.0-20250217080034-97596a48ef97 h1:BiuY+UjSYTCxn4lBX0hnrFV0BDMuZCNF1IqWziw3Jf8=
-github.com/Quarkchain/op-geth v0.0.0-20250217080034-97596a48ef97/go.mod h1:OMpyVMMy5zpAAHlR5s/aGbXRk+7cIKczUEIJj54APbY=
+github.com/Quarkchain/op-geth v0.0.0-20250327014517-83933ea74589 h1:9Xb7kDt81XtXK6hnTz1HtfFZDP1GMLCoE3Lzbhwahz0=
+github.com/Quarkchain/op-geth v0.0.0-20250327014517-83933ea74589/go.mod h1:OMpyVMMy5zpAAHlR5s/aGbXRk+7cIKczUEIJj54APbY=
 github.com/VictoriaMetrics/fastcache v1.12.2 h1:N0y9ASrJ0F6h0QaC3o6uJb3NIZ9VKLjCM7NQbSmF7WI=
 github.com/VictoriaMetrics/fastcache v1.12.2/go.mod h1:AmC+Nzz1+3G2eCPapF6UcsnkThDcMsQicp4xDukwJYI=
 github.com/adrg/xdg v0.4.0 h1:RzRqFcjH4nE5C6oTAxhBtoE2IRyjBSa62SCbyPidvls=

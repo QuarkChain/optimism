@@ -9,7 +9,7 @@ import (
 
 	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
-	"github.com/ethereum-optimism/optimism/op-e2e/faultproofs"
+	"github.com/ethereum-optimism/optimism/op-e2e/system/e2esys"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
 
@@ -29,7 +29,8 @@ var (
 
 func TestSGTDepositFunctionSuccess(t *testing.T) {
 	op_e2e.InitParallel(t)
-	sys, _ := faultproofs.StartFaultDisputeSystem(t)
+	sgtBlock := uint64(0)
+	sys := startSystemWithSGT(&sgtBlock, t)
 	t.Cleanup(sys.Close)
 	ctx := context.Background()
 
@@ -38,11 +39,31 @@ func TestSGTDepositFunctionSuccess(t *testing.T) {
 	_, _, _ = setUpTestAccount(t, ctx, 0, sgt, depositSgtValue, big.NewInt(0))
 }
 
+func startSystemWithSGT(sgtBlock *uint64, t *testing.T) *e2esys.System {
+	cfg := e2esys.DefaultSystemConfig(t)
+	delete(cfg.Nodes, "verifier")
+	_, ok := cfg.Nodes["sequencer"]
+	require.True(t, ok, "sequencer is required")
+
+	if sgtBlock != nil {
+		cfg.DeployConfig.UseSoulGasToken = true
+		cfg.DeployConfig.SoulGasTokenBlock = *sgtBlock
+	} else {
+		cfg.DeployConfig.UseSoulGasToken = false
+	}
+	// Disable proposer creating fast games automatically - required games are manually created
+	cfg.DisableProposer = true
+	sys, err := cfg.Start(t)
+	require.Nil(t, err, "Error starting up system")
+	return sys
+}
+
 // Diverse test scenarios to verify that the SoulGasToken(sgt) is utilized for gas payment firstly,
 // unless there is insufficient sgt balance, in which case the native balance will be used instead.
 func TestSGTAsGasPayment(t *testing.T) {
 	op_e2e.InitParallel(t)
-	sys, _ := faultproofs.StartFaultDisputeSystem(t)
+	sgtBlock := uint64(0)
+	sys := startSystemWithSGT(&sgtBlock, t)
 	t.Cleanup(sys.Close)
 	ctx := context.Background()
 

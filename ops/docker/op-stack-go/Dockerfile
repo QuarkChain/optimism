@@ -138,6 +138,10 @@ FROM --platform=$BUILDPLATFORM builder AS dac-server-builder
 ARG OP_NODE_VERSION=v0.0.0
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd da-server && go build -o da-server main.go
 
+FROM --platform=$BUILDPLATFORM builder AS op-geth-builder
+ARG OP_NODE_VERSION=v0.0.0
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd op-geth && CGO_ENABLED=0 make geth
+
 FROM --platform=$BUILDPLATFORM builder AS op-dripper-builder
 ARG OP_DRIPPER_VERSION=v0.0.0
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd op-dripper && make op-dripper  \
@@ -160,6 +164,7 @@ FROM $TARGET_BASE_IMAGE AS op-node-target
 COPY --from=op-node-builder /app/op-node/bin/op-node /usr/local/bin/
 COPY --from=dac-server-builder /app/da-server/da-server /usr/local/bin/
 COPY --from=dac-server-builder /app/da-server/default.json /usr/local/bin/
+COPY --from=op-geth-builder /app/op-geth/build/bin/geth /usr/local/bin/
 CMD ["op-node"]
 
 # Make the kona docker image published by upstream available as a source to copy kona and asterisc from.

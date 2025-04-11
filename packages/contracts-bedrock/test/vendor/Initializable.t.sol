@@ -46,6 +46,7 @@ contract Initializer_Test is Bridge_Initializer {
 
     function setUp() public override {
         super.enableAltDA();
+        super.enableSoulGasToken();
         super.enableLegacyContracts();
         super.setUp();
 
@@ -266,6 +267,14 @@ contract Initializer_Test is Bridge_Initializer {
                 name: "L2CrossDomainMessenger",
                 target: address(l2CrossDomainMessenger),
                 initCalldata: abi.encodeCall(l2CrossDomainMessenger.initialize, (l1CrossDomainMessenger))
+            })
+        );
+        // SoulGasToken
+        contracts.push(
+            InitializeableContract({
+                name: "SoulGasToken",
+                target: address(soulGasToken),
+                initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
             })
         );
         // L1StandardBridgeImpl

@@ -91,6 +91,8 @@ contract DeployConfig is Script {
     address public customGasTokenAddress;
 
     bool public useInterop;
+    bool public useSoulGasToken;
+    bool public isSoulBackedByNative;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -177,6 +179,8 @@ contract DeployConfig is Script {
         customGasTokenAddress = _readOr(_json, "$.customGasTokenAddress", address(0));
 
         useInterop = _readOr(_json, "$.useInterop", false);
+        useSoulGasToken = _readOr(_json, "$.useSoulGasToken", false);
+        isSoulBackedByNative = _readOr(_json, "$.isSoulBackedByNative", false);
     }
 
     function fork() public view returns (Fork fork_) {
@@ -234,6 +238,16 @@ contract DeployConfig is Script {
     /// @notice Allow the `useInterop` config to be overridden in testing environments
     function setUseInterop(bool _useInterop) public {
         useInterop = _useInterop;
+    }
+
+    /// @notice Allow the `useSoulGasToken` config to be overridden in testing environments
+    function setUseSoulGasToken(bool _useSoulGasToken) public {
+        useSoulGasToken = _useSoulGasToken;
+    }
+
+    /// @notice Allow the `isSoulBackedByNative` config to be overridden in testing environments
+    function setIsSoulBackedByNative(bool _isSoulBackedByNative) public {
+        isSoulBackedByNative = _isSoulBackedByNative;
     }
 
     /// @notice Allow the `fundDevAccounts` config to be overridden.

@@ -22,6 +22,8 @@ contract CommonTest is Test, Setup, Events {
     bool useLegacyContracts;
     address customGasToken;
     bool useInteropOverride;
+    bool useSoulGasToken;
+    bool isSoulBackedByNative;
 
     function setUp() public virtual override {
         alice = makeAddr("alice");
@@ -44,6 +46,13 @@ contract CommonTest is Test, Setup, Events {
         }
         if (useInteropOverride) {
             deploy.cfg().setUseInterop(true);
+        }
+
+        if (useSoulGasToken) {
+            deploy.cfg().setUseSoulGasToken(true);
+            if (isSoulBackedByNative) {
+                deploy.cfg().setIsSoulBackedByNative(true);
+            }
         }
 
         vm.etch(address(ffi), vm.getDeployedCode("FFIInterface.sol:FFIInterface"));
@@ -149,5 +158,16 @@ contract CommonTest is Test, Setup, Events {
         }
 
         useInteropOverride = true;
+    }
+
+    function enableSoulGasToken() public {
+        // Check if the system has already been deployed, based off of the heuristic that alice and bob have not been
+        // set by the `setUp` function yet.
+        if (!(alice == address(0) && bob == address(0))) {
+            revert("CommonTest: Cannot enable sgt after deployment. Consider overriding `setUp`.");
+        }
+
+        useSoulGasToken = true;
+        isSoulBackedByNative = true;
     }
 }

@@ -54,7 +54,7 @@ func InitLiveStrategy(ctx context.Context, env *Env, intent *state.Intent, st *s
 		}
 
 		st.ImplementationsDeployment = &state.ImplementationsDeployment{
-			OpcmAddress: opcmAddress,
+			OpcmProxyAddress: opcmAddress,
 		}
 	} else if isTag && !hasPredeployedOPCM {
 		if err := displayWarning(); err != nil {
@@ -143,7 +143,7 @@ func displayWarning() error {
 
 You are deploying a tagged release to a chain with no pre-deployed OPCM.
 Due to a quirk of our contract version system, this can lead to deploying
-contracts containing unaudited or untested code. As a result, this 
+contracts containing unaudited or untested code. As a result, this
 functionality is currently disabled.
 
 We will fix this in an upcoming release.

@@ -26,7 +26,7 @@ type DeployOPChainInputV160 struct {
 	BasefeeScalar     uint32
 	BlobBaseFeeScalar uint32
 	L2ChainId         *big.Int
-	Opcm              common.Address
+	OpcmProxy         common.Address
 	SaltMixer         string
 	GasLimit          uint64
 

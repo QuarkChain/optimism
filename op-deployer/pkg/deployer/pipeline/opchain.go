@@ -48,7 +48,7 @@ func DeployOPChain(env *Env, intent *state.Intent, st *state.State, chainID comm
 
 	readInput := opcm.ReadImplementationAddressesInput{
 		DeployOPChainOutput: dco,
-		Opcm:                dci.Opcm,
+		Opcm:                dci.OpcmProxy,
 		Release:             release,
 	}
 	impls, err := opcm.ReadImplementationAddresses(env.L1ScriptHost, readInput)
@@ -118,7 +118,7 @@ func makeDCIV160(intent *state.Intent, thisIntent *state.ChainIntent, chainID co
 		BasefeeScalar:                standard.BasefeeScalar,
 		BlobBaseFeeScalar:            standard.BlobBaseFeeScalar,
 		L2ChainId:                    chainID.Big(),
-		Opcm:                         st.ImplementationsDeployment.OpcmAddress,
+		OpcmProxy:                    st.ImplementationsDeployment.OpcmProxyAddress,
 		SaltMixer:                    st.Create2Salt.String(), // passing through salt generated at state initialization
 		GasLimit:                     standard.GasLimit,
 		DisputeGameType:              proofParams.DisputeGameType,

@@ -76,7 +76,7 @@ type OpChainDeployment struct {
 }
 
 type ImplementationsDeployment struct {
-	OpcmAddress                             common.Address `json:"opcmAddress"`
+	OpcmProxyAddress                        common.Address `json:"opcmProxyAddress"`
 	DelayedWETHImplAddress                  common.Address `json:"delayedWETHImplAddress"`
 	OptimismPortalImplAddress               common.Address `json:"optimismPortalImplAddress"`
 	PreimageOracleSingletonAddress          common.Address `json:"preimageOracleSingletonAddress"`
@@ -146,7 +146,7 @@ func L1(globalState *state.State, chainID common.Hash) (*L1Contracts, error) {
 			// DelayedWETHPermissionlessGameProxyAddress: chainState.DelayedWETHPermissionlessGameProxyAddress,
 		},
 		ImplementationsDeployment: ImplementationsDeployment{
-			OpcmAddress:                             globalState.ImplementationsDeployment.OpcmAddress,
+			OpcmProxyAddress:                        globalState.ImplementationsDeployment.OpcmProxyAddress,
 			DelayedWETHImplAddress:                  globalState.ImplementationsDeployment.DelayedWETHImplAddress,
 			OptimismPortalImplAddress:               globalState.ImplementationsDeployment.OptimismPortalImplAddress,
 			PreimageOracleSingletonAddress:          globalState.ImplementationsDeployment.PreimageOracleSingletonAddress,

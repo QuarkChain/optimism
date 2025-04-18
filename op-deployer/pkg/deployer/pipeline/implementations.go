@@ -61,7 +61,8 @@ func DeployImplementations(env *Env, intent *state.Intent, st *state.State) erro
 			ProofMaturityDelaySeconds:       new(big.Int).SetUint64(proofParams.ProofMaturityDelaySeconds),
 			DisputeGameFinalityDelaySeconds: new(big.Int).SetUint64(proofParams.DisputeGameFinalityDelaySeconds),
 			MipsVersion:                     new(big.Int).SetUint64(proofParams.MIPSVersion),
-			L1ContractsRelease:              contractsRelease,
+			Release:                         contractsRelease,
+			OpcmProxyOwner:                  intent.SuperchainRoles.ProxyAdminOwner,
 			SuperchainConfigProxy:           st.SuperchainDeployment.SuperchainConfigProxyAddress,
 			ProtocolVersionsProxy:           st.SuperchainDeployment.ProtocolVersionsProxyAddress,
 			StandardVersionsToml:            standardVersionsTOML,
@@ -73,7 +74,7 @@ func DeployImplementations(env *Env, intent *state.Intent, st *state.State) erro
 	}
 
 	st.ImplementationsDeployment = &state.ImplementationsDeployment{
-		OpcmAddress:                             dio.Opcm,
+		OpcmProxyAddress:                        dio.OpcmProxy,
 		DelayedWETHImplAddress:                  dio.DelayedWETHImpl,
 		OptimismPortalImplAddress:               dio.OptimismPortalImpl,
 		PreimageOracleSingletonAddress:          dio.PreimageOracleSingleton,

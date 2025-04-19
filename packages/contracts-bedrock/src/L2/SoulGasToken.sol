@@ -122,12 +122,11 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
 
     /// @notice batchMint is called:
     ///                        1. by EOA minters to mint SoulGasToken in batch when !IS_BACKED_BY_NATIVE.
-    ///                        2. by DEPOSITOR_ACCOUNT to refund SoulGasToken
     function batchMint(address[] calldata _accounts, uint256[] calldata _values) external {
         require(_accounts.length == _values.length, "SGT: invalid arguments");
 
         SoulGasTokenStorage storage $ = _getSoulGasTokenStorage();
-        require(_msgSender() == Constants.DEPOSITOR_ACCOUNT || $.minters[_msgSender()], "SGT: not a minter");
+        require($.minters[_msgSender()], "SGT: not a minter");
 
         for (uint256 i = 0; i < _accounts.length; i++) {
             _mint(_accounts[i], _values[i]);
@@ -216,11 +215,10 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
 
     /// @notice burnFrom is called when !IS_BACKED_BY_NATIVE:
     ///                             1. by the burner to burn SoulGasToken.
-    ///                             2. by DEPOSITOR_ACCOUNT to burn SoulGasToken.
     function burnFrom(address _account, uint256 _value) external {
         require(!IS_BACKED_BY_NATIVE, "SGT: burnFrom should only be called when !IS_BACKED_BY_NATIVE");
         SoulGasTokenStorage storage $ = _getSoulGasTokenStorage();
-        require(_msgSender() == Constants.DEPOSITOR_ACCOUNT || $.burners[_msgSender()], "SGT: not the burner");
+        require($.burners[_msgSender()], "SGT: not the burner");
         _burn(_account, _value);
     }
 
@@ -229,7 +227,7 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
         require(_accounts.length == _values.length, "SGT: invalid arguments");
         require(!IS_BACKED_BY_NATIVE, "SGT: batchBurnFrom should only be called when !IS_BACKED_BY_NATIVE");
         SoulGasTokenStorage storage $ = _getSoulGasTokenStorage();
-        require(_msgSender() == Constants.DEPOSITOR_ACCOUNT || $.burners[_msgSender()], "SGT: not the burner");
+        require($.burners[_msgSender()], "SGT: not the burner");
 
         for (uint256 i = 0; i < _accounts.length; i++) {
             _burn(_accounts[i], _values[i]);

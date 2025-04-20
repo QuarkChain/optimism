@@ -11,8 +11,8 @@ import (
 var (
 	// baseFeePadFactor = 50% as a divisor
 	baseFeePadFactor = big.NewInt(2)
-	// tipMulFactor = 20 as a multiplier
-	tipMulFactor = big.NewInt(20)
+	// tipMulFactor = 5 as a multiplier
+	tipMulFactor = big.NewInt(5)
 	// dummyBlobFee is a dummy value for the blob fee. Since this gas estimator will never
 	// post blobs, it's just set to 1.
 	dummyBlobFee = big.NewInt(1)

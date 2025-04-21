@@ -160,7 +160,7 @@ ignore:
   - ".circleci/*"
   - "*.sum"
   - "go.mod"
-  - "es-fork.yaml"
+  - "qkc-fork.yaml"
   - ".github/**"
   - "**/*.gob" # data asset, not code
   - "core/vm/testdata/precompiles/p256Verify.json" # data asset, not code

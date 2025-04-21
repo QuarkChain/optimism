@@ -727,6 +727,11 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 		networkL1 = "unknown L1"
 	}
 
+	var l2BlobTime *uint64
+	if c.L2BlobConfig != nil {
+		l2BlobTime = c.L2BlobConfig.L2BlobTime
+	}
+
 	log.Info("Rollup Config", "l2_chain_id", c.L2ChainID, "l2_network", networkL2, "l1_chain_id", c.L1ChainID,
 		"l1_network", networkL1, "l2_start_time", c.Genesis.L2Time, "l2_block_hash", c.Genesis.L2.Hash.String(),
 		"l2_block_number", c.Genesis.L2.Number, "l1_block_hash", c.Genesis.L1.Hash.String(),
@@ -740,7 +745,7 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 		"isthmus_time", fmtForkTimeOrUnset(c.IsthmusTime),
 		"interop_time", fmtForkTimeOrUnset(c.InteropTime),
 		"alt_da", c.AltDAConfig != nil,
-		"l2_blob_config", c.L2BlobConfig != nil,
+		"l2_blob_config", fmtForkTimeOrUnset(l2BlobTime),
 		"use_inbox_contract", c.UseInboxContract(),
 	)
 }

@@ -481,14 +481,7 @@ func (d *UpgradeScheduleDeployConfig) InteropTime(genesisTime uint64) *uint64 {
 }
 
 func (d *UpgradeScheduleDeployConfig) L2BlobTime(genesisTime uint64) *uint64 {
-	if d.L2GenesisBlobTimeOffset == nil {
-		return nil
-	}
-	v := uint64(0)
-	if offset := *d.L2GenesisBlobTimeOffset; offset > 0 {
-		v = genesisTime + uint64(offset)
-	}
-	return &v
+	return offsetToUpgradeTime(d.L2GenesisBlobTimeOffset, genesisTime)
 }
 
 func (d *UpgradeScheduleDeployConfig) AllocMode(genesisTime uint64) L2AllocsMode {

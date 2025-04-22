@@ -5,7 +5,7 @@ footer: |
 base:
   name: official optimism
   url: https://github.com/ethereum-optimism/optimism
-  hash: 750ed2025f4ef00c6c5a9f1ffee90c98fdeb39bf
+  hash: b6b74290b5502f45daae57946f969327cdb2d383
 fork:
   name: SWC optimism
   url: https://github.com/ethstorage/optimism
@@ -29,6 +29,7 @@ def:
         - "op-node/rollup/derive/blob_data_source.go"
         - "op-node/rollup/derive/calldata_source.go"
         - "op-node/rollup/derive/calldata_source_test.go"
+        - "op-node/rollup/derive/blob_data_source_test.go"
         - "op-node/rollup/derive/data_source.go"
         - "op-node/rollup/types.go"
     - title: "Soul Gas Token modifications"
@@ -91,6 +92,7 @@ def:
         - "packages/contracts-bedrock/interfaces/L2/IL1Block.sol"
         - "packages/contracts-bedrock/interfaces/L2/IL1BlockInterop.sol"
         - "op-node/bindings/l1block.go"
+        - "packages/contracts-bedrock/test/L2/L1Block.t.sol"
     - title: "Fault Proof for beta testnet"
       description: |
         Based on these PRs to enable fault proof for custom chains:
@@ -123,19 +125,42 @@ def:
             - "op-e2e/bindings/soulgastoken.go"
             - "op-e2e/sgt/sgt_test.go"
             - "op-e2e/sgt/helper.go"
+            - "op-e2e/actions/sgt/sgt_test.go"
+            - "op-e2e/config/init.go"
         - title: "L2 Blob e2e test"
           description: ""
           globs:
             - "op-e2e/l2blob/l2blob_test.go"
+        - title: "Script to run overall local test"
+          description: |
+            This script is used to run the overall local test for the OP-stack.
+            For details, please refer to [here](https://github.com/ethstorage/optimism/pull/161).
+          globs:
+            - ".mise-tasks/dev-test.sh"
+    - title: "Tools"
+      sub:
+        - title: "Script to upgrade SoulGasToken"
+          description: |
+            This script is used to upgrade the SoulGasToken contract on L2.
+            It allows for the deployment of a new version of the contract, ensuring that
+            users can benefit from the latest features and improvements.
+          globs:
+            - "packages/contracts-bedrock/scripts/deploy/UpgradeSoulGasToken.s.sol"
+        - title: "Script to update the AnchorStateRegistry"
+          description: |
+            This script is used to update the AnchorStateRegistry with a new anchor state when
+            switching from permissioned FDG to permissionless FDG on L1.
+            Fore details, please refer to [here](https://github.com/ethstorage/pm/blob/main/L2/beta_testnet_fdg_upgrade.md).
+          globs:
+            - "packages/contracts-bedrock/scripts/deploy/UpgradeAnchorStateRegistry.s.sol"
+
 
 # ignored globally, does not count towards line count
 ignore:
   - ".circleci/*"
   - "*.sum"
   - "go.mod"
-  - "fork.yaml"
-  - "Makefile"
-  - ".golangci.yml"
+  - "qkc-fork.yaml"
   - ".github/**"
   - "**/*.gob" # data asset, not code
   - "core/vm/testdata/precompiles/p256Verify.json" # data asset, not code

@@ -32,12 +32,8 @@ var excludeContracts = []string{
 	// TODO: Interfaces that need to be fixed
 
 	"IInitializable", "IOptimismMintableERC20", "ILegacyMintableERC20",
-<<<<<<< HEAD
-	"KontrolCheatsBase", "ISystemConfigInterop", "IResolvedDelegateProxy",
-	"IERC20Upgradeable", "ISoulGasToken", "IStorageSetter",
-=======
 	"KontrolCheatsBase", "IResolvedDelegateProxy",
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+	"IERC20Upgradeable", "ISoulGasToken", "IStorageSetter",
 }
 
 type ContractDefinition struct {

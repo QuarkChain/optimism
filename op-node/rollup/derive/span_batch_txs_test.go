@@ -333,27 +333,17 @@ func TestSpanBatchTxsRecoverV(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x123))
 
 	chainID := big.NewInt(rng.Int63n(1000))
-<<<<<<< HEAD
-	londonSigner := types.NewLondonSigner(chainID)
-	cancunSigner := types.NewCancunSigner(chainID)
-=======
 	isthmusSigner := types.NewIsthmusSigner(chainID)
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+	cancunSigner := types.NewCancunSigner(chainID)
 	totalblockTxCount := 20 + rng.Intn(100)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
-<<<<<<< HEAD
-		{"legacy tx", testutils.RandomLegacyTx, londonSigner},
-		{"access list tx", testutils.RandomAccessListTx, londonSigner},
-		{"dynamic fee tx", testutils.RandomDynamicFeeTx, londonSigner},
-		{"blob tx", testutils.RandomBlobTx, cancunSigner},
-=======
 		{"legacy tx", testutils.RandomLegacyTx, isthmusSigner},
 		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
 		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
 		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+		{"blob tx", testutils.RandomBlobTx, cancunSigner},
 	}
 
 	for _, testCase := range cases {

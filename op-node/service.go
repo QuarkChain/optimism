@@ -114,15 +114,11 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 		},
 		ConductorRpcTimeout: ctx.Duration(flags.ConductorRpcTimeoutFlag.Name),
 
-<<<<<<< HEAD
 		AltDA:     altda.ReadCLIConfig(ctx),
 		DACConfig: node.ReadDACConfigFromCLI(ctx),
-=======
-		AltDA: altda.ReadCLIConfig(ctx),
 
 		IgnoreMissingPectraBlobSchedule: ctx.Bool(flags.IgnoreMissingPectraBlobSchedule.Name),
 		FetchWithdrawalRootFromState:    ctx.Bool(flags.FetchWithdrawalRootFromState.Name),
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 	}
 
 	if err := cfg.LoadPersisted(log); err != nil {

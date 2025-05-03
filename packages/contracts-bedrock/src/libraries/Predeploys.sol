@@ -162,17 +162,10 @@ library Predeploys {
             || _addr == SEQUENCER_FEE_WALLET || _addr == OPTIMISM_MINTABLE_ERC20_FACTORY || _addr == L1_BLOCK_NUMBER
             || _addr == L2_ERC721_BRIDGE || _addr == L1_BLOCK_ATTRIBUTES || _addr == L2_TO_L1_MESSAGE_PASSER
             || _addr == OPTIMISM_MINTABLE_ERC721_FACTORY || _addr == PROXY_ADMIN || _addr == BASE_FEE_VAULT
-<<<<<<< HEAD
-            || _addr == L1_FEE_VAULT || _addr == SCHEMA_REGISTRY || _addr == EAS || _addr == GOVERNANCE_TOKEN
-            || (_useInterop && _addr == CROSS_L2_INBOX) || (_useInterop && _addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER)
-            || (_useInterop && _addr == SUPERCHAIN_WETH) || (_useInterop && _addr == ETH_LIQUIDITY)
-            || (_useInterop && _addr == SUPERCHAIN_TOKEN_BRIDGE) || _addr == SOUL_GAS_TOKEN;
-=======
             || _addr == L1_FEE_VAULT || _addr == OPERATOR_FEE_VAULT || _addr == SCHEMA_REGISTRY || _addr == EAS
             || _addr == GOVERNANCE_TOKEN || (_useInterop && _addr == CROSS_L2_INBOX)
             || (_useInterop && _addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER) || (_useInterop && _addr == SUPERCHAIN_ETH_BRIDGE)
-            || (_useInterop && _addr == ETH_LIQUIDITY) || (_useInterop && _addr == SUPERCHAIN_TOKEN_BRIDGE);
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+            || (_useInterop && _addr == ETH_LIQUIDITY) || (_useInterop && _addr == SUPERCHAIN_TOKEN_BRIDGE) || _addr == SOUL_GAS_TOKEN;
     }
 
     function isPredeployNamespace(address _addr) internal pure returns (bool) {

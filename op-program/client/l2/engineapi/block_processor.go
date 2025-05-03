@@ -99,10 +99,6 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 		return vmenv
 	}
 	var vmenv *vm.EVM
-<<<<<<< HEAD
-
-=======
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 	if h.ParentBeaconRoot != nil {
 		if provider.Config().IsCancun(header.Number, header.Time) {
 			// Blob tx not supported on optimism chains but fields must be set when Cancun is active.
@@ -163,14 +159,10 @@ func (b *BlockProcessor) AddTx(tx *types.Transaction) (*types.Receipt, error) {
 	}
 	b.receipts = append(b.receipts, receipt)
 	b.transactions = append(b.transactions, tx)
-<<<<<<< HEAD
 	if b.header.BlobGasUsed != nil {
 		*b.header.BlobGasUsed += receipt.BlobGasUsed
 	}
-	return nil
-=======
 	return receipt, nil
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 }
 
 func (b *BlockProcessor) Assemble() (*types.Block, types.Receipts, error) {

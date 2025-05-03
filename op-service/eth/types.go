@@ -332,8 +332,6 @@ func (envelope *ExecutionPayloadEnvelope) CheckBlockHash() (actual common.Hash, 
 		BlobGasUsed:      (*uint64)(payload.BlobGasUsed),
 		ExcessBlobGas:    (*uint64)(payload.ExcessBlobGas),
 		ParentBeaconRoot: envelope.ParentBeaconBlockRoot,
-		BlobGasUsed:      (*uint64)(payload.BlobGasUsed),
-		ExcessBlobGas:    (*uint64)(payload.ExcessBlobGas),
 	}
 
 	if payload.WithdrawalsRoot != nil { // Isthmus

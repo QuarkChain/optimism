@@ -150,14 +150,21 @@ type Config struct {
 	// If missing, it is loaded by the op-node from the embedded superchain config at startup.
 	ChainOpConfig *params.OptimismConfig `json:"chain_op_config,omitempty"`
 
-<<<<<<< HEAD
-	// OverrideMessageExpiryTimeInterop is only used for testing purposes.
-	// It is used to override the protocol-defined interop message time expiry.
-	// DO NOT this read value directly. Use GetMessageExpiryTimeInterop instead.
-	OverrideMessageExpiryTimeInterop uint64 `json:"override_message_expiry_time_interop,omitempty"`
-
 	L2BlobConfig        *L2BlobConfig        `json:"l2_blob_config,omitempty"`
 	InboxContractConfig *InboxContractConfig `json:"inbox_contract_config,omitempty"`
+
+	// Optional Features
+
+	// AltDAConfig. We are in the process of migrating to the AltDAConfig from these legacy top level values
+	AltDAConfig *AltDAConfig `json:"alt_da,omitempty"`
+
+	// PectraBlobScheduleTime sets the time until which (but not including) the blob base fee
+	// calculations for the L1 Block Info use the pre-Prague=Cancun blob parameters.
+	// This feature is optional and if not active, the L1 Block Info calculation uses the Prague
+	// blob parameters for the first L1 Prague block, as was intended.
+	// This feature (de)activates by L1 origin timestamp, to keep a consistent L1 block info per L2
+	// epoch.
+	PectraBlobScheduleTime *uint64 `json:"pectra_blob_schedule_time,omitempty"`
 }
 
 type L2BlobConfig struct {
@@ -181,20 +188,6 @@ func (cfg *Config) UseInboxContract() bool {
 // IsL2BlobTimeSet returns whether l2 blob activation time is set
 func (cfg *Config) IsL2BlobTimeSet() bool {
 	return cfg.L2BlobConfig != nil && cfg.L2BlobConfig.L2BlobTime != nil
-=======
-	// Optional Features
-
-	// AltDAConfig. We are in the process of migrating to the AltDAConfig from these legacy top level values
-	AltDAConfig *AltDAConfig `json:"alt_da,omitempty"`
-
-	// PectraBlobScheduleTime sets the time until which (but not including) the blob base fee
-	// calculations for the L1 Block Info use the pre-Prague=Cancun blob parameters.
-	// This feature is optional and if not active, the L1 Block Info calculation uses the Prague
-	// blob parameters for the first L1 Prague block, as was intended.
-	// This feature (de)activates by L1 origin timestamp, to keep a consistent L1 block info per L2
-	// epoch.
-	PectraBlobScheduleTime *uint64 `json:"pectra_blob_schedule_time,omitempty"`
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 }
 
 // ValidateL1Config checks L1 config variables for errors.
@@ -742,6 +735,12 @@ func (c *Config) Description(l2Chains map[string]string) string {
 	c.forEachFork(func(name string, _ string, time *uint64) {
 		banner += fmt.Sprintf("  - %v: %s\n", name, fmtForkTimeOrUnset(time))
 	})
+	var l2BlobTime *uint64
+	if c.L2BlobConfig != nil {
+		l2BlobTime = c.L2BlobConfig.L2BlobTime
+	}
+	banner += fmt.Sprintf("  - L2Blob: %s\n", fmtForkTimeOrUnset(l2BlobTime))
+	banner += fmt.Sprintf("  - Use inbox contract: %v\n", c.UseInboxContract())
 	// Report the protocol version
 	banner += fmt.Sprintf("Node supports up to OP-Stack Protocol Version: %s\n", OPStackSupport)
 	if c.AltDAConfig != nil {
@@ -767,29 +766,6 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 		networkL1 = "unknown L1"
 	}
 
-<<<<<<< HEAD
-	var l2BlobTime *uint64
-	if c.L2BlobConfig != nil {
-		l2BlobTime = c.L2BlobConfig.L2BlobTime
-	}
-
-	log.Info("Rollup Config", "l2_chain_id", c.L2ChainID, "l2_network", networkL2, "l1_chain_id", c.L1ChainID,
-		"l1_network", networkL1, "l2_start_time", c.Genesis.L2Time, "l2_block_hash", c.Genesis.L2.Hash.String(),
-		"l2_block_number", c.Genesis.L2.Number, "l1_block_hash", c.Genesis.L1.Hash.String(),
-		"l1_block_number", c.Genesis.L1.Number, "regolith_time", fmtForkTimeOrUnset(c.RegolithTime),
-		"canyon_time", fmtForkTimeOrUnset(c.CanyonTime),
-		"delta_time", fmtForkTimeOrUnset(c.DeltaTime),
-		"ecotone_time", fmtForkTimeOrUnset(c.EcotoneTime),
-		"fjord_time", fmtForkTimeOrUnset(c.FjordTime),
-		"granite_time", fmtForkTimeOrUnset(c.GraniteTime),
-		"holocene_time", fmtForkTimeOrUnset(c.HoloceneTime),
-		"isthmus_time", fmtForkTimeOrUnset(c.IsthmusTime),
-		"interop_time", fmtForkTimeOrUnset(c.InteropTime),
-		"alt_da", c.AltDAConfig != nil,
-		"l2_blob_config", fmtForkTimeOrUnset(l2BlobTime),
-		"use_inbox_contract", c.UseInboxContract(),
-	)
-=======
 	ctx := []any{
 		"l2_chain_id", c.L2ChainID,
 		"l2_network", networkL2,
@@ -807,6 +783,12 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 	if c.AltDAConfig != nil {
 		ctx = append(ctx, "alt_da", *c.AltDAConfig)
 	}
+	var l2BlobTime *uint64
+	if c.L2BlobConfig != nil {
+		l2BlobTime = c.L2BlobConfig.L2BlobTime
+	}
+	ctx = append(ctx, "l2_blob_config", fmtForkTimeOrUnset(l2BlobTime))
+	ctx = append(ctx, "use_inbox_contract", c.UseInboxContract())
 	if c.PectraBlobScheduleTime != nil {
 		// only print in config if set at all
 		ctx = append(ctx, "pectra_blob_schedule_time", fmtForkTimeOrUnset(c.PectraBlobScheduleTime))
@@ -829,7 +811,6 @@ func (c *Config) forEachFork(callback func(name string, logName string, time *ui
 	callback("Isthmus", "isthmus_time", c.IsthmusTime)
 	callback("Jovian", "jovian_time", c.JovianTime)
 	callback("Interop", "interop_time", c.InteropTime)
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 }
 
 func (c *Config) ParseRollupConfig(in io.Reader) error {

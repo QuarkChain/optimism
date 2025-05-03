@@ -177,26 +177,13 @@ contract L2GenesisTest is Test {
         genesis.writeGenesisAllocs(_path);
 
         uint256 expected = 0;
-<<<<<<< HEAD
-        // predeploy proxies; WETH and GovernanceToken are not behind proxies
-        expected += Predeploys.PREDEPLOY_COUNT - 2;
-        // predeploy implementations (excl. legacy erc20-style eth and legacy message sender)
-        // setPredeployImplementations function in L2Genesis.s.sol sets 20 predeploy implementations (useInterop ==
-        // false)
-        expected += 20;
-        expected += 256; // precompiles
-        // setPreinstalls function in SetPreinstalls.s.sol sets 15 preinstalls
-        expected += 15; // preinstalls
-        expected += 1; // 4788 deployer account
 
-=======
-        expected += 2048 - 2; // predeploy proxies
+        expected += Predeploys.PREDEPLOY_COUNT - 2; // predeploy proxies
         expected += 22; // predeploy implementations (excl. legacy erc20-style eth and legacy message sender)
         expected += 256; // precompiles
         expected += 14; // preinstalls
         expected += 1; // 4788 deployer account
         expected += 1; // 2935 deployer account
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
         // 16 prefunded dev accounts are excluded
         assertEq(expected, getJSONKeyCount(_path), "key count check");
 

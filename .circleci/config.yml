@@ -71,7 +71,7 @@ orbs:
   utils: ethereum-optimism/circleci-utils@1.0.19
   docker: circleci/docker@2.8.2
   github-cli: circleci/github-cli@2.7.0
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+>>>>>>> c8b9f62
 
 commands:
   checkout-with-mise:
@@ -1515,7 +1515,7 @@ jobs:
     steps:
       - utils/checkout-with-mise
 
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+>>>>>>> c8b9f62
       - run:
           name: Install Build Dependencies
           command: |
@@ -1844,7 +1844,7 @@ workflows:
           context:
             - circleci-repo-readonly-authenticated-github-token
             - discord
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+>>>>>>> c8b9f62
       - semgrep-scan:
           name: semgrep-scan-local
           scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
@@ -2315,7 +2315,7 @@ workflows:
           context:
             - circleci-repo-readonly-authenticated-github-token
             - discord
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+>>>>>>> c8b9f62
 
   develop-fault-proofs:
     when:
@@ -2404,7 +2404,7 @@ workflows:
             - runtimeverification
             - circleci-repo-readonly-authenticated-github-token
             - discord
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+>>>>>>> c8b9f62
 
   scheduled-cannon-full-tests:
     when:
@@ -2527,7 +2527,7 @@ workflows:
             - <<matrix.op_component>>-docker-publish
           context:
             - circleci-repo-readonly-authenticated-github-token
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+>>>>>>> c8b9f62
 
   scheduled-preimage-reproducibility:
     when:
@@ -2615,4 +2615,4 @@ workflows:
                 This issue will be closed now."
          context:
           - circleci-repo-optimism
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
+>>>>>>> c8b9f62

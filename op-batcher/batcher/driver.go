@@ -904,8 +904,7 @@ type TxSender[T any] interface {
 
 // sendTx uses the txmgr queue to send the given transaction candidate after setting its
 // gaslimit. It will block if the txmgr queue has reached its MaxPendingTransactions limit.
-<<<<<<< HEAD
-func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue *txmgr.Queue[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
+func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue TxSender[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
 	var isEOAPointer *bool
 	if l.RollupConfig.UseInboxContract() {
 		// RollupConfig.UseInboxContract() being true just means the batcher's transaction status matters,
@@ -932,22 +931,13 @@ func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.T
 	// Set GasLimit as intrinstic gas if the inbox is EOA, otherwise
 	// Leave GasLimit unset when inbox is contract so that later on `EstimateGas` will be called
 	if !l.RollupConfig.UseInboxContract() || *isEOAPointer {
-		intrinsicGas, err := core.IntrinsicGas(candidate.TxData, nil, nil, false, true, true, false)
+		floorDataGas, err := core.FloorDataGas(candidate.TxData)
 		if err != nil {
-			// we log instead of return an error here because txmgr can do its own gas estimation
-			l.Log.Error("Failed to calculate intrinsic gas", "err", err)
+			// We log instead of return an error here because the txmgr will do its own gas estimation.
+			l.Log.Warn("Failed to calculate floor data gas", "err", err)
 		} else {
-			candidate.GasLimit = intrinsicGas
+			candidate.GasLimit = floorDataGas
 		}
-=======
-func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue TxSender[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
-	floorDataGas, err := core.FloorDataGas(candidate.TxData)
-	if err != nil {
-		// We log instead of return an error here because the txmgr will do its own gas estimation.
-		l.Log.Warn("Failed to calculate floor data gas", "err", err)
-	} else {
-		candidate.GasLimit = floorDataGas
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 	}
 
 	queue.Send(txRef{id: txdata.ID(), isCancel: isCancel, isBlob: txdata.asBlob}, *candidate, receiptsCh)
@@ -981,17 +971,13 @@ func (l *BatchSubmitter) handleReceipt(r txmgr.TxReceipt[txRef]) {
 	// Record TX Status
 	if r.Err != nil {
 		l.recordFailedTx(r.ID.id, r.Err)
-<<<<<<< HEAD
-	} else {
+	} else if r.Receipt != nil {
 		// check tx status
 		if l.RollupConfig.UseInboxContract() && r.Receipt.Status == types.ReceiptStatusFailed {
 			l.recordFailedTx(r.ID.id, ErrInboxTransactionFailed)
 			return
 		}
 
-=======
-	} else if r.Receipt != nil {
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 		l.recordConfirmedTx(r.ID.id, r.Receipt)
 	}
 	// Both r.Err and r.Receipt can be nil, in which case we do nothing.

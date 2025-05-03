@@ -80,10 +80,11 @@ type Config struct {
 
 	// AltDA config
 	AltDA altda.CLIConfig
-
-<<<<<<< HEAD
 	// DACConfig for sequencer when l2 blob is enabled
 	DACConfig *DACConfig
+
+	IgnoreMissingPectraBlobSchedule bool
+	FetchWithdrawalRootFromState    bool
 }
 
 func ReadDACConfigFromCLI(c *cli.Context) *DACConfig {
@@ -105,10 +106,6 @@ func (dacConfig *DACConfig) Client() engine.DACClient {
 		return nil
 	}
 	return client.New(dacConfig.URLS)
-=======
-	IgnoreMissingPectraBlobSchedule bool
-	FetchWithdrawalRootFromState    bool
->>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 }
 
 // ConductorRPCFunc retrieves the endpoint. The RPC may not immediately be available.

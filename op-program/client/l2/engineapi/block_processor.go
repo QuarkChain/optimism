@@ -104,13 +104,7 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 			// Blob tx not supported on optimism chains but fields must be set when Cancun is active.
 			zero := uint64(0)
 			header.BlobGasUsed = &zero
-			var excessBlobGas uint64
-			if provider.Config().IsCancun(parentHeader.Number, parentHeader.Time) {
-				excessBlobGas = eip4844.CalcExcessBlobGas(*parentHeader.ExcessBlobGas, *parentHeader.BlobGasUsed)
-			} else {
-				// For the first post-fork block, both parent.data_gas_used and parent.excess_data_gas are evaluated as 0
-				excessBlobGas = eip4844.CalcExcessBlobGas(0, 0)
-			}
+			excessBlobGas := eip4844.CalcExcessBlobGas(provider.Config(), parentHeader, header.Time)
 			header.ExcessBlobGas = &excessBlobGas
 		}
 		// core.NewEVMBlockContext need to be called after the blob gas fields are set

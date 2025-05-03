@@ -10,6 +10,9 @@ import (
 //go:embed abi/DisputeGameFactory.json
 var disputeGameFactory []byte
 
+//go:embed abi/SuperFaultDisputeGame.json
+var superFaultDisputeGame []byte
+
 //go:embed abi/FaultDisputeGame.json
 var faultDisputeGame []byte
 
@@ -33,6 +36,9 @@ var solGasToken []byte
 
 func LoadDisputeGameFactoryABI() *abi.ABI {
 	return loadABI(disputeGameFactory)
+}
+func LoadSuperFaultDisputeGameABI() *abi.ABI {
+	return loadABI(superFaultDisputeGame)
 }
 func LoadFaultDisputeGameABI() *abi.ABI {
 	return loadABI(faultDisputeGame)

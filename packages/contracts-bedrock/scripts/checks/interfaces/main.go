@@ -20,14 +20,24 @@ var excludeContracts = []string{
 	"ERC777TokensRecipient", "Guard", "IProxy", "Vm", "VmSafe", "IMulticall3",
 	"IERC721TokenReceiver", "IProxyCreationCallback", "IBeacon", "IEIP712",
 
+	// Generic interfaces
+	"IHasSuperchainConfig",
+
 	// EAS
 	"IEAS", "ISchemaResolver", "ISchemaRegistry",
+
+	// Misc stuff that can be ignored
+	"IOPContractsManagerLegacyUpgrade",
 
 	// TODO: Interfaces that need to be fixed
 
 	"IInitializable", "IOptimismMintableERC20", "ILegacyMintableERC20",
+<<<<<<< HEAD
 	"KontrolCheatsBase", "ISystemConfigInterop", "IResolvedDelegateProxy",
 	"IERC20Upgradeable", "ISoulGasToken", "IStorageSetter",
+=======
+	"KontrolCheatsBase", "IResolvedDelegateProxy",
+>>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 }
 
 type ContractDefinition struct {

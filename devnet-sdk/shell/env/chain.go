@@ -4,21 +4,23 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"net/url"
 	"path/filepath"
 
 	"github.com/ethereum-optimism/optimism/devnet-sdk/descriptors"
 )
 
 const (
-	EnvFileVar             = "DEVNET_ENV_FILE"
+	EnvURLVar              = "DEVNET_ENV_URL"
 	ChainNameVar           = "DEVNET_CHAIN_NAME"
+	NodeIndexVar           = "DEVNET_NODE_INDEX"
 	ExpectPreconditionsMet = "DEVNET_EXPECT_PRECONDITIONS_MET"
 )
 
 type ChainConfig struct {
-	chain      *descriptors.Chain
-	devnetFile string
-	name       string
+	chain     *descriptors.Chain
+	devnetURL string
+	name      string
 }
 
 type ChainEnv struct {
@@ -26,23 +28,29 @@ type ChainEnv struct {
 	envVars map[string]string
 }
 
-func (c *ChainConfig) getRpcUrl() (string, error) {
-	if len(c.chain.Nodes) == 0 {
-		return "", fmt.Errorf("chain '%s' has no nodes", c.chain.Name)
-	}
+func (c *ChainConfig) getRpcUrl(nodeIndex int) func() (string, error) {
+	return func() (string, error) {
+		if len(c.chain.Nodes) == 0 {
+			return "", fmt.Errorf("chain '%s' has no nodes", c.chain.Name)
+		}
 
-	// Get RPC endpoint from the first node's execution layer service
-	elService, ok := c.chain.Nodes[0].Services["el"]
-	if !ok {
-		return "", fmt.Errorf("no execution layer service found for chain '%s'", c.chain.Name)
-	}
+		if nodeIndex >= len(c.chain.Nodes) {
+			return "", fmt.Errorf("node index %d is out of bounds for chain '%s'", nodeIndex, c.chain.Name)
+		}
 
-	rpcEndpoint, ok := elService.Endpoints["rpc"]
-	if !ok {
-		return "", fmt.Errorf("no RPC endpoint found for chain '%s'", c.chain.Name)
-	}
+		// Get RPC endpoint from the first node's execution layer service
+		elService, ok := c.chain.Nodes[nodeIndex].Services["el"]
+		if !ok {
+			return "", fmt.Errorf("no execution layer service found for chain '%s'", c.chain.Name)
+		}
 
-	return fmt.Sprintf("http://%s:%d", rpcEndpoint.Host, rpcEndpoint.Port), nil
+		rpcEndpoint, ok := elService.Endpoints["rpc"]
+		if !ok {
+			return "", fmt.Errorf("no RPC endpoint found for chain '%s'", c.chain.Name)
+		}
+
+		return fmt.Sprintf("http://%s:%d", rpcEndpoint.Host, rpcEndpoint.Port), nil
+	}
 }
 
 func (c *ChainConfig) getJwtSecret() (string, error) {
@@ -79,10 +87,10 @@ type chainConfigOpts struct {
 	extraEnvVars map[string]string
 }
 
-func WithCastIntegration(cast bool) ChainConfigOption {
+func WithCastIntegration(cast bool, nodeIndex int) ChainConfigOption {
 	return func(c *ChainConfig, o *chainConfigOpts) error {
 		mapping := map[string]func() (string, error){
-			"ETH_RPC_URL":        c.getRpcUrl,
+			"ETH_RPC_URL":        c.getRpcUrl(nodeIndex),
 			"ETH_RPC_JWT_SECRET": c.getJwtSecret,
 		}
 
@@ -124,11 +132,16 @@ func (c *ChainConfig) GetEnv(opts ...ChainConfigOption) (*ChainEnv, error) {
 	}
 
 	// To allow commands within the shell to know which devnet and chain they are in
-	absPath, err := filepath.Abs(c.devnetFile)
-	if err != nil {
-		absPath = c.devnetFile // Fallback to original path if abs fails
+	absPath := c.devnetURL
+	if u, err := url.Parse(c.devnetURL); err == nil {
+		if u.Scheme == "" || u.Scheme == "file" {
+			// make sure the path is absolute
+			if abs, err := filepath.Abs(u.Path); err == nil {
+				absPath = abs
+			}
+		}
 	}
-	o.extraEnvVars[EnvFileVar] = absPath
+	o.extraEnvVars[EnvURLVar] = absPath
 	o.extraEnvVars[ChainNameVar] = c.name
 
 	return &ChainEnv{

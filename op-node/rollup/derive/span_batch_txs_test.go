@@ -302,6 +302,7 @@ func TestSpanBatchTxsTxDatas(t *testing.T) {
 	require.Equal(t, txDatas, sbt.txDatas)
 	require.Equal(t, txTypes, sbt.txTypes)
 }
+
 func TestSpanBatchTxsAddTxs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1234))
 	chainID := big.NewInt(rng.Int63n(1000))
@@ -332,16 +333,27 @@ func TestSpanBatchTxsRecoverV(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x123))
 
 	chainID := big.NewInt(rng.Int63n(1000))
+<<<<<<< HEAD
 	londonSigner := types.NewLondonSigner(chainID)
 	cancunSigner := types.NewCancunSigner(chainID)
+=======
+	isthmusSigner := types.NewIsthmusSigner(chainID)
+>>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 	totalblockTxCount := 20 + rng.Intn(100)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
+<<<<<<< HEAD
 		{"legacy tx", testutils.RandomLegacyTx, londonSigner},
 		{"access list tx", testutils.RandomAccessListTx, londonSigner},
 		{"dynamic fee tx", testutils.RandomDynamicFeeTx, londonSigner},
 		{"blob tx", testutils.RandomBlobTx, cancunSigner},
+=======
+		{"legacy tx", testutils.RandomLegacyTx, isthmusSigner},
+		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
+		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
+		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
+>>>>>>> c8b9f62736a7dad7e569719a84c406605f4472e6
 	}
 
 	for _, testCase := range cases {
@@ -425,13 +437,14 @@ func TestSpanBatchTxsRoundTrip(t *testing.T) {
 func TestSpanBatchTxsRoundTripFullTxs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x13377331))
 	chainID := big.NewInt(rng.Int63n(1000))
-	londonSigner := types.NewLondonSigner(chainID)
+	isthmusSigner := types.NewIsthmusSigner(chainID)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
-		{"legacy tx", testutils.RandomLegacyTx, londonSigner},
-		{"access list tx", testutils.RandomAccessListTx, londonSigner},
-		{"dynamic fee tx", testutils.RandomDynamicFeeTx, londonSigner},
+		{"legacy tx", testutils.RandomLegacyTx, isthmusSigner},
+		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
+		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
+		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
 	}
 
 	for _, testCase := range cases {
@@ -475,13 +488,14 @@ func TestSpanBatchTxsRecoverVInvalidTxType(t *testing.T) {
 func TestSpanBatchTxsFullTxNotEnoughTxTos(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x13572468))
 	chainID := big.NewInt(rng.Int63n(1000))
-	londonSigner := types.NewLondonSigner(chainID)
+	isthmusSigner := types.NewIsthmusSigner(chainID)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
-		{"legacy tx", testutils.RandomLegacyTx, londonSigner},
-		{"access list tx", testutils.RandomAccessListTx, londonSigner},
-		{"dynamic fee tx", testutils.RandomDynamicFeeTx, londonSigner},
+		{"legacy tx", testutils.RandomLegacyTx, isthmusSigner},
+		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
+		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
+		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
 	}
 
 	for _, testCase := range cases {

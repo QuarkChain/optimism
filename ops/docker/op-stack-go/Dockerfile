@@ -16,19 +16,27 @@ ARG UBUNTU_TARGET_BASE_IMAGE=ubuntu:22.04
 # The only build that uses this is `op-challenger-target`.
 ARG KONA_VERSION=kona-client-v0.1.0-beta.5
 
+# The version of asterisc to use.
+# The only build that uses this is `op-challenger-target`.
+ARG ASTERISC_VERSION=none
+
 # We may be cross-building for another platform. Specify which platform we need as builder.
 FROM --platform=$BUILDPLATFORM golang:1.22.7-alpine3.20 AS builder
 
 RUN apk add --no-cache curl tar gzip make gcc musl-dev linux-headers git jq bash
 
-# install yq
-RUN wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq && \
+# Install mise (the apk version is outdated)
+RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+
+ARG TARGETARCH
+
+# Install yq
+RUN wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$TARGETARCH -O /usr/local/bin/yq && \
     chmod +x /usr/local/bin/yq
 
-# install versioned toolchain
+# Install versioned toolchain
 COPY ./mise.toml .
-RUN curl -L https://github.com/casey/just/releases/download/$(yq '.tools.just' mise.toml)/just-$(yq '.tools.just' mise.toml)-x86_64-unknown-linux-musl.tar.gz | \
-    tar xz -C /usr/local/bin just
+RUN mise trust && mise install -v -y just && cp $(mise which just) /usr/local/bin/just && just --version
 
 # We copy the go.mod/sum first, so the `go mod download` does not have to re-run if dependencies do not change.
 COPY ./go.mod /app/go.mod
@@ -53,7 +61,6 @@ ARG GIT_COMMIT
 ARG GIT_DATE
 
 ARG TARGETOS
-ARG TARGETARCH
 
 # separate docker-builds:
 # - proxyd
@@ -167,8 +174,10 @@ COPY --from=dac-server-builder /app/da-server/default.json /usr/local/bin/
 COPY --from=op-geth-builder /app/op-geth/build/bin/geth /usr/local/bin/
 CMD ["op-node"]
 
-# Make the kona docker image published by upstream available as a source to copy kona and asterisc from.
-FROM ghcr.io/op-rs/kona/kona-fpp-asterisc:$KONA_VERSION AS kona
+# Make the kona docker image published by upstream available as a source to copy kona from.
+FROM ghcr.io/op-rs/kona/kona-host:$KONA_VERSION AS kona
+# Make the asterisc docker image published by upstream available as a source to copy asterisc from.
+FROM us-docker.pkg.dev/oplabs-tools-artifacts/images/asterisc:$ASTERISC_VERSION AS asterisc
 
 # Also produce an op-challenger loaded with kona and asterisc using ubuntu
 FROM $UBUNTU_TARGET_BASE_IMAGE AS op-challenger-target
@@ -182,7 +191,7 @@ ENV OP_CHALLENGER_CANNON_BIN=/usr/local/bin/cannon
 # Copy in kona and asterisc
 COPY --from=kona /kona-host /usr/local/bin/
 ENV OP_CHALLENGER_ASTERISC_KONA_SERVER=/usr/local/bin/kona-host
-COPY --from=kona /asterisc /usr/local/bin/
+COPY --from=asterisc /usr/local/bin/asterisc /usr/local/bin/
 ENV OP_CHALLENGER_ASTERISC_BIN=/usr/local/bin/asterisc
 CMD ["op-challenger"]
 

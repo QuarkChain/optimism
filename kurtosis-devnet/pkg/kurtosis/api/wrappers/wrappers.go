@@ -2,7 +2,7 @@ package wrappers
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis/api/interfaces"
@@ -93,6 +93,12 @@ func (w *EnclaveContextWrapper) RunStarlarkPackage(ctx context.Context, pkg stri
 	return wrappedStream, "", nil
 }
 
+func (w *EnclaveContextWrapper) RunStarlarkScript(ctx context.Context, script string, serializedParams *starlark_run_config.StarlarkRunConfig) error {
+	// TODO: we should probably collect some data from the result and extend the error.
+	_, err := w.EnclaveContext.RunStarlarkScriptBlocking(ctx, script, serializedParams)
+	return err
+}
+
 func (w *starlarkRunResponseLineWrapper) GetError() interfaces.StarlarkError {
 	if err := w.StarlarkRunResponseLine.GetError(); err != nil {
 		return &starlarkErrorWrapper{err}
@@ -156,21 +162,21 @@ func (w *starlarkRunFinishedEventWrapper) GetIsRunSuccessful() bool {
 
 func (w *starlarkErrorWrapper) GetInterpretationError() error {
 	if err := w.StarlarkError.GetInterpretationError(); err != nil {
-		return fmt.Errorf("%v", err)
+		return errors.New(err.GetErrorMessage())
 	}
 	return nil
 }
 
 func (w *starlarkErrorWrapper) GetValidationError() error {
 	if err := w.StarlarkError.GetValidationError(); err != nil {
-		return fmt.Errorf("%v", err)
+		return errors.New(err.GetErrorMessage())
 	}
 	return nil
 }
 
 func (w *starlarkErrorWrapper) GetExecutionError() error {
 	if err := w.StarlarkError.GetExecutionError(); err != nil {
-		return fmt.Errorf("%v", err)
+		return errors.New(err.GetErrorMessage())
 	}
 	return nil
 }

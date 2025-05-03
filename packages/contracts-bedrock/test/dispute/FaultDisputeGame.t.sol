@@ -96,6 +96,12 @@ contract FaultDisputeGame_Init is DisputeGameFactory_Init {
         // Register the game implementation with the factory.
         disputeGameFactory.setImplementation(GAME_TYPE, gameImpl);
         uint256 bondAmount = disputeGameFactory.initBonds(GAME_TYPE);
+
+        // Warp ahead of the game retirement timestamp if needed.
+        if (block.timestamp <= anchorStateRegistry.retirementTimestamp()) {
+            vm.warp(anchorStateRegistry.retirementTimestamp() + 1);
+        }
+
         // Create a new game.
         gameProxy = IFaultDisputeGame(
             payable(address(disputeGameFactory.create{ value: bondAmount }(GAME_TYPE, rootClaim, extraData)))
@@ -123,19 +129,36 @@ contract FaultDisputeGame_Init is DisputeGameFactory_Init {
 
 contract FaultDisputeGame_Test is FaultDisputeGame_Init {
     /// @dev The root claim of the game.
-    Claim internal constant ROOT_CLAIM = Claim.wrap(bytes32((uint256(1) << 248) | uint256(10)));
+    Claim internal ROOT_CLAIM;
+    /// @dev An arbitrary root claim for testing.
+    Claim internal arbitaryRootClaim = Claim.wrap(bytes32(uint256(123)));
 
     /// @dev The preimage of the absolute prestate claim
     bytes internal absolutePrestateData;
     /// @dev The absolute prestate of the trace.
     Claim internal absolutePrestate;
+    /// @dev A valid l2BlockNumber that comes after the current anchor root block.
+    uint256 validL2BlockNumber;
 
     function setUp() public override {
         absolutePrestateData = abi.encode(0);
         absolutePrestate = _changeClaimStatus(Claim.wrap(keccak256(absolutePrestateData)), VMStatuses.UNFINISHED);
 
         super.setUp();
-        super.init({ rootClaim: ROOT_CLAIM, absolutePrestate: absolutePrestate, l2BlockNumber: 0x10 });
+
+        // Get the actual anchor roots
+        (Hash root, uint256 l2Bn) = anchorStateRegistry.getAnchorRoot();
+        validL2BlockNumber = l2Bn + 1;
+
+        ROOT_CLAIM = Claim.wrap(Hash.unwrap(root));
+
+        if (isForkTest()) {
+            // Set the init bond of anchor game type 0 to be 0.
+            vm.store(
+                address(disputeGameFactory), keccak256(abi.encode(GameType.wrap(0), uint256(102))), bytes32(uint256(0))
+            );
+        }
+        super.init({ rootClaim: ROOT_CLAIM, absolutePrestate: absolutePrestate, l2BlockNumber: validL2BlockNumber });
     }
 
     ////////////////////////////////////////////////////////////////
@@ -446,7 +469,13 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
 
         assertEq(address(gameProxy).balance, 0);
         gameProxy = IFaultDisputeGame(
-            payable(address(disputeGameFactory.create{ value: _value }(GAME_TYPE, ROOT_CLAIM, abi.encode(1))))
+            payable(
+                address(
+                    disputeGameFactory.create{ value: _value }(
+                        GAME_TYPE, arbitaryRootClaim, abi.encode(validL2BlockNumber)
+                    )
+                )
+            )
         );
         assertEq(address(gameProxy).balance, 0);
         assertEq(delayedWeth.balanceOf(address(gameProxy)), _value);
@@ -956,13 +985,14 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
     )
         public
     {
-        _l2BlockNumber = bound(_l2BlockNumber, 0, type(uint256).max - 1);
+        _l2BlockNumber = bound(_l2BlockNumber, validL2BlockNumber, type(uint256).max - 1);
 
         (Types.OutputRootProof memory outputRootProof, bytes32 outputRoot, bytes memory headerRLP) =
             _generateOutputRootProof(_storageRoot, _withdrawalRoot, abi.encodePacked(_l2BlockNumber));
 
         // Create the dispute game with the output root at the wrong L2 block number.
-        IDisputeGame game = disputeGameFactory.create(GAME_TYPE, Claim.wrap(outputRoot), abi.encode(_l2BlockNumber + 1));
+        uint256 wrongL2BlockNumber = bound(vm.randomUint(), _l2BlockNumber + 1, type(uint256).max);
+        IDisputeGame game = disputeGameFactory.create(GAME_TYPE, Claim.wrap(outputRoot), abi.encode(wrongL2BlockNumber));
 
         // Challenge the L2 block number.
         IFaultDisputeGame fdg = IFaultDisputeGame(address(game));
@@ -993,7 +1023,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
         public
     {
         vm.deal(address(0xb0b), 1 ether);
-        _l2BlockNumber = bound(_l2BlockNumber, 0, type(uint256).max - 1);
+        _l2BlockNumber = bound(_l2BlockNumber, validL2BlockNumber, type(uint256).max - 1);
 
         (Types.OutputRootProof memory outputRootProof, bytes32 outputRoot, bytes memory headerRLP) =
             _generateOutputRootProof(_storageRoot, _withdrawalRoot, abi.encodePacked(_l2BlockNumber));
@@ -1001,9 +1031,9 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
         // Create the dispute game with the output root at the wrong L2 block number.
         disputeGameFactory.setInitBond(GAME_TYPE, 0.1 ether);
         uint256 balanceBefore = address(this).balance;
-        IDisputeGame game = disputeGameFactory.create{ value: 0.1 ether }(
-            GAME_TYPE, Claim.wrap(outputRoot), abi.encode(_l2BlockNumber + 1)
-        );
+        _l2BlockNumber = bound(vm.randomUint(), _l2BlockNumber + 1, type(uint256).max);
+        IDisputeGame game =
+            disputeGameFactory.create{ value: 0.1 ether }(GAME_TYPE, Claim.wrap(outputRoot), abi.encode(_l2BlockNumber));
         IFaultDisputeGame fdg = IFaultDisputeGame(address(game));
 
         // Attack the root as 0xb0b
@@ -1063,7 +1093,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
     )
         public
     {
-        _l2BlockNumber = bound(_l2BlockNumber, 1, type(uint256).max);
+        _l2BlockNumber = bound(_l2BlockNumber, validL2BlockNumber, type(uint256).max);
 
         (Types.OutputRootProof memory outputRootProof, bytes32 outputRoot, bytes memory headerRLP) =
             _generateOutputRootProof(_storageRoot, _withdrawalRoot, abi.encodePacked(_l2BlockNumber));
@@ -1101,7 +1131,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
         bytes32 outputRoot = Hashing.hashOutputRootProof(outputRootProof);
 
         // Create the dispute game with the output root at the wrong L2 block number.
-        IDisputeGame game = disputeGameFactory.create(GAME_TYPE, Claim.wrap(outputRoot), abi.encode(1));
+        IDisputeGame game = disputeGameFactory.create(GAME_TYPE, Claim.wrap(outputRoot), abi.encode(validL2BlockNumber));
         IFaultDisputeGame fdg = IFaultDisputeGame(address(game));
 
         vm.expectRevert(InvalidHeaderRLP.selector);
@@ -1114,7 +1144,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
             _generateOutputRootProof(0, 0, new bytes(64));
 
         // Create the dispute game with the output root at the wrong L2 block number.
-        IDisputeGame game = disputeGameFactory.create(GAME_TYPE, Claim.wrap(outputRoot), abi.encode(1));
+        IDisputeGame game = disputeGameFactory.create(GAME_TYPE, Claim.wrap(outputRoot), abi.encode(validL2BlockNumber));
         IFaultDisputeGame fdg = IFaultDisputeGame(address(game));
 
         vm.expectRevert(InvalidHeaderRLP.selector);
@@ -1825,14 +1855,14 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
     /// resolves in favor of the defender but the game state is not newer than the anchor state.
     function test_resolve_validOlderStateSameAnchor_succeeds() public {
         // Mock the game block to be older than the game state.
-        vm.mockCall(address(gameProxy), abi.encodeCall(gameProxy.l2BlockNumber, ()), abi.encode(0));
+        vm.mockCall(address(gameProxy), abi.encodeCall(gameProxy.l2SequenceNumber, ()), abi.encode(0));
 
         // Confirm that the anchor state is newer than the game state.
         (Hash root, uint256 l2BlockNumber) = anchorStateRegistry.anchors(gameProxy.gameType());
-        assert(l2BlockNumber >= gameProxy.l2BlockNumber());
+        assert(l2BlockNumber >= gameProxy.l2SequenceNumber());
 
         // Resolve the game.
-        vm.mockCall(address(gameProxy), abi.encodeCall(gameProxy.l2BlockNumber, ()), abi.encode(0));
+        vm.mockCall(address(gameProxy), abi.encodeCall(gameProxy.l2SequenceNumber, ()), abi.encode(0));
         vm.warp(block.timestamp + 3 days + 12 hours);
         gameProxy.resolveClaim(0, 0);
         assertEq(uint8(gameProxy.resolve()), uint8(GameStatus.DEFENDER_WINS));
@@ -2122,7 +2152,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
             gameProxy.l1Head().raw(),
             startingClaim,
             disputedClaim,
-            bytes32(uint256(1) << 0xC0),
+            bytes32(validL2BlockNumber << 0xC0),
             bytes32(gameProxy.l2ChainId() << 0xC0)
         ];
 
@@ -2173,7 +2203,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
             gameProxy.l1Head().raw(),
             startingClaim,
             disputedClaim,
-            bytes32(uint256(2) << 0xC0),
+            bytes32(validL2BlockNumber << 0xC0),
             bytes32(gameProxy.l2ChainId() << 0xC0)
         ];
 
@@ -2204,7 +2234,9 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
         // Deploy a new dispute game with a L2 block number claim of 8. This is directly in the middle of
         // the leaves in our output bisection test tree, at SPLIT_DEPTH = 2 ** 2
         IFaultDisputeGame game = IFaultDisputeGame(
-            address(disputeGameFactory.create(GAME_TYPE, Claim.wrap(bytes32(uint256(0xFF))), abi.encode(uint256(8))))
+            address(
+                disputeGameFactory.create(GAME_TYPE, Claim.wrap(bytes32(uint256(0xFF))), abi.encode(validL2BlockNumber))
+            )
         );
 
         // Get a claim below the split depth so that we can add local data for an execution trace subgame.
@@ -2240,7 +2272,7 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
 
         // Expected local data. This should be `l2BlockNumber`, and not the actual bisected-to block,
         // as we choose the minimum between the two.
-        bytes32 expectedNumber = bytes32(uint256(8 << 0xC0));
+        bytes32 expectedNumber = bytes32(validL2BlockNumber << 0xC0);
         uint256 expectedLen = 8;
         uint256 l2NumberIdent = LocalPreimageKey.DISPUTED_L2_BLOCK_NUMBER;
 
@@ -2446,6 +2478,38 @@ contract FaultDisputeGame_Test is FaultDisputeGame_Init {
 
         gameProxy.closeGame();
         assertEq(uint8(gameProxy.bondDistributionMode()), uint8(BondDistributionMode.NORMAL));
+    }
+
+    /// @dev Tests that closeGame called with any amount of gas either reverts (with OOG) or
+    ///      updates the anchor state. This is specifically to verify that the try/catch inside
+    ///      closeGame can't be called with just enough gas to OOG when calling the
+    ///      AnchorStateRegistry but successfully execute the remainder of the function.
+    /// @param _gas Amount of gas to provide to closeGame.
+    function testFuzz_closeGame_canUpdateAnchorStateAndDoes_succeeds(uint256 _gas) public {
+        // Resolve and close the game first
+        vm.warp(block.timestamp + 3 days + 12 hours);
+        gameProxy.resolveClaim(0, 0);
+        gameProxy.resolve();
+
+        // Wait for finalization delay
+        vm.warp(block.timestamp + 3.5 days + 1 seconds);
+
+        // Since providing *too* much gas isn't the issue here, bounding it to half the block gas
+        // limit is sufficient. We want to know that either (1) the function reverts or (2) the
+        // anchor state gets updated. If the function doesn't revert and the anchor state isn't
+        // updated then we have a problem.
+        _gas = bound(_gas, 0, block.gaslimit / 2);
+
+        // The anchor state should not be the game proxy.
+        assert(address(gameProxy.anchorStateRegistry().anchorGame()) != address(gameProxy));
+
+        // Try closing the game.
+        try gameProxy.closeGame{ gas: _gas }() {
+            // If we got here, the function didn't revert, so the anchor state should have updated.
+            assert(address(gameProxy.anchorStateRegistry().anchorGame()) == address(gameProxy));
+        } catch {
+            // Ok, function reverted.
+        }
     }
 
     /// @dev Helper to generate a mock RLP encoded header (with only a real block number) & an output root proof.
@@ -2938,6 +3002,16 @@ contract FaultDispute_1v1_Actors_Test is FaultDisputeGame_Init {
     )
         internal
     {
+        if (isForkTest()) {
+            // Mock the call anchorStateRegistry.getAnchorRoot() to return 0 as the block number
+            (Hash root,) = anchorStateRegistry.getAnchorRoot();
+            vm.mockCall(
+                address(anchorStateRegistry),
+                abi.encodeCall(IAnchorStateRegistry.getAnchorRoot, ()),
+                abi.encode(root, 0)
+            );
+        }
+
         // Setup the environment
         bytes memory absolutePrestateData =
             _setup({ _absolutePrestateData: _absolutePrestateData, _rootClaim: _rootClaim });

@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-e2e/system/e2esys"
-	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -37,7 +36,7 @@ func TestBatchInboxFunctionSuccess(t *testing.T) {
 func startSystemWithBatchInboxContract(t *testing.T) (*e2esys.System, *ethclient.Client) {
 	cfg := e2esys.DefaultSystemConfig(t)
 	cfg.DataAvailabilityType = batcherFlags.BlobsType
-	cfg.BatcherTargetNumFrames = eth.MaxBlobsPerBlobTx
+	cfg.BatcherTargetNumFrames = 6
 	cfg.DeployConfig.UseInboxContract = true
 	c, ok := cfg.Nodes["sequencer"]
 	require.True(t, ok, "sequencer is required")

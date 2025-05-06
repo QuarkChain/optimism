@@ -140,7 +140,10 @@ contract L2GenesisTest is Test {
         assertEq(getCodeCount(_path, "Proxy.sol:Proxy"), Predeploys.PREDEPLOY_COUNT - 2);
 
         // 23 proxies have the implementation set if useInterop is true and 18 if useInterop is false
-        assertEq(getPredeployCountWithSlotSet(_path, Constants.PROXY_IMPLEMENTATION_ADDRESS), _useInterop ? 23+1 : 18+1/* +1 for SGT */);
+        assertEq(
+            getPredeployCountWithSlotSet(_path, Constants.PROXY_IMPLEMENTATION_ADDRESS),
+            _useInterop ? 23 + 1 : 18 + 1 /* +1 for SGT */
+        );
 
         // All proxies except 2 have the proxy 1967 admin slot set to the proxy admin
         assertEq(

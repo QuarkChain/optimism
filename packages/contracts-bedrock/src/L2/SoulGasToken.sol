@@ -3,7 +3,6 @@ pragma solidity 0.8.15;
 
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { Constants } from "src/libraries/Constants.sol";
 
 /// @title SoulGasToken
 /// @notice The SoulGasToken is a soul-bounded ERC20 contract which can be used to pay gas on L2.

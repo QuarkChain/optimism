@@ -212,7 +212,7 @@ func Test_ProgramAction_OperatorFeeConsistency(gt *testing.T) {
 			l1BlockInfo, err := derive.L1BlockInfoFromBytes(env.Sd.RollupCfg, unsafeHeader.Time, unsafeBlock.Transactions()[0].Data())
 			require.NoError(t, err)
 
-			daCost := fjordL1Cost(l1BlockInfo, types.NewRollupCostData(rlp))
+			daCost := fjordL1Cost(l1BlockInfo, types.NewRollupCostData(rlp, len(tx.BlobHashes())))
 			expectedFeePreIsthmus := nextBaseFee.Mul(nextBaseFee, big.NewInt(int64(params.TxGas)))
 			expectedFeePreIsthmus.Add(expectedFeePreIsthmus, daCost)
 

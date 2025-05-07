@@ -123,6 +123,8 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
     /// @notice batchMint is called:
     ///                        1. by EOA minters to mint SoulGasToken in batch when !IS_BACKED_BY_NATIVE.
     function batchMint(address[] calldata _accounts, uint256[] calldata _values) external {
+        // we don't explicitly check !IS_BACKED_BY_NATIVE here, because if IS_BACKED_BY_NATIVE,
+        // there's no way to add a minter.
         require(_accounts.length == _values.length, "SGT: invalid arguments");
 
         SoulGasTokenStorage storage $ = _getSoulGasTokenStorage();

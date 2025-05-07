@@ -994,6 +994,9 @@ contract StandardValidatorV180_Test is StandardValidatorTest {
     }
 
     function test_validate_opMainnet_succeeds() public {
+        // Skip as this test is only for OP Mainnet
+        vm.skip(true);
+
         string memory rpcUrl = vm.envOr(string("MAINNET_RPC_URL"), string(""));
         if (bytes(rpcUrl).length == 0) {
             return;

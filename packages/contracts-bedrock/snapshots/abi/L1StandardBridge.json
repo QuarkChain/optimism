@@ -35,6 +35,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "SYSTEM_CONFIG_SLOT",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -424,6 +437,11 @@
       {
         "internalType": "contract ISuperchainConfig",
         "name": "_superchainConfig",
+        "type": "address"
+      },
+      {
+        "internalType": "contract ISystemConfig",
+        "name": "_systemConfig",
         "type": "address"
       }
     ],

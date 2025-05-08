@@ -173,6 +173,7 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("depositETH(uint32,bytes)") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("depositETHTo(address,uint32,bytes)") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("deposits(address,address)") });
+        _addSpec({ _name: "L1StandardBridge", _sel: _getSel("SYSTEM_CONFIG_SLOT()") });
         _addSpec({
             _name: "L1StandardBridge",
             _sel: _getSel("finalizeBridgeERC20(address,address,address,address,uint256,bytes)"),
@@ -197,7 +198,7 @@ contract Specification_Test is CommonTest {
             _auth: Role.MESSENGER,
             _pausable: true
         });
-        _addSpec({ _name: "L1StandardBridge", _sel: _getSel("initialize(address,address)") });
+        _addSpec({ _name: "L1StandardBridge", _sel: _getSel("initialize(address,address,address)") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("l2TokenBridge()") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("messenger()") });
         _addSpec({ _name: "L1StandardBridge", _sel: _getSel("otherBridge()") });
@@ -257,6 +258,12 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("respectedGameTypeUpdatedAt()") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("proofSubmitters(bytes32,uint256)") });
         _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("numProofSubmitters(bytes32)") });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("balance()") });
+        _addSpec({
+            _name: "OptimismPortalInterop",
+            _sel: _getSel("depositERC20Transaction(address,uint256,uint256,uint64,bool,bytes)")
+        });
+        _addSpec({ _name: "OptimismPortalInterop", _sel: _getSel("setGasPayingToken(address,uint8,bytes32,bytes32)") });
         _addSpec({
             _name: "OptimismPortalInterop",
             _sel: IOptimismPortalInterop.setConfig.selector,
@@ -303,6 +310,12 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("respectedGameTypeUpdatedAt()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("proofSubmitters(bytes32,uint256)") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("numProofSubmitters(bytes32)") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("balance()") });
+        _addSpec({
+            _name: "OptimismPortal2",
+            _sel: _getSel("depositERC20Transaction(address,uint256,uint256,uint64,bool,bytes)")
+        });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("setGasPayingToken(address,uint8,bytes32,bytes32)") });
 
         // ProtocolVersions
         _addSpec({ _name: "ProtocolVersions", _sel: _getSel("RECOMMENDED_SLOT()") });
@@ -379,6 +392,10 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfig", _sel: _getSel("OPTIMISM_PORTAL_SLOT()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("BATCH_INBOX_SLOT()") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("gasPayingToken()") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("gasPayingTokenName()") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("gasPayingTokenSymbol()") });
+        _addSpec({ _name: "SystemConfig", _sel: _getSel("isCustomGasToken()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("DISPUTE_GAME_FACTORY_SLOT()") });
         _addSpec({ _name: "SystemConfig", _sel: _getSel("disputeGameFactory()") });
         _addSpec({
@@ -452,6 +469,10 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("OPTIMISM_PORTAL_SLOT()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("OPTIMISM_MINTABLE_ERC20_FACTORY_SLOT()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("BATCH_INBOX_SLOT()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("gasPayingToken()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("gasPayingTokenName()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("gasPayingTokenSymbol()") });
+        _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("isCustomGasToken()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("DISPUTE_GAME_FACTORY_SLOT()") });
         _addSpec({ _name: "SystemConfigInterop", _sel: _getSel("disputeGameFactory()") });
         _addSpec({

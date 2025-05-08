@@ -11,6 +11,7 @@ import { Process } from "scripts/libraries/Process.sol";
 // Libraries
 import { LibString } from "@solady/utils/LibString.sol";
 import { GameType, Hash, OutputRoot } from "src/dispute/lib/Types.sol";
+import { Constants } from "src/libraries/Constants.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Interfaces
@@ -180,7 +181,8 @@ contract Initializer_Test is CommonTest {
                             l1StandardBridge: address(0),
                             disputeGameFactory: address(0),
                             optimismPortal: address(0),
-                            optimismMintableERC20Factory: address(0)
+                            optimismMintableERC20Factory: address(0),
+                            gasPayingToken: Constants.ETHER
                         })
                     )
                 )
@@ -215,7 +217,8 @@ contract Initializer_Test is CommonTest {
                             l1StandardBridge: address(0),
                             disputeGameFactory: address(0),
                             optimismPortal: address(0),
-                            optimismMintableERC20Factory: address(0)
+                            optimismMintableERC20Factory: address(0),
+                            gasPayingToken: Constants.ETHER
                         })
                     )
                 )
@@ -262,7 +265,9 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "L1StandardBridgeImpl",
                 target: EIP1967Helper.getImplementation(address(l1StandardBridge)),
-                initCalldata: abi.encodeCall(l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig))
+                initCalldata: abi.encodeCall(
+                    l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig, systemConfig)
+                )
             })
         );
         // L1StandardBridgeProxy
@@ -270,7 +275,9 @@ contract Initializer_Test is CommonTest {
             InitializeableContract({
                 name: "L1StandardBridgeProxy",
                 target: address(l1StandardBridge),
-                initCalldata: abi.encodeCall(l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig))
+                initCalldata: abi.encodeCall(
+                    l1StandardBridge.initialize, (l1CrossDomainMessenger, superchainConfig, systemConfig)
+                )
             })
         );
         // L1ERC721BridgeImpl

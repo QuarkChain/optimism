@@ -31,6 +31,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
     address private spacer_253_0_20;
 
     /// @notice Semantic version.
+
     /// @custom:semver 2.5.0
     string public constant version = "2.5.0";
 
@@ -46,6 +47,11 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ISemver {
         superchainConfig = _superchainConfig;
         portal = _portal;
         __CrossDomainMessenger_init({ _otherMessenger: CrossDomainMessenger(Predeploys.L2_CROSS_DOMAIN_MESSENGER) });
+    }
+
+    /// @inheritdoc CrossDomainMessenger
+    function gasPayingToken() internal view override returns (address addr_, uint8 decimals_) {
+        (addr_, decimals_) = portal.systemConfig().gasPayingToken();
     }
 
     /// @notice Getter function for the OptimismPortal contract on this chain.

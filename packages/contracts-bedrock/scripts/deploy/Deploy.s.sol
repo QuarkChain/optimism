@@ -210,6 +210,12 @@ contract Deploy is Deployer {
         );
         vm.stopPrank();
 
+        if (cfg.useCustomGasToken()) {
+            // Reset the systemconfig then reinitialize it with the custom gas token
+            resetInitializedProxy("SystemConfig");
+            initializeSystemConfig();
+        }
+
         if (cfg.useAltDA()) {
             bytes32 typeHash = keccak256(bytes(cfg.daCommitmentType()));
             bytes32 keccakHash = keccak256(bytes("KeccakCommitment"));
@@ -305,6 +311,8 @@ contract Deploy is Deployer {
         artifacts.save("MipsSingleton", address(dio.mipsSingleton()));
         artifacts.save("OPContractsManager", address(dio.opcm()));
         artifacts.save("DelayedWETHImpl", address(dio.delayedWETHImpl()));
+        // added for CGT
+        artifacts.save("SystemConfigImpl", address(dio.systemConfigImpl()));
 
         // Get a contract set from the implementation addresses which were just deployed.
         Types.ContractSet memory impls = Types.ContractSet({
@@ -499,6 +507,11 @@ contract Deploy is Deployer {
 
         bytes32 batcherHash = bytes32(uint256(uint160(cfg.batchSenderAddress())));
 
+        address customGasTokenAddress = Constants.ETHER;
+        if (cfg.useCustomGasToken()) {
+            customGasTokenAddress = cfg.customGasTokenAddress();
+        }
+
         IProxyAdmin proxyAdmin = IProxyAdmin(payable(artifacts.mustGetAddress("ProxyAdmin")));
         proxyAdmin.upgradeAndCall({
             _proxy: payable(systemConfigProxy),
@@ -520,7 +533,8 @@ contract Deploy is Deployer {
                         l1StandardBridge: artifacts.mustGetAddress("L1StandardBridgeProxy"),
                         disputeGameFactory: artifacts.mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: artifacts.mustGetAddress("OptimismPortalProxy"),
-                        optimismMintableERC20Factory: artifacts.mustGetAddress("OptimismMintableERC20FactoryProxy")
+                        optimismMintableERC20Factory: artifacts.mustGetAddress("OptimismMintableERC20FactoryProxy"),
+                        gasPayingToken: customGasTokenAddress
                     })
                 )
             )

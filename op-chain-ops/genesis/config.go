@@ -354,6 +354,10 @@ type UpgradeScheduleDeployConfig struct {
 
 	// UseInterop is a flag that indicates if the system is using interop
 	UseInterop bool `json:"useInterop,omitempty"`
+
+	// L2GenesisBlobTimeOffset is the number of seconds after genesis block that the L2Blob hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable L2Blob.
+	L2GenesisBlobTimeOffset *hexutil.Uint64 `json:"l2GenesisBlobTimeOffset,omitempty"`
 }
 
 var _ ConfigChecker = (*UpgradeScheduleDeployConfig)(nil)
@@ -474,6 +478,10 @@ func (d *UpgradeScheduleDeployConfig) HoloceneTime(genesisTime uint64) *uint64 {
 
 func (d *UpgradeScheduleDeployConfig) InteropTime(genesisTime uint64) *uint64 {
 	return offsetToUpgradeTime(d.L2GenesisInteropTimeOffset, genesisTime)
+}
+
+func (d *UpgradeScheduleDeployConfig) L2BlobTime(genesisTime uint64) *uint64 {
+	return offsetToUpgradeTime(d.L2GenesisBlobTimeOffset, genesisTime)
 }
 
 func (d *UpgradeScheduleDeployConfig) AllocMode(genesisTime uint64) L2AllocsMode {
@@ -646,6 +654,8 @@ type L2InitializationConfig struct {
 	UpgradeScheduleDeployConfig
 	L2CoreDeployConfig
 	AltDADeployConfig
+	SoulGasTokenConfig
+	InboxContractConfig
 }
 
 func (d *L2InitializationConfig) Check(log log.Logger) error {
@@ -818,6 +828,23 @@ type L1DependenciesConfig struct {
 	ProtocolVersionsProxy common.Address `json:"protocolVersionsProxy"`
 }
 
+// SoulGasTokenConfig configures the SoulGasToken deployment to L2.
+type SoulGasTokenConfig struct {
+	// UseSoulGasToken is a flag that indicates if the system is using SoulGasToken
+	UseSoulGasToken bool `json:"useSoulGasToken,omitempty"`
+	// The height of the block at which the SoulGasToken is activated.
+	SoulGasTokenBlock uint64 `json:"soulGasTokenBlock,omitempty"`
+	// IsSoulBackedByNative is a flag that indicates if the SoulGasToken is backed by native.
+	// Only effective when UseSoulGasToken is true.
+	IsSoulBackedByNative bool `json:"isSoulBackedByNative,omitempty"`
+}
+
+// InboxContractConfig configures whether inbox contract is enabled.
+// If enabled, the batcher tx will be further filtered by tx status.
+type InboxContractConfig struct {
+	UseInboxContract bool `json:"useInboxContract,omitempty"`
+}
+
 // DependencyContext is the contextual configuration needed to verify the L1 dependencies,
 // used by DeployConfig.CheckAddresses.
 type DependencyContext struct {
@@ -980,6 +1007,17 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Header, l2GenesisBlockHa
 
 	l1StartTime := l1StartBlock.Time
 
+	var l2BlobConfig *rollup.L2BlobConfig
+	if d.L2GenesisBlobTimeOffset != nil {
+		l2BlobConfig = &rollup.L2BlobConfig{
+			L2BlobTime: d.L2BlobTime(l1StartTime),
+		}
+	}
+	var inboxContractConfig *rollup.InboxContractConfig
+	if d.UseInboxContract {
+		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
+	}
+
 	return &rollup.Config{
 		Genesis: rollup.Genesis{
 			L1: eth.BlockID{
@@ -1017,6 +1055,8 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *types.Header, l2GenesisBlockHa
 		InteropTime:             d.InteropTime(l1StartTime),
 		ProtocolVersionsAddress: d.ProtocolVersionsProxy,
 		AltDAConfig:             altDA,
+		L2BlobConfig:            l2BlobConfig,
+		InboxContractConfig:     inboxContractConfig,
 	}, nil
 }
 

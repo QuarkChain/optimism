@@ -139,6 +139,32 @@ type Config struct {
 
 	// AltDAConfig. We are in the process of migrating to the AltDAConfig from these legacy top level values
 	AltDAConfig *AltDAConfig `json:"alt_da,omitempty"`
+
+	L2BlobConfig        *L2BlobConfig        `json:"l2_blob_config,omitempty"`
+	InboxContractConfig *InboxContractConfig `json:"inbox_contract_config,omitempty"`
+}
+
+type L2BlobConfig struct {
+	L2BlobTime *uint64 `json:"l2BlobTime,omitempty"`
+}
+
+type InboxContractConfig struct {
+	UseInboxContract bool `json:"use_inbox_contract,omitempty"`
+}
+
+// IsL2Blob returns whether l2 blob is enabled
+func (cfg *Config) IsL2Blob(parentTime uint64) bool {
+	return cfg.IsL2BlobTimeSet() && *cfg.L2BlobConfig.L2BlobTime <= parentTime
+}
+
+// UseInboxContract returns whether inbox contract is enabled
+func (cfg *Config) UseInboxContract() bool {
+	return cfg.InboxContractConfig != nil && cfg.InboxContractConfig.UseInboxContract
+}
+
+// IsL2BlobTimeSet returns whether l2 blob activation time is set
+func (cfg *Config) IsL2BlobTimeSet() bool {
+	return cfg.L2BlobConfig != nil && cfg.L2BlobConfig.L2BlobTime != nil
 }
 
 // ValidateL1Config checks L1 config variables for errors.
@@ -647,6 +673,11 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 		networkL1 = "unknown L1"
 	}
 
+	var l2BlobTime *uint64
+	if c.L2BlobConfig != nil {
+		l2BlobTime = c.L2BlobConfig.L2BlobTime
+	}
+
 	log.Info("Rollup Config", "l2_chain_id", c.L2ChainID, "l2_network", networkL2, "l1_chain_id", c.L1ChainID,
 		"l1_network", networkL1, "l2_start_time", c.Genesis.L2Time, "l2_block_hash", c.Genesis.L2.Hash.String(),
 		"l2_block_number", c.Genesis.L2.Number, "l1_block_hash", c.Genesis.L1.Hash.String(),
@@ -659,6 +690,8 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 		"holocene_time", fmtForkTimeOrUnset(c.HoloceneTime),
 		"interop_time", fmtForkTimeOrUnset(c.InteropTime),
 		"alt_da", c.AltDAConfig != nil,
+		"l2_blob_config", fmtForkTimeOrUnset(l2BlobTime),
+		"use_inbox_contract", c.UseInboxContract(),
 	)
 }
 

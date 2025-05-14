@@ -79,6 +79,7 @@ func GenesisAndRollup(globalState *state.State, chainID common.Hash) (*core.Gene
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build rollup config: %w", err)
 	}
+	rollupConfig.ChainOpConfig = l2GenesisBuilt.Config.Optimism
 
 	if err := rollupConfig.Check(); err != nil {
 		return nil, nil, fmt.Errorf("generated rollup config does not pass validation: %w", err)

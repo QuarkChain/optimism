@@ -19,8 +19,10 @@ import (
 )
 
 var (
-	ErrExceedsGasLimit = errors.New("tx gas exceeds block gas limit")
-	ErrUsesTooMuchGas  = errors.New("action takes too much gas")
+	ErrExceedsGasLimit  = errors.New("tx gas exceeds block gas limit")
+	ErrUsesTooMuchGas   = errors.New("action takes too much gas")
+	errInvalidGasLimit  = errors.New("invalid gas limit")
+	errInvalidTimestamp = errors.New("invalid timestamp")
 )
 
 type BlockDataProvider interface {
@@ -70,11 +72,11 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 	header := types.CopyHeader(h) // Copy to avoid mutating the original header
 
 	if header.GasLimit > params.MaxGasLimit {
-		return nil, fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
+		return nil, fmt.Errorf("%w: have %v, max %v", errInvalidGasLimit, header.GasLimit, params.MaxGasLimit)
 	}
 	parentHeader := provider.GetHeaderByHash(header.ParentHash)
 	if header.Time <= parentHeader.Time {
-		return nil, errors.New("invalid timestamp")
+		return nil, errInvalidTimestamp
 	}
 	statedb, err := provider.StateAt(parentHeader.Root)
 	if err != nil {
@@ -97,19 +99,12 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 		return vmenv
 	}
 	var vmenv *vm.EVM
-
 	if h.ParentBeaconRoot != nil {
 		if provider.Config().IsCancun(header.Number, header.Time) {
 			// Blob tx not supported on optimism chains but fields must be set when Cancun is active.
 			zero := uint64(0)
 			header.BlobGasUsed = &zero
-			var excessBlobGas uint64
-			if provider.Config().IsCancun(parentHeader.Number, parentHeader.Time) {
-				excessBlobGas = eip4844.CalcExcessBlobGas(*parentHeader.ExcessBlobGas, *parentHeader.BlobGasUsed)
-			} else {
-				// For the first post-fork block, both parent.data_gas_used and parent.excess_data_gas are evaluated as 0
-				excessBlobGas = eip4844.CalcExcessBlobGas(0, 0)
-			}
+			excessBlobGas := eip4844.CalcExcessBlobGas(provider.Config(), parentHeader, header.Time)
 			header.ExcessBlobGas = &excessBlobGas
 		}
 		// core.NewEVMBlockContext need to be called after the blob gas fields are set
@@ -149,24 +144,35 @@ func (b *BlockProcessor) CheckTxWithinGasLimit(tx *types.Transaction) error {
 	return nil
 }
 
-func (b *BlockProcessor) AddTx(tx *types.Transaction) error {
+func (b *BlockProcessor) AddTx(tx *types.Transaction) (*types.Receipt, error) {
 	txIndex := len(b.transactions)
 	b.state.SetTxContext(tx.Hash(), txIndex)
 	receipt, err := core.ApplyTransaction(b.evm, b.gasPool, b.state, b.header, tx, &b.header.GasUsed)
 	if err != nil {
-		return fmt.Errorf("failed to apply transaction to L2 block (tx %d): %w", txIndex, err)
+		return nil, fmt.Errorf("failed to apply transaction to L2 block (tx %d): %w", txIndex, err)
 	}
 	b.receipts = append(b.receipts, receipt)
 	b.transactions = append(b.transactions, tx)
 	if b.header.BlobGasUsed != nil {
 		*b.header.BlobGasUsed += receipt.BlobGasUsed
 	}
-	return nil
+	return receipt, nil
 }
 
 func (b *BlockProcessor) Assemble() (*types.Block, types.Receipts, error) {
 	body := types.Body{
 		Transactions: b.transactions,
+	}
+
+	// Processing for EIP-7685 requests would happen here, but is skipped on OP.
+	// Kept here to minimize diff.
+	if b.dataProvider.Config().IsPrague(b.header.Number, b.header.Time) && !b.dataProvider.Config().IsIsthmus(b.header.Time) {
+		_requests := [][]byte{}
+		// EIP-6110 - no-op because we just ignore all deposit requests, so no need to parse logs
+		// EIP-7002
+		core.ProcessWithdrawalQueue(&_requests, b.evm)
+		// EIP-7251
+		core.ProcessConsolidationQueue(&_requests, b.evm)
 	}
 
 	block, err := b.dataProvider.Engine().FinalizeAndAssemble(b.dataProvider, b.header, b.state, &body, b.receipts)

@@ -3,6 +3,7 @@
 *
 
 !/cannon
+!/devnet-sdk
 !/op-batcher
 !/op-chain-ops
 !/op-deployer
@@ -25,3 +26,7 @@
 !/go.sum
 !/justfiles
 !/mise.toml
+
+**/bin
+**/testdata
+**/tests

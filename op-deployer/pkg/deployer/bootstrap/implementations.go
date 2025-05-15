@@ -43,6 +43,7 @@ type ImplementationsConfig struct {
 	ProtocolVersionsProxy           common.Address     `cli:"protocol-versions-proxy"`
 	UpgradeController               common.Address     `cli:"upgrade-controller"`
 	UseInterop                      bool               `cli:"use-interop"`
+	CacheDir                        string             `cli:"cache-dir"`
 
 	Logger log.Logger
 
@@ -69,8 +70,10 @@ func (c *ImplementationsConfig) Check() error {
 	if c.ArtifactsLocator == nil {
 		return errors.New("artifacts locator must be specified")
 	}
-	if c.L1ContractsRelease == "" {
-		return errors.New("L1 contracts release must be specified")
+	if c.ArtifactsLocator.IsTag() {
+		c.L1ContractsRelease = c.ArtifactsLocator.Tag
+	} else {
+		c.L1ContractsRelease = "dev"
 	}
 	if c.MIPSVersion != 1 && c.MIPSVersion != 2 {
 		return errors.New("MIPS version must be specified as either 1 or 2")
@@ -133,7 +136,11 @@ func Implementations(ctx context.Context, cfg ImplementationsConfig) (opcm.Deplo
 
 	lgr := cfg.Logger
 
-	artifactsFS, err := artifacts.Download(ctx, cfg.ArtifactsLocator, artifacts.BarProgressor())
+	if cfg.ArtifactsLocator.IsTag() && !standard.IsSupportedL1Version(cfg.ArtifactsLocator.Tag) {
+		return dio, fmt.Errorf("unsupported L1 version: %s", cfg.ArtifactsLocator.Tag)
+	}
+
+	artifactsFS, err := artifacts.Download(ctx, cfg.ArtifactsLocator, artifacts.BarProgressor(), cfg.CacheDir)
 	if err != nil {
 		return dio, fmt.Errorf("failed to download artifacts: %w", err)
 	}

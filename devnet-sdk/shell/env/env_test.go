@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/devnet-sdk/descriptors"
-	"github.com/ethereum-optimism/optimism/devnet-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,6 +16,7 @@ func TestLoadDevnetEnv(t *testing.T) {
 	content := `{
 		"l1": {
 			"name": "l1",
+			"id": "1",
 			"nodes": [{
 				"services": {
 					"el": {
@@ -36,6 +36,7 @@ func TestLoadDevnetEnv(t *testing.T) {
 		},
 		"l2": [{
 			"name": "op",
+			"id": "2",
 			"nodes": [{
 				"services": {
 					"el": {
@@ -66,15 +67,15 @@ func TestLoadDevnetEnv(t *testing.T) {
 
 	// Test successful load
 	t.Run("successful load", func(t *testing.T) {
-		env, err := LoadDevnetEnv(tmpfile.Name())
+		env, err := LoadDevnetFromURL(tmpfile.Name())
 		require.NoError(t, err)
-		assert.Equal(t, "l1", env.config.L1.Name)
-		assert.Equal(t, "op", env.config.L2[0].Name)
+		assert.Equal(t, "l1", env.Env.L1.Name)
+		assert.Equal(t, "op", env.Env.L2[0].Name)
 	})
 
 	// Test loading non-existent file
 	t.Run("non-existent file", func(t *testing.T) {
-		_, err := LoadDevnetEnv("non-existent.json")
+		_, err := LoadDevnetFromURL("non-existent.json")
 		assert.Error(t, err)
 	})
 
@@ -84,14 +85,14 @@ func TestLoadDevnetEnv(t *testing.T) {
 		err := os.WriteFile(invalidFile, []byte("{invalid json}"), 0644)
 		require.NoError(t, err)
 
-		_, err = LoadDevnetEnv(invalidFile)
+		_, err = LoadDevnetFromURL(invalidFile)
 		assert.Error(t, err)
 	})
 }
 
 func TestGetChain(t *testing.T) {
 	devnet := &DevnetEnv{
-		config: descriptors.DevnetEnvironment{
+		Env: &descriptors.DevnetEnvironment{
 			L1: &descriptors.Chain{
 				Name: "l1",
 				Nodes: []descriptors.Node{
@@ -109,29 +110,46 @@ func TestGetChain(t *testing.T) {
 					},
 				},
 				JWT: "0x1234",
+				Addresses: descriptors.AddressMap{
+					"deployer": common.HexToAddress("0x1234567890123456789012345678901234567890"),
+				},
 			},
-			L2: []*descriptors.Chain{
+			L2: []*descriptors.L2Chain{
 				{
-					Name: "op",
-					Nodes: []descriptors.Node{
-						{
-							Services: descriptors.ServiceMap{
-								"el": {
-									Endpoints: descriptors.EndpointMap{
-										"rpc": {
-											Host: "localhost",
-											Port: 9545,
+					Chain: descriptors.Chain{
+						Name: "op",
+						Nodes: []descriptors.Node{
+							{
+								Services: descriptors.ServiceMap{
+									"el": {
+										Endpoints: descriptors.EndpointMap{
+											"rpc": {
+												Host: "localhost",
+												Port: 9545,
+											},
 										},
 									},
 								},
 							},
 						},
+						JWT: "0x5678",
+						Addresses: descriptors.AddressMap{
+							"deployer": common.HexToAddress("0x2345678901234567890123456789012345678901"),
+						},
 					},
-					JWT: "0x5678",
+					L1Addresses: descriptors.AddressMap{
+						"deployer": common.HexToAddress("0x2345678901234567890123456789012345678901"),
+					},
+					L1Wallets: descriptors.WalletMap{
+						"deployer": descriptors.Wallet{
+							Address:    common.HexToAddress("0x2345678901234567890123456789012345678901"),
+							PrivateKey: "0x2345678901234567890123456789012345678901",
+						},
+					},
 				},
 			},
 		},
-		fname: "test.json",
+		URL: "test.json",
 	}
 
 	// Test getting L1 chain
@@ -176,24 +194,24 @@ func TestChainConfig(t *testing.T) {
 				},
 			},
 			JWT: "0x1234",
-			Addresses: map[string]types.Address{
+			Addresses: descriptors.AddressMap{
 				"deployer": common.HexToAddress("0x1234567890123456789012345678901234567890"),
 			},
 		},
-		devnetFile: "test.json",
-		name:       "test",
+		devnetURL: "test.json",
+		name:      "test",
 	}
 
 	// Test getting environment variables
 	t.Run("get environment variables", func(t *testing.T) {
 		env, err := chain.GetEnv(
-			WithCastIntegration(true),
+			WithCastIntegration(true, 0),
 		)
 		require.NoError(t, err)
 
 		assert.Equal(t, "http://localhost:8545", env.envVars["ETH_RPC_URL"])
 		assert.Equal(t, "1234", env.envVars["ETH_RPC_JWT_SECRET"])
-		assert.Equal(t, "test.json", filepath.Base(env.envVars[EnvFileVar]))
+		assert.Equal(t, "test.json", filepath.Base(env.envVars[EnvURLVar]))
 		assert.Equal(t, "test", env.envVars[ChainNameVar])
 		assert.Contains(t, env.motd, "deployer")
 		assert.Contains(t, env.motd, "0x1234567890123456789012345678901234567890")
@@ -208,7 +226,7 @@ func TestChainConfig(t *testing.T) {
 			},
 		}
 		_, err := noNodesChain.GetEnv(
-			WithCastIntegration(true),
+			WithCastIntegration(true, 0),
 		)
 		assert.Error(t, err)
 	})
@@ -226,7 +244,7 @@ func TestChainConfig(t *testing.T) {
 			},
 		}
 		_, err := missingServiceChain.GetEnv(
-			WithCastIntegration(true),
+			WithCastIntegration(true, 0),
 		)
 		assert.Error(t, err)
 	})
@@ -248,7 +266,7 @@ func TestChainConfig(t *testing.T) {
 			},
 		}
 		_, err := missingEndpointChain.GetEnv(
-			WithCastIntegration(true),
+			WithCastIntegration(true, 0),
 		)
 		assert.Error(t, err)
 	})

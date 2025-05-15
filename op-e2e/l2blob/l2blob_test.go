@@ -20,7 +20,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -135,7 +134,7 @@ func gasPriceEstimator(ctx context.Context, client *ethclient.Client) (*big.Int,
 
 	var blobFee *big.Int
 	if head.ExcessBlobGas != nil {
-		blobFee = eip4844.CalcBlobFee(*head.ExcessBlobGas)
+		blobFee = eth.CalcBlobFeeDefault(head)
 	}
 
 	gasFeeCap := new(big.Int).Add(

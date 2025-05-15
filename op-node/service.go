@@ -116,6 +116,9 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*node.Config, error) {
 
 		AltDA:     altda.ReadCLIConfig(ctx),
 		DACConfig: node.ReadDACConfigFromCLI(ctx),
+
+		IgnoreMissingPectraBlobSchedule: ctx.Bool(flags.IgnoreMissingPectraBlobSchedule.Name),
+		FetchWithdrawalRootFromState:    ctx.Bool(flags.FetchWithdrawalRootFromState.Name),
 	}
 
 	if err := cfg.LoadPersisted(log); err != nil {
@@ -195,6 +198,7 @@ func NewDriverConfig(ctx *cli.Context) *driver.Config {
 		SequencerEnabled:    ctx.Bool(flags.SequencerEnabledFlag.Name),
 		SequencerStopped:    ctx.Bool(flags.SequencerStoppedFlag.Name),
 		SequencerMaxSafeLag: ctx.Uint64(flags.SequencerMaxSafeLagFlag.Name),
+		RecoverMode:         ctx.Bool(flags.SequencerRecoverMode.Name),
 	}
 }
 
@@ -266,6 +270,18 @@ func applyOverrides(ctx *cli.Context, rollupConfig *rollup.Config) {
 	if ctx.IsSet(opflags.HoloceneOverrideFlagName) {
 		holocene := ctx.Uint64(opflags.HoloceneOverrideFlagName)
 		rollupConfig.HoloceneTime = &holocene
+	}
+	if ctx.IsSet(opflags.PectraBlobScheduleOverrideFlagName) {
+		pectrablobschedule := ctx.Uint64(opflags.PectraBlobScheduleOverrideFlagName)
+		rollupConfig.PectraBlobScheduleTime = &pectrablobschedule
+	}
+	if ctx.IsSet(opflags.IsthmusOverrideFlagName) {
+		isthmus := ctx.Uint64(opflags.IsthmusOverrideFlagName)
+		rollupConfig.IsthmusTime = &isthmus
+	}
+	if ctx.IsSet(opflags.InteropOverrideFlagName) {
+		interop := ctx.Uint64(opflags.InteropOverrideFlagName)
+		rollupConfig.InteropTime = &interop
 	}
 }
 

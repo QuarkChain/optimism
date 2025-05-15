@@ -3,6 +3,7 @@ optimism_package:
     - participants:
       - el_type: op-geth
         el_image: {{ localDockerImage "op-node" }}
+        is_qkc: true
         el_log_level: ""
         el_extra_env_vars: {}
         el_extra_labels: {}

@@ -89,7 +89,7 @@ func Init(cfg InitConfig) error {
 	intent := &state.Intent{
 		DeploymentStrategy: cfg.DeploymentStrategy,
 		L1ChainID:          cfg.L1ChainID,
-		FundDevAccounts:    true,
+		FundDevAccounts:    false,
 		L1ContractsLocator: artifacts.DefaultL1ContractsLocator,
 		L2ContractsLocator: artifacts.DefaultL2ContractsLocator,
 	}

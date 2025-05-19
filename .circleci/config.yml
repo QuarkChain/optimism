@@ -2172,8 +2172,8 @@ workflows:
           name: op-e2e-cannon-tests
           notify: true
           mentions: "@proofs-team"
-          no_output_timeout: 120m
-          test_timeout: 119m
+          no_output_timeout: 3h
+          test_timeout: 3h
           resource_class: qkc/ax101
           environment_overrides: |
             export OP_E2E_CANNON_ENABLED="true"

@@ -1946,7 +1946,6 @@ workflows:
             - discord
       - docker-build:
           name: <<matrix.docker_name>>-docker-build
-
           docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
           save_image_tag: <<pipeline.git.revision>>
           matrix:

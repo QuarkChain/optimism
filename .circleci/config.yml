@@ -808,6 +808,10 @@ jobs:
           name: Run tests
           command: |
             TEST_FILES=$(<<parameters.test_list>>)
+            if [ -z "$TEST_FILES" ]; then
+              echo "No test files to run. Skipping forge test."
+              exit 0
+            fi
             TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
             MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
             forge <<parameters.test_command>> <<parameters.test_flags>> --match-path "$MATCH_PATH"

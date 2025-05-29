@@ -187,6 +187,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Thrown when the gas limit for a deposit is too low.
     error OptimismPortal_GasLimitTooLow();
 
+    // @notice For swc, the native token is actually qkc so we need to disable ETH deposits
+    error NativeDepositDisabled();
+
     /// @notice Thrown when the target of a withdrawal is not a proper dispute game.
     error OptimismPortal_ImproperDisputeGame();
 
@@ -714,6 +717,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         payable
         metered(_gasLimit)
     {
+        if (msg.value > 0) {
+            revert NativeDepositDisabled();
+        }
         // Lock the ETH in the ETHLockbox.
         if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();
 

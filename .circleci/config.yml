@@ -10,3 +10,4 @@ jobs:
     resource_class: qkc/ax101
     steps:
       - run: echo "Hi I'm on Runners!"
+      - run: go env

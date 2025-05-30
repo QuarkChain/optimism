@@ -22,7 +22,6 @@ commands:
         type: string
         default: "~/.mise-data"
     steps:
-      - checkout
       - run:
           name: "Initialize mise environment"
           command: |

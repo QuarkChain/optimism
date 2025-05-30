@@ -9,5 +9,70 @@ jobs:
     machine: true
     resource_class: qkc/ax101
     steps:
+      - checkout-with-mise
       - run: echo "Hi I'm on Runners!"
-      - run: go env
+      - run:
+          command: go env
+
+commands:
+  checkout-with-mise:
+    description: "Checkout then initialize the mise environment"
+    parameters:
+      mise_data_dir:
+        type: string
+        default: "~/.mise-data"
+    steps:
+      - checkout
+      - run:
+          name: "Initialize mise environment"
+          command: |
+            user=$(whoami)
+            echo "$user" > .executor-user
+            echo "Set executor user to $user."
+            echo "Mise data dir: << parameters.mise_data_dir >>."
+            if [[ "$user" == "root" ]]; then
+              rm -rf << parameters.mise_data_dir >>
+              echo "Cleaned up cache data."
+              mkdir -p << parameters.mise_data_dir >>
+              echo "Created Mise data dir."
+              mkdir -p ~/.cache
+              echo "Created Mise cache dir."
+            else
+              rm -rf << parameters.mise_data_dir >>
+              echo "Cleaned up cache data."
+              mkdir -p << parameters.mise_data_dir >>
+              chown -R "$user:$user" << parameters.mise_data_dir >>
+              echo "Created Mise data dir."
+              mkdir -p ~/.cache
+              chown -R "$user:$user" ~/.cache
+              echo "Created Mise cache dir."
+            fi
+      - restore_cache:
+          name: "Restore mise cache"
+          keys:
+            - "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+      - run:
+          name: "Install mise"
+          command: |
+            if command -v mise &> /dev/null; then
+              echo "mise already installed at $(command -v mise)"
+            else
+              curl https://mise.run | sh
+            fi
+            echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> "$BASH_ENV"
+            echo "export MISE_DATA_DIR=<< parameters.mise_data_dir >>" >> "$BASH_ENV"
+            echo "export MISE_JOBS=$(nproc)" >> "$BASH_ENV"
+            echo "eval \"\$($HOME/.local/bin/mise activate --shims)\"" >> "$BASH_ENV"
+      - run:
+          name: "Install mise deps"
+          command: |
+            mise install -v -y
+      - save_cache:
+          name: "Save mise cache"
+          key: "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+          paths:
+            - << parameters.mise_data_dir >>
+      - run:
+          name: "Delete executor file"
+          command: |
+            rm -f .executor-user

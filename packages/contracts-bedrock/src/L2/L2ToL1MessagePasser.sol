@@ -6,6 +6,7 @@ import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { Encoding } from "src/libraries/Encoding.sol";
 import { Burn } from "src/libraries/Burn.sol";
+import { Constants } from "src/libraries/Constants.sol";
 
 // Interfaces
 import { ISemver } from "interfaces/universal/ISemver.sol";
@@ -29,6 +30,22 @@ contract L2ToL1MessagePasser is ISemver {
     /// @notice A unique value hashed with each withdrawal.
     uint240 internal msgNonce;
 
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.L2ToL1MessagePasser.QKCConfigStorage")) - 1)) &
+    // ~bytes32(uint256(0xff))
+    bytes32 private constant _QKC_CONFIG_STORAGE_LOCATION =
+        0x750f1ab2ed0ba2a4405b31f7b30e394ba3545975e71082ba3e508022a159f900;
+    /// @custom:storage-location erc7201:openzeppelin.storage.L2ToL1MessagePasser.QKCConfigStorage
+
+    struct QKCConfigStorage {
+        bool disableNativeDeposit;
+    }
+
+    function _getQKCConfigStorage() private pure returns (QKCConfigStorage storage $) {
+        assembly {
+            $.slot := _QKC_CONFIG_STORAGE_LOCATION
+        }
+    }
+
     /// @notice Emitted any time a withdrawal is initiated.
     /// @param nonce          Unique value corresponding to each withdrawal.
     /// @param sender         The L2 account address which initiated the withdrawal.
@@ -50,6 +67,11 @@ contract L2ToL1MessagePasser is ISemver {
     /// @notice Emitted when the balance of this contract is burned.
     /// @param amount Amount of ETh that was burned.
     event WithdrawerBalanceBurnt(uint256 indexed amount);
+
+    /// @notice Emitted when native deposit is disabled.
+    event NativeDepositDisabled();
+    /// @notice Emitted when native deposit is enabled.
+    event NativeDepositEnabled();
 
     /// @custom:semver 1.1.2
     string public constant version = "1.1.2";
@@ -100,5 +122,25 @@ contract L2ToL1MessagePasser is ISemver {
     /// @return Nonce of the next message to be sent, with added message version.
     function messageNonce() public view returns (uint256) {
         return Encoding.encodeVersionedNonce(msgNonce, MESSAGE_VERSION);
+    }
+
+    /// @notice This function is used to enable the native deposit functionality
+    function enableNativeDeposit() external {
+        if (msg.sender != Constants.DEPOSITOR_ACCOUNT) {
+            revert("L2ToL1MessagePasser: Only the depositor can enable native deposits");
+        }
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        $.disableNativeDeposit = false;
+        emit NativeDepositEnabled();
+    }
+
+    /// @notice This function is used to disable the native deposit functionality
+    function disableNativeDeposit() external {
+        if (msg.sender != Constants.DEPOSITOR_ACCOUNT) {
+            revert("L2ToL1MessagePasser: Only the depositor can disable native deposits");
+        }
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        $.disableNativeDeposit = true;
+        emit NativeDepositDisabled();
     }
 }

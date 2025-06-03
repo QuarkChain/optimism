@@ -50,7 +50,12 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);
     event WithdrawalProvenExtension1(bytes32 indexed withdrawalHash, address indexed proofSubmitter);
     event ETHMigrated(address indexed lockbox, uint256 ethBalance);
-    event PortalMigrated(IETHLockbox oldLockbox, IETHLockbox newLockbox, IAnchorStateRegistry oldAnchorStateRegistry, IAnchorStateRegistry newAnchorStateRegistry);
+    event PortalMigrated(
+        IETHLockbox oldLockbox,
+        IETHLockbox newLockbox,
+        IAnchorStateRegistry oldAnchorStateRegistry,
+        IAnchorStateRegistry newAnchorStateRegistry
+    );
 
     receive() external payable;
 
@@ -121,13 +126,15 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     function superchainConfig() external view returns (ISuperchainConfig);
     function superRootsActive() external view returns (bool);
     function systemConfig() external view returns (ISystemConfig);
-    function upgrade(
-        IAnchorStateRegistry _anchorStateRegistry,
-        IETHLockbox _ethLockbox
-    )
-        external;
+    function upgrade(IAnchorStateRegistry _anchorStateRegistry, IETHLockbox _ethLockbox) external;
     function version() external pure returns (string memory);
     function migrateLiquidity() external;
+
+    function addMinter(address _minter) external;
+    function removeMinter(address _minter) external;
+    function mintTransaction(address _to, uint256 _value) external;
+    function disableNativeDeposit() external;
+    function enableNativeDeposit() external;
 
     function __constructor__(uint256 _proofMaturityDelaySeconds) external;
 }

@@ -11,6 +11,7 @@ import { ReinitializableBase } from "src/universal/ReinitializableBase.sol";
 import { EOA } from "src/libraries/EOA.sol";
 import { SafeCall } from "src/libraries/SafeCall.sol";
 import { Constants } from "src/libraries/Constants.sol";
+import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
 import { SecureMerkleTrie } from "src/libraries/trie/SecureMerkleTrie.sol";
@@ -24,6 +25,7 @@ import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 
@@ -126,6 +128,24 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Whether the OptimismPortal is using Super Roots or Output Roots.
     bool public superRootsActive;
 
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.OptimismPortal2.QKCConfigStorage")) - 1)) &
+    // ~bytes32(uint256(0xff))
+    bytes32 private constant _QKC_CONFIG_STORAGE_LOCATION =
+        0xb42b8bfdf1143b9dfcdc891f15a039d3c36301d501f5a44f62223d852a602a00;
+    /// @custom:storage-location erc7201:openzeppelin.storage.OptimismPortal2.QKCConfigStorage
+
+    struct QKCConfigStorage {
+        /// @notice The minters for migrating existing L1 token to L2 native token.
+        mapping(address => bool) minters;
+        bool disableNativeDeposit;
+    }
+
+    function _getQKCConfigStorage() private pure returns (QKCConfigStorage storage $) {
+        assembly {
+            $.slot := _QKC_CONFIG_STORAGE_LOCATION
+        }
+    }
+
     /// @notice Emitted when a transaction is deposited from L1 to L2. The parameters of this event
     ///         are read by the rollup node and used to derive deposit transactions on L2.
     /// @param from       Address that triggered the deposit transaction.
@@ -169,6 +189,15 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         IAnchorStateRegistry newAnchorStateRegistry
     );
 
+    /// @notice Emitted when a minter is added.
+    event MinterAdded(address indexed minter);
+    /// @notice Emitted when a minter is removed.
+    event MinterRemoved(address indexed minter);
+    /// @notice Emitted when native deposit is disabled.
+    event NativeDepositDisabled();
+    /// @notice Emitted when native deposit is enabled.
+    event NativeDepositEnabled();
+
     /// @notice Thrown when a withdrawal has already been finalized.
     error OptimismPortal_AlreadyFinalized();
 
@@ -187,8 +216,15 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Thrown when the gas limit for a deposit is too low.
     error OptimismPortal_GasLimitTooLow();
 
-    // @notice For swc, the native token is actually qkc so we need to disable ETH deposits
+    // @notice Thrown when native token is deposited to the portal contract.
+    //         For swc, the native token is actually qkc so we need to disable ETH deposits.
     error NativeDepositDisabled();
+
+    // @notice Thrown when a minter is added twice
+    error MinterAlreadyAdded();
+
+    // @notice Thrown when removing a minter which doesn't exist
+    error MinterNotExist();
 
     /// @notice Thrown when the target of a withdrawal is not a proper dispute game.
     error OptimismPortal_ImproperDisputeGame();
@@ -374,7 +410,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param _newLockbox The address of the new ETHLockbox contract.
     function migrateToSuperRoots(IETHLockbox _newLockbox, IAnchorStateRegistry _newAnchorStateRegistry) external {
         // Make sure the caller is the owner of the ProxyAdmin.
-        if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
+        if (msg.sender != proxyAdminOwner()) {
+            revert OptimismPortal_Unauthorized();
+        }
 
         // Chains can use this method to swap the proof method from Output Roots to Super Roots
         // without joining the interop set. In this case, the old and new lockboxes will be the
@@ -691,8 +729,109 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     /// @notice Migrates the total ETH balance to the ETHLockbox.
     function migrateLiquidity() public {
-        if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
+        if (msg.sender != proxyAdminOwner()) {
+            revert OptimismPortal_Unauthorized();
+        }
         _migrateLiquidity();
+    }
+
+    /// @notice Add a minter to the OptimismPortal contract.
+    function addMinter(address _minter) external {
+        if (msg.sender != proxyAdminOwner()) {
+            revert OptimismPortal_Unauthorized();
+        }
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        if ($.minters[_minter]) {
+            revert MinterAlreadyAdded();
+        }
+        $.minters[_minter] = true;
+        emit MinterAdded(_minter);
+    }
+
+    /// @notice Remove a minter from the OptimismPortal contract.
+    function removeMinter(address _minter) external {
+        if (msg.sender != proxyAdminOwner()) {
+            revert OptimismPortal_Unauthorized();
+        }
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        if (!$.minters[_minter]) {
+            revert MinterNotExist();
+        }
+        delete $.minters[_minter];
+        emit MinterRemoved(_minter);
+    }
+
+    /// @notice Mint a specific amount of L2 native token to an address.
+    function mintTransaction(address _to, uint256 _value) external {
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        if (!$.minters[msg.sender]) {
+            revert OptimismPortal_Unauthorized();
+        }
+
+        if (to == address(0)) {
+            revert OptimismPortal_BadTarget();
+        }
+        // Transform the from-address to its alias if the caller is a contract.
+        address from = msg.sender;
+        if (!EOA.isSenderEOA()) {
+            from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
+        }
+        // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
+        // We use opaque data so that we can update the TransactionDeposited event in the future
+        // without breaking the current interface.
+        bytes memory opaqueData = abi.encodePacked(_value, _value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
+
+        // Emit a TransactionDeposited event so that the rollup node can derive a deposit
+        // transaction for this deposit.
+        emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
+    }
+
+    /// @notice Disable native token deposit.
+    function disableNativeDeposit() external {
+        if (msg.sender != proxyAdminOwner()) {
+            revert OptimismPortal_Unauthorized();
+        }
+
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        $.disableNativeDeposit = true;
+        emit NativeDepositDisabled();
+
+        // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
+        // We use opaque data so that we can update the TransactionDeposited event in the future
+        // without breaking the current interface.
+        bytes memory opaqueData = abi.encodePacked(
+            0, 0, SYSTEM_DEPOSIT_GAS_LIMIT, false, abi.encodeCall(IL2ToL1MessagePasser.disableNativeDeposit, ())
+        );
+
+        // Emit a TransactionDeposited event so that the rollup node can derive a deposit
+        // transaction for this deposit.
+        emit TransactionDeposited(
+            Constants.DEPOSITOR_ACCOUNT, Predeploys.L2_TO_L1_MESSAGE_PASSER, DEPOSIT_VERSION, opaqueData
+        );
+    }
+
+    /// @notice Enable native token deposit.
+    function enableNativeDeposit() external {
+        if (msg.sender != proxyAdminOwner()) {
+            revert OptimismPortal_Unauthorized();
+        }
+
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        $.disableNativeDeposit = false;
+        emit NativeDepositEnabled();
+
+        // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
+        // We use opaque data so that we can update the TransactionDeposited event in the future
+        // without breaking the current interface.
+        bytes memory opaqueData = abi.encodePacked(
+            0, 0, SYSTEM_DEPOSIT_GAS_LIMIT, false, abi.encodeCall(IL2ToL1MessagePasser.enableNativeDeposit, ())
+        );
+
+        // Emit a TransactionDeposited event so that the rollup node can derive a deposit
+        // transaction for this deposit.
+        emit TransactionDeposited(
+            Constants.DEPOSITOR_ACCOUNT, Predeploys.L2_TO_L1_MESSAGE_PASSER, DEPOSIT_VERSION, opaqueData
+        );
     }
 
     /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
@@ -718,7 +857,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         metered(_gasLimit)
     {
         if (msg.value > 0) {
-            revert NativeDepositDisabled();
+            QKCConfigStorage storage $ = _getQKCConfigStorage();
+            if ($.disableNativeDeposit) {
+                revert NativeDepositDisabled();
+            }
         }
         // Lock the ETH in the ETHLockbox.
         if (msg.value > 0) ethLockbox.lockETH{ value: msg.value }();

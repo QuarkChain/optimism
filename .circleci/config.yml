@@ -1375,8 +1375,9 @@ jobs:
             - "op-program/bin/meta*"
 
   publish-cannon-prestates:
-    machine: true
-    resource_class: qkc/ax101
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: medium
     steps:
       - checkout-with-mise
       - attach_workspace:

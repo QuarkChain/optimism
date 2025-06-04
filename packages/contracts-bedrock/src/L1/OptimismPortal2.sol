@@ -760,7 +760,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
-        emit TransactionDeposited(Constants.DEPOSITOR_ACCOUNT, _to, DEPOSIT_VERSION, opaqueData);
+        emit TransactionDeposited(Constants.DEPOSITOR_ACCOUNT2, _to, DEPOSIT_VERSION, opaqueData);
     }
 
     /// @notice set native deposit flag. Pass true to disable.
@@ -785,7 +785,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
         emit TransactionDeposited(
-            Constants.DEPOSITOR_ACCOUNT, Predeploys.L2_TO_L1_MESSAGE_PASSER, DEPOSIT_VERSION, opaqueData
+            Constants.DEPOSITOR_ACCOUNT2, Predeploys.L2_TO_L1_MESSAGE_PASSER, DEPOSIT_VERSION, opaqueData
         );
     }
 

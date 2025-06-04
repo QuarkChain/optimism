@@ -135,8 +135,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @custom:storage-location erc7201:openzeppelin.storage.OptimismPortal2.QKCConfigStorage
 
     struct QKCConfigStorage {
-        /// @notice The minters for migrating existing L1 token to L2 native token.
-        mapping(address => bool) minters;
+        /// @notice The minter for migrating existing L1 token to L2 native token.
+        address minter;
         bool disableNativeDeposit;
     }
 
@@ -189,10 +189,8 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         IAnchorStateRegistry newAnchorStateRegistry
     );
 
-    /// @notice Emitted when a minter is added.
-    event MinterAdded(address indexed minter);
-    /// @notice Emitted when a minter is removed.
-    event MinterRemoved(address indexed minter);
+    /// @notice Emitted when a minter is set.
+    event MinterSet(address indexed minter);
     /// @notice Emitted when native deposit is disabled.
     event NativeDepositDisabled();
     /// @notice Emitted when native deposit is enabled.
@@ -216,9 +214,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice Thrown when the gas limit for a deposit is too low.
     error OptimismPortal_GasLimitTooLow();
 
-    // @notice Thrown when native token is deposited to the portal contract.
+    // @notice Thrown when native token is deposited to the portal contract when disabled.
     //         For swc, the native token is actually qkc so we need to disable ETH deposits.
-    error NativeDepositDisabled();
+    error NativeDepositForbidden();
 
     // @notice Thrown when a minter is added twice
     error MinterAlreadyAdded();
@@ -735,46 +733,25 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         _migrateLiquidity();
     }
 
-    /// @notice Add a minter to the OptimismPortal contract.
-    function addMinter(address _minter) external {
+    /// @notice Add a minter to the OptimismPortal contract. To disable, set an empty value.
+    function setMinter(address _minter) external {
         if (msg.sender != proxyAdminOwner()) {
             revert OptimismPortal_Unauthorized();
         }
         QKCConfigStorage storage $ = _getQKCConfigStorage();
-        if ($.minters[_minter]) {
-            revert MinterAlreadyAdded();
-        }
-        $.minters[_minter] = true;
-        emit MinterAdded(_minter);
-    }
-
-    /// @notice Remove a minter from the OptimismPortal contract.
-    function removeMinter(address _minter) external {
-        if (msg.sender != proxyAdminOwner()) {
-            revert OptimismPortal_Unauthorized();
-        }
-        QKCConfigStorage storage $ = _getQKCConfigStorage();
-        if (!$.minters[_minter]) {
-            revert MinterNotExist();
-        }
-        delete $.minters[_minter];
-        emit MinterRemoved(_minter);
+        $.minter = _minter;
+        emit MinterSet(_minter);
     }
 
     /// @notice Mint a specific amount of L2 native token to an address.
-    function mintTransaction(address _to, uint256 _value) external {
+    function mintTransaction(address _to, uint256 _value) external metered(RECEIVE_DEFAULT_GAS_LIMIT) {
         QKCConfigStorage storage $ = _getQKCConfigStorage();
-        if (!$.minters[msg.sender]) {
+        if (msg.sender != $.minter) {
             revert OptimismPortal_Unauthorized();
         }
 
-        if (to == address(0)) {
+        if (_to == address(0)) {
             revert OptimismPortal_BadTarget();
-        }
-        // Transform the from-address to its alias if the caller is a contract.
-        address from = msg.sender;
-        if (!EOA.isSenderEOA()) {
-            from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
         }
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
@@ -783,50 +760,28 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
-        emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
+        emit TransactionDeposited(Constants.DEPOSITOR_ACCOUNT, _to, DEPOSIT_VERSION, opaqueData);
     }
 
-    /// @notice Disable native token deposit.
-    function disableNativeDeposit() external {
+    /// @notice set native deposit flag. Pass true to disable.
+    function setNativeDeposit(bool _disable) external {
         if (msg.sender != proxyAdminOwner()) {
             revert OptimismPortal_Unauthorized();
         }
-
         QKCConfigStorage storage $ = _getQKCConfigStorage();
-        $.disableNativeDeposit = true;
-        emit NativeDepositDisabled();
+        $.disableNativeDeposit = _disable;
+        if (_disable) {
+            emit NativeDepositDisabled();
+        } else {
+            emit NativeDepositEnabled();
+        }
 
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
         bytes memory opaqueData = abi.encodePacked(
-            0, 0, SYSTEM_DEPOSIT_GAS_LIMIT, false, abi.encodeCall(IL2ToL1MessagePasser.disableNativeDeposit, ())
+            uint256(0), uint256(0), SYSTEM_DEPOSIT_GAS_LIMIT, false, abi.encodeCall(IL2ToL1MessagePasser.setNativeDeposit, (_disable))
         );
-
-        // Emit a TransactionDeposited event so that the rollup node can derive a deposit
-        // transaction for this deposit.
-        emit TransactionDeposited(
-            Constants.DEPOSITOR_ACCOUNT, Predeploys.L2_TO_L1_MESSAGE_PASSER, DEPOSIT_VERSION, opaqueData
-        );
-    }
-
-    /// @notice Enable native token deposit.
-    function enableNativeDeposit() external {
-        if (msg.sender != proxyAdminOwner()) {
-            revert OptimismPortal_Unauthorized();
-        }
-
-        QKCConfigStorage storage $ = _getQKCConfigStorage();
-        $.disableNativeDeposit = false;
-        emit NativeDepositEnabled();
-
-        // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
-        // We use opaque data so that we can update the TransactionDeposited event in the future
-        // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(
-            0, 0, SYSTEM_DEPOSIT_GAS_LIMIT, false, abi.encodeCall(IL2ToL1MessagePasser.enableNativeDeposit, ())
-        );
-
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
         emit TransactionDeposited(
@@ -859,7 +814,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         if (msg.value > 0) {
             QKCConfigStorage storage $ = _getQKCConfigStorage();
             if ($.disableNativeDeposit) {
-                revert NativeDepositDisabled();
+                revert NativeDepositForbidden();
             }
         }
         // Lock the ETH in the ETHLockbox.

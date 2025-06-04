@@ -133,8 +133,7 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     function addMinter(address _minter) external;
     function removeMinter(address _minter) external;
     function mintTransaction(address _to, uint256 _value) external;
-    function disableNativeDeposit() external;
-    function enableNativeDeposit() external;
+    function setNativeDeposit(bool _disable) external;
 
     function __constructor__(uint256 _proofMaturityDelaySeconds) external;
 }

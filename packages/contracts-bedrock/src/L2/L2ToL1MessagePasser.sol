@@ -128,23 +128,17 @@ contract L2ToL1MessagePasser is ISemver {
         return Encoding.encodeVersionedNonce(msgNonce, MESSAGE_VERSION);
     }
 
-    /// @notice This function is used to enable the native deposit functionality
-    function enableNativeDeposit() external {
+    /// @notice set native deposit flag. Pass true to disable.
+    function setNativeDeposit(bool _disable) external {
         if (msg.sender != Constants.DEPOSITOR_ACCOUNT) {
-            revert("L2ToL1MessagePasser: Only the depositor can enable native deposits");
+            revert("L2ToL1MessagePasser: Only the depositor can enable/disable native deposits");
         }
         QKCConfigStorage storage $ = _getQKCConfigStorage();
-        $.disableNativeDeposit = false;
-        emit NativeDepositEnabled();
-    }
-
-    /// @notice This function is used to disable the native deposit functionality
-    function disableNativeDeposit() external {
-        if (msg.sender != Constants.DEPOSITOR_ACCOUNT) {
-            revert("L2ToL1MessagePasser: Only the depositor can disable native deposits");
+        $.disableNativeDeposit = _disable;
+        if (_disable) {
+            emit NativeDepositDisabled();
+        } else {
+            emit NativeDepositEnabled();
         }
-        QKCConfigStorage storage $ = _getQKCConfigStorage();
-        $.disableNativeDeposit = true;
-        emit NativeDepositDisabled();
     }
 }

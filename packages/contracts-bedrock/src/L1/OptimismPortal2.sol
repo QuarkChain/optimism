@@ -218,12 +218,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     //         For swc, the native token is actually qkc so we need to disable ETH deposits.
     error NativeDepositForbidden();
 
-    // @notice Thrown when a minter is added twice
-    error MinterAlreadyAdded();
-
-    // @notice Thrown when removing a minter which doesn't exist
-    error MinterNotExist();
-
     /// @notice Thrown when the target of a withdrawal is not a proper dispute game.
     error OptimismPortal_ImproperDisputeGame();
 
@@ -408,9 +402,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param _newLockbox The address of the new ETHLockbox contract.
     function migrateToSuperRoots(IETHLockbox _newLockbox, IAnchorStateRegistry _newAnchorStateRegistry) external {
         // Make sure the caller is the owner of the ProxyAdmin.
-        if (msg.sender != proxyAdminOwner()) {
-            revert OptimismPortal_Unauthorized();
-        }
+        if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
 
         // Chains can use this method to swap the proof method from Output Roots to Super Roots
         // without joining the interop set. In this case, the old and new lockboxes will be the
@@ -727,9 +719,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     /// @notice Migrates the total ETH balance to the ETHLockbox.
     function migrateLiquidity() public {
-        if (msg.sender != proxyAdminOwner()) {
-            revert OptimismPortal_Unauthorized();
-        }
+        if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
         _migrateLiquidity();
     }
 

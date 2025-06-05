@@ -93,7 +93,7 @@ def:
         - "packages/contracts-bedrock/interfaces/L2/IL1BlockInterop.sol"
         - "op-node/bindings/l1block.go"
         - "packages/contracts-bedrock/test/L2/L1Block.t.sol"
-    - title: "Disable native deposit and enable mint L2 native token on L1"
+    - title: "Disable native deposit & enable minting"
       description: |
         In order to facilitate token migration of existing L1 token to L2 native token, we disable the native deposit
         and enable minting L2 native token on L1. Refer to this [PR](https://github.com/QuarkChain/optimism/pull/49) for details.

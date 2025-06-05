@@ -1,6 +1,6 @@
 title: "SWC-optimism - official-optimism fork diff overview"
 footer: |
-  Fork-diff overview of [`SWC optimism`](https://github.com/ethstorage/optimism), a fork of [`official optimism`](https://github.com/ethereum-optimism/optimism).
+  Fork-diff overview of [`SWC optimism`](https://github.com/Quarkchain/optimism), a fork of [`official optimism`](https://github.com/ethereum-optimism/optimism).
   and consensus layer of the `SWC OP-stack`.
 base:
   name: official optimism
@@ -8,12 +8,12 @@ base:
   hash: c8b9f62736a7dad7e569719a84c406605f4472e6
 fork:
   name: SWC optimism
-  url: https://github.com/ethstorage/optimism
+  url: https://github.com/Quarkchain/optimism
   ref: refs/heads/op-es
 def:
   title: "optimism"
   description: |
-    This is an overview of the changes in [`SWC optimism`](https://github.com/ethstorage/optimism),
+    This is an overview of the changes in [`SWC optimism`](https://github.com/Quarkchain/optimism),
     a fork of [`official optimism`](https://github.com/ethereum-optimism/optimism), part of the `SWC OP-stack`.
   sub:
     - title: "Inbox contract modifications"
@@ -93,6 +93,16 @@ def:
         - "packages/contracts-bedrock/interfaces/L2/IL1BlockInterop.sol"
         - "op-node/bindings/l1block.go"
         - "packages/contracts-bedrock/test/L2/L1Block.t.sol"
+    - title: "Disable native deposit and enable mint L2 native token on L1"
+      description: |
+        In order to facilitate token migration of existing L1 token to L2 native token, we disable the native deposit
+        and enable minting L2 native token on L1. Refer to this [PR](https://github.com/QuarkChain/optimism/pull/49) for details.
+      globs:
+        - "packages/contracts-bedrock/interfaces/L1/IOptimismPortal2.sol"
+        - "packages/contracts-bedrock/interfaces/L2/IL2ToL1MessagePasser.sol"
+        - "packages/contracts-bedrock/src/L1/OptimismPortal2.sol"
+        - "packages/contracts-bedrock/src/L2/L2ToL1MessagePasser.sol"
+        - "packages/contracts-bedrock/src/libraries/Constants.sol"
     - title: "Fault Proof for beta testnet"
       description: |
         Based on these PRs to enable fault proof for custom chains:

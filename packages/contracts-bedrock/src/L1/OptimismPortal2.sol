@@ -770,7 +770,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
         bytes memory opaqueData = abi.encodePacked(
-            uint256(0), uint256(0), SYSTEM_DEPOSIT_GAS_LIMIT, false, abi.encodeCall(IL2ToL1MessagePasser.setNativeDeposit, (_disable))
+            uint256(0), uint256(0), uint64(SYSTEM_DEPOSIT_GAS_LIMIT), false, abi.encodeCall(IL2ToL1MessagePasser.setNativeDeposit, (_disable))
         );
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.

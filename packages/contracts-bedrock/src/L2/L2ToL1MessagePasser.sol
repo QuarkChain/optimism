@@ -130,7 +130,7 @@ contract L2ToL1MessagePasser is ISemver {
 
     /// @notice set native deposit flag. Pass true to disable.
     function setNativeDeposit(bool _disable) external {
-        if (msg.sender != Constants.DEPOSITOR_ACCOUNT2) {
+        if (msg.sender != Constants.QKC_DEPOSITOR_ACCOUNT) {
             revert("L2ToL1MessagePasser: Only the depositor #2 can enable/disable native deposits");
         }
         QKCConfigStorage storage $ = _getQKCConfigStorage();

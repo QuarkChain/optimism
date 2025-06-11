@@ -2191,19 +2191,19 @@ workflows:
           requires:
             - contracts-bedrock-build
             - cannon-prestate
-      - publish-cannon-prestates:
-          context:
-            - slack
-            - oplabs-network-optimism-io-bucket
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-          requires:
-            - cannon-prestate
-            - op-e2e-cannon-tests
-          filters:
-            branches:
-              only:
-                - op-es
+      # - publish-cannon-prestates:
+      #     context:
+      #       - slack
+      #       - oplabs-network-optimism-io-bucket
+      #       - circleci-repo-readonly-authenticated-github-token
+      #       - discord
+      #     requires:
+      #       - cannon-prestate
+      #       - op-e2e-cannon-tests
+      #     filters:
+      #       branches:
+      #         only:
+      #           - op-es
 
   # develop-kontrol-tests:
   #   when:

@@ -23,8 +23,8 @@ const (
 	L1InfoFuncIsthmusSignature = "setL1BlockValuesIsthmus()"
 	L1InfoArguments            = 8
 	L1InfoBedrockLen           = 4 + 32*L1InfoArguments
-	L1InfoEcotoneLen           = 4 + 32*5         // after Ecotone upgrade, args are packed into 5 32-byte slots
-	L1InfoIsthmusLen           = 4 + 32*5 + 4 + 8 // after Isthmus upgrade, additionally pack in operator fee scalar and constant
+	L1InfoEcotoneLen           = 4 + 32*5                              // after Ecotone upgrade, args are packed into 5 32-byte slots
+	L1InfoIsthmusLen           = 4 + 32*5 + 4 + 8 + /*added by qkc*/ 8 // after Isthmus upgrade, additionally pack in operator fee scalar and constant
 )
 
 var (
@@ -62,6 +62,8 @@ type L1BlockInfo struct {
 
 	OperatorFeeScalar   uint32 // added by Isthmus upgrade
 	OperatorFeeConstant uint64 // added by Isthmus upgrade
+
+	QKCPriceRatio uint64 // added by qkc
 }
 
 // Bedrock Binary Format
@@ -320,6 +322,9 @@ func marshalBinaryWithSignature(info *L1BlockInfo, signature []byte) ([]byte, er
 	if err := binary.Write(w, binary.BigEndian, info.OperatorFeeConstant); err != nil {
 		return nil, err
 	}
+	if err := binary.Write(w, binary.BigEndian, info.QKCPriceRatio); err != nil {
+		return nil, err
+	}
 	return w.Bytes(), nil
 }
 
@@ -365,6 +370,9 @@ func unmarshalBinaryWithSignatureAndData(info *L1BlockInfo, signature []byte, da
 		return ErrInvalidIsthmusFormat
 	}
 	if err := binary.Read(r, binary.BigEndian, &info.OperatorFeeConstant); err != nil {
+		return ErrInvalidIsthmusFormat
+	}
+	if err := binary.Read(r, binary.BigEndian, &info.QKCPriceRatio); err != nil {
 		return ErrInvalidIsthmusFormat
 	}
 	if !solabi.EmptyReader(r) {
@@ -445,6 +453,7 @@ func L1InfoDeposit(rollupCfg *rollup.Config, sysCfg eth.SystemConfig, seqNumber 
 			operatorFee := sysCfg.OperatorFee()
 			l1BlockInfo.OperatorFeeScalar = operatorFee.Scalar
 			l1BlockInfo.OperatorFeeConstant = operatorFee.Constant
+			l1BlockInfo.QKCPriceRatio = sysCfg.QKCPriceRatio
 		}
 
 		if isIsthmusActivated {

@@ -93,22 +93,23 @@ contract L1Block is ISemver {
         is_ = false;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.L1Block.HistoryHashesStorage")) - 1)) &
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.L1Block.QKCStorage")) - 1)) &
     // ~bytes32(uint256(0xff))
-    bytes32 private constant _L1BLOCK_HISTORY_HASHES_LOCATION =
-        0xb6e35d777715793a0808adb4ab3d51fc56065457feaf3a18bd958afef33bef00;
+    bytes32 private constant _L1BLOCK_QKC_STORAGE_LOCATION =
+        0x08cf03a46fb7f94e89dfdac731354f0694e6f39dbb491277b16fec4dfaca0800;
     /// @notice size of historyHashes.
     uint256 internal constant HISTORY_SIZE = 8192;
-    /// @custom:storage-location erc7201:openzeppelin.storage.L1Block.HistoryHashesStorage
+    /// @custom:storage-location erc7201:openzeppelin.storage.L1Block.QKCStorage
 
-    struct HistoryHashesStorage {
+    struct QKCStorage {
         /// @notice The 8191 history L1 blockhashes and 1 latest L1 blockhash.
         bytes32[HISTORY_SIZE] historyHashes;
+        uint64 QKCPriceRatio;
     }
 
-    function _getHistoryHashesStorage() private pure returns (HistoryHashesStorage storage $) {
+    function _getQKCStorage() private pure returns (QKCStorage storage $) {
         assembly {
-            $.slot := _L1BLOCK_HISTORY_HASHES_LOCATION
+            $.slot := _L1BLOCK_QKC_STORAGE_LOCATION
         }
     }
 
@@ -192,7 +193,7 @@ contract L1Block is ISemver {
             sstore(batcherHash.slot, calldataload(132)) // bytes32
         }
 
-        HistoryHashesStorage storage $ = _getHistoryHashesStorage();
+        QKCStorage storage $ = _getQKCStorage();
         $.historyHashes[number % HISTORY_SIZE] = hash;
     }
 
@@ -211,7 +212,7 @@ contract L1Block is ISemver {
             lower = upper - HISTORY_SIZE + 1;
         }
         if (_historyNumber >= lower && _historyNumber < upper) {
-            HistoryHashesStorage storage $ = _getHistoryHashesStorage();
+            QKCStorage storage $ = _getQKCStorage();
             return $.historyHashes[_historyNumber % HISTORY_SIZE];
         } else {
             return bytes32(0);
@@ -260,6 +261,13 @@ contract L1Block is ISemver {
         assembly {
             // operatorFeeScalar (uint32), operatorFeeConstant (uint64)
             sstore(operatorFeeConstant.slot, shr(160, calldataload(164)))
+        }
+
+        QKCStorage storage $ = _getQKCStorage();
+        assembly {
+            let baseSlot := $.slot
+            // QKCPriceRatio (uint64)
+            sstore(add(baseSlot, HISTORY_SIZE), shr(192, calldataload(176)))
         }
     }
 }

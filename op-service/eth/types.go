@@ -526,6 +526,8 @@ type SystemConfig struct {
 	// not marshal the EIP1559Params field. The presence of this field in
 	// pre-Holocene codebases causes the rollup config to be rejected.
 	MarshalPreHolocene bool `json:"-"`
+
+	QKCPriceRatio uint64 `json:"qkcPriceRatio,omitempty"`
 }
 
 func (sysCfg SystemConfig) MarshalJSON() ([]byte, error) {

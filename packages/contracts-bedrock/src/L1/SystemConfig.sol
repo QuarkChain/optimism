@@ -109,9 +109,26 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
     /// @notice Blobbasefee scalar value. Part of the L2 fee calculation since the Ecotone network upgrade.
     uint32 public blobbasefeeScalar;
 
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.SystemConfig.QKCConfigStorage")) - 1)) &
+    // ~bytes32(uint256(0xff))
+    bytes32 private constant _QKC_CONFIG_STORAGE_LOCATION =
+        0x4a9fff901ef6efd38ef74f95fd1c0cb935aed3e47b9d196dc09e127b28d2a200;
+    /// @custom:storage-location erc7201:openzeppelin.storage.SystemConfig.QKCConfigStorage
+
+    struct QKCConfigStorage {
+        /// @notice The price ratio for eth/qkc .
+        uint64 QKCPriceRatio;
+    }
+
+    function _getQKCConfigStorage() private pure returns (QKCConfigStorage storage $) {
+        assembly {
+            $.slot := _QKC_CONFIG_STORAGE_LOCATION
+        }
+    }
     /// @notice The configuration for the deposit fee market.
     ///         Used by the OptimismPortal to meter the cost of buying L2 gas on L1.
     ///         Set as internal with a getter so that the struct is returned instead of a tuple.
+
     IResourceMetering.ResourceConfig internal _resourceConfig;
 
     /// @notice The EIP-1559 base fee max change denominator.
@@ -358,6 +375,16 @@ contract SystemConfig is OwnableUpgradeable, ReinitializableBase, ISemver {
 
         bytes memory data = abi.encode(overhead, scalar);
         emit ConfigUpdate(VERSION, UpdateType.FEE_SCALARS, data);
+    }
+
+    /// @notice Updates QKCPriceRatio. Can only be called by the owner.
+    /// @param _QKCPriceRatio     New QKCPriceRatio value.
+    function setQKCPriceRatio(uint64 _QKCPriceRatio) external onlyOwner {
+        QKCConfigStorage storage qkcConfig = _getQKCConfigStorage();
+        qkcConfig.QKCPriceRatio = _QKCPriceRatio;
+
+        bytes memory data = abi.encode(_QKCPriceRatio);
+        emit ConfigUpdate(VERSION, UpdateType(uint8(255))/* a conflict-free enum value */, data);
     }
 
     /// @notice Updates the L2 gas limit. Can only be called by the owner.

@@ -30,6 +30,11 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
     /// @param from     Address of the contract for which sgt as msg.value is disabled.
     event DisallowSgtValue(address indexed from);
 
+    event BurnerAdded(address indexed burner);
+    event BurnerDeleted(address indexed burner);
+    event MinterAdded(address indexed minter);
+    event MinterDeleted(address indexed minter);
+
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.SoulGasToken")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant _SOULGASTOKEN_STORAGE_LOCATION =
         0x135c38e215d95c59dcdd8fe622dccc30d04cacb8c88c332e4e7441bac172dd00;
@@ -141,6 +146,7 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
         uint256 i;
         for (i = 0; i < _minters.length; i++) {
             $.minters[_minters[i]] = true;
+            emit MinterAdded(_minters[i]);
         }
     }
 
@@ -151,6 +157,7 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
         uint256 i;
         for (i = 0; i < _minters.length; i++) {
             delete $.minters[_minters[i]];
+            emit MinterDeleted(_minters[i]);
         }
     }
 
@@ -160,6 +167,7 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
         uint256 i;
         for (i = 0; i < _burners.length; i++) {
             $.burners[_burners[i]] = true;
+            emit BurnerAdded(_burners[i]);
         }
     }
 
@@ -169,6 +177,7 @@ contract SoulGasToken is ERC20Upgradeable, OwnableUpgradeable {
         uint256 i;
         for (i = 0; i < _burners.length; i++) {
             delete $.burners[_burners[i]];
+            emit BurnerDeleted(_burners[i]);
         }
     }
 

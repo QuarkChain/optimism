@@ -31,6 +31,8 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
+import { SoulGasToken } from "src/L2/SoulGasToken.sol";
+
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
 ///         The following safety invariants are used when setting state:
@@ -229,6 +231,7 @@ contract L2Genesis is Script {
         // 1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
+        setSoulGasToken(_input); // 800
         setGovernanceToken(_input); // 42: OP (not behind a proxy)
         if (_input.fork >= uint256(Fork.INTEROP)) {
             if (_input.deployCrossL2Inbox) {
@@ -256,7 +259,26 @@ contract L2Genesis is Script {
         _setImplementationCode(Predeploys.L2_TO_L1_MESSAGE_PASSER);
     }
 
+    /// @notice This predeploy is following the safety invariant #2.
+    function setSoulGasToken(Input memory _input) internal {
+        address impl = Predeploys.predeployToCodeNamespace(Predeploys.SOUL_GAS_TOKEN);
+
+        SoulGasToken token = new SoulGasToken({ _isBackedByNative: true });
+        vm.etch(impl, address(token).code);
+
+        /// Reset so its not included state dump
+        vm.etch(address(token), "");
+        vm.resetNonce(address(token));
+
+        SoulGasToken(impl).initialize({ _name: "", _symbol: "", _owner: _input.opChainProxyAdminOwner });
+        SoulGasToken(Predeploys.SOUL_GAS_TOKEN).initialize({
+            _name: "SoulQKC",
+            _symbol: "SoulQKC",
+            _owner: _input.opChainProxyAdminOwner
+        });
+    }
     /// @notice This predeploy is following the safety invariant #1.
+
     function setL2CrossDomainMessenger(address payable _l1CrossDomainMessengerProxy) internal {
         address impl = _setImplementationCode(Predeploys.L2_CROSS_DOMAIN_MESSENGER);
 

@@ -718,6 +718,8 @@ type L2InitializationConfig struct {
 	UpgradeScheduleDeployConfig
 	L2CoreDeployConfig
 	AltDADeployConfig
+	InboxContractConfig
+	L1ScalarMultiplierConfig
 }
 
 func (d *L2InitializationConfig) Check(log log.Logger) error {
@@ -888,6 +890,18 @@ type L1DependenciesConfig struct {
 	DAChallengeProxy common.Address `json:"daChallengeProxy"`
 
 	ProtocolVersionsProxy common.Address `json:"protocolVersionsProxy"`
+}
+
+// InboxContractConfig configures whether inbox contract is enabled.
+// If enabled, the batcher tx will be further filtered by tx status.
+type InboxContractConfig struct {
+	UseInboxContract bool `json:"useInboxContract,omitempty"`
+}
+
+// L1ScalarMultiplierConfig configures the scalar multipliers for L1 base fee and blob base fee.
+type L1ScalarMultiplierConfig struct {
+	L1BaseFeeScalarMultiplier     uint64 `json:"l1BaseFeeScalarMultiplier,omitempty"`
+	L1BlobBaseFeeScalarMultiplier uint64 `json:"l1BlobBaseFeeScalarMultiplier,omitempty"`
 }
 
 // DependencyContext is the contextual configuration needed to verify the L1 dependencies,

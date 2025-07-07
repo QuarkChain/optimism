@@ -76,9 +76,11 @@ func NewL2Genesis(config *DeployConfig, l1StartHeader *eth.BlockRef) (*core.Gene
 		PragueTime:              config.IsthmusTime(l1StartTime),
 		InteropTime:             config.InteropTime(l1StartTime),
 		Optimism: &params.OptimismConfig{
-			EIP1559Denominator:       eip1559Denom,
-			EIP1559Elasticity:        eip1559Elasticity,
-			EIP1559DenominatorCanyon: &eip1559DenomCanyon,
+			EIP1559Denominator:            eip1559Denom,
+			EIP1559Elasticity:             eip1559Elasticity,
+			EIP1559DenominatorCanyon:      &eip1559DenomCanyon,
+			L1BaseFeeScalarMultiplier:     config.L1BaseFeeScalarMultiplier,
+			L1BlobBaseFeeScalarMultiplier: config.L1BlobBaseFeeScalarMultiplier,
 		},
 	}
 

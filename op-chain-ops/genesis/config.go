@@ -1076,6 +1076,10 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 
 	l1StartTime := l1StartBlock.Time
 
+	var inboxContractConfig *rollup.InboxContractConfig
+	if d.UseInboxContract {
+		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
+	}
 	return &rollup.Config{
 		Genesis: rollup.Genesis{
 			L1: eth.BlockID{
@@ -1111,6 +1115,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		InteropTime:             d.InteropTime(l1StartTime),
 		ProtocolVersionsAddress: d.ProtocolVersionsProxy,
 		AltDAConfig:             altDA,
+		InboxContractConfig:     inboxContractConfig,
 		ChainOpConfig:           chainOpConfig,
 	}, nil
 }

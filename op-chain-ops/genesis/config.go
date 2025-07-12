@@ -1044,10 +1044,18 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		return nil, errors.New("SystemConfigProxy cannot be address(0)")
 	}
 
+	var soulGasTokenBlock *uint64
+	if d.UseSoulGasToken {
+		soulGasTokenBlock = u64ptr(d.SoulGasTokenBlock)
+	}
 	chainOpConfig := &params.OptimismConfig{
-		EIP1559Elasticity:        d.EIP1559Elasticity,
-		EIP1559Denominator:       d.EIP1559Denominator,
-		EIP1559DenominatorCanyon: &d.EIP1559DenominatorCanyon,
+		EIP1559Elasticity:             d.EIP1559Elasticity,
+		EIP1559Denominator:            d.EIP1559Denominator,
+		EIP1559DenominatorCanyon:      &d.EIP1559DenominatorCanyon,
+		SoulGasTokenBlock:             soulGasTokenBlock,
+		IsSoulBackedByNative:          d.IsSoulBackedByNative,
+		L1BaseFeeScalarMultiplier:     d.L1BaseFeeScalarMultiplier,
+		L1BlobBaseFeeScalarMultiplier: d.L1BlobBaseFeeScalarMultiplier,
 	}
 
 	var altDA *rollup.AltDAConfig

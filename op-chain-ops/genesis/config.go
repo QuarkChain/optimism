@@ -718,6 +718,8 @@ type L2InitializationConfig struct {
 	UpgradeScheduleDeployConfig
 	L2CoreDeployConfig
 	AltDADeployConfig
+	InboxContractConfig
+	L1ScalarMultiplierConfig
 }
 
 func (d *L2InitializationConfig) Check(log log.Logger) error {
@@ -890,6 +892,18 @@ type L1DependenciesConfig struct {
 	ProtocolVersionsProxy common.Address `json:"protocolVersionsProxy"`
 }
 
+// InboxContractConfig configures whether inbox contract is enabled.
+// If enabled, the batcher tx will be further filtered by tx status.
+type InboxContractConfig struct {
+	UseInboxContract bool `json:"useInboxContract,omitempty"`
+}
+
+// L1ScalarMultiplierConfig configures the scalar multipliers for L1 base fee and blob base fee.
+type L1ScalarMultiplierConfig struct {
+	L1BaseFeeScalarMultiplier     uint64 `json:"l1BaseFeeScalarMultiplier,omitempty"`
+	L1BlobBaseFeeScalarMultiplier uint64 `json:"l1BlobBaseFeeScalarMultiplier,omitempty"`
+}
+
 // DependencyContext is the contextual configuration needed to verify the L1 dependencies,
 // used by DeployConfig.CheckAddresses.
 type DependencyContext struct {
@@ -1045,9 +1059,11 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 	}
 
 	chainOpConfig := &params.OptimismConfig{
-		EIP1559Elasticity:        d.EIP1559Elasticity,
-		EIP1559Denominator:       d.EIP1559Denominator,
-		EIP1559DenominatorCanyon: &d.EIP1559DenominatorCanyon,
+		EIP1559Elasticity:             d.EIP1559Elasticity,
+		EIP1559Denominator:            d.EIP1559Denominator,
+		EIP1559DenominatorCanyon:      &d.EIP1559DenominatorCanyon,
+		L1BaseFeeScalarMultiplier:     d.L1BaseFeeScalarMultiplier,
+		L1BlobBaseFeeScalarMultiplier: d.L1BlobBaseFeeScalarMultiplier,
 	}
 
 	var altDA *rollup.AltDAConfig
@@ -1062,6 +1078,10 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 
 	l1StartTime := l1StartBlock.Time
 
+	var inboxContractConfig *rollup.InboxContractConfig
+	if d.UseInboxContract {
+		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
+	}
 	return &rollup.Config{
 		Genesis: rollup.Genesis{
 			L1: eth.BlockID{
@@ -1097,6 +1117,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		InteropTime:             d.InteropTime(l1StartTime),
 		ProtocolVersionsAddress: d.ProtocolVersionsProxy,
 		AltDAConfig:             altDA,
+		InboxContractConfig:     inboxContractConfig,
 		ChainOpConfig:           chainOpConfig,
 	}, nil
 }

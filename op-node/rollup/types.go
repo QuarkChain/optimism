@@ -150,6 +150,8 @@ type Config struct {
 	// If missing, it is loaded by the op-node from the embedded superchain config at startup.
 	ChainOpConfig *params.OptimismConfig `json:"chain_op_config,omitempty"`
 
+	InboxContractConfig *InboxContractConfig `json:"inbox_contract_config,omitempty"`
+
 	// Optional Features
 
 	// AltDAConfig. We are in the process of migrating to the AltDAConfig from these legacy top level values
@@ -162,6 +164,15 @@ type Config struct {
 	// This feature (de)activates by L1 origin timestamp, to keep a consistent L1 block info per L2
 	// epoch.
 	PectraBlobScheduleTime *uint64 `json:"pectra_blob_schedule_time,omitempty"`
+}
+
+type InboxContractConfig struct {
+	UseInboxContract bool `json:"use_inbox_contract,omitempty"`
+}
+
+// UseInboxContract returns whether inbox contract is enabled
+func (cfg *Config) UseInboxContract() bool {
+	return cfg.InboxContractConfig != nil && cfg.InboxContractConfig.UseInboxContract
 }
 
 // ValidateL1Config checks L1 config variables for errors.
@@ -734,6 +745,7 @@ func (c *Config) Description(l2Chains map[string]string) string {
 	c.forEachFork(func(name string, _ string, time *uint64) {
 		banner += fmt.Sprintf("  - %v: %s\n", name, fmtForkTimeOrUnset(time))
 	})
+	banner += fmt.Sprintf("  - Use inbox contract: %v\n", c.UseInboxContract())
 	// Report the protocol version
 	banner += fmt.Sprintf("Node supports up to OP-Stack Protocol Version: %s\n", OPStackSupport)
 	if c.AltDAConfig != nil {

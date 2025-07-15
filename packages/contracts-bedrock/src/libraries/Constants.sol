@@ -37,6 +37,8 @@ library Constants {
     /// @notice The address that represents the system caller responsible for L1 attributes
     ///         transactions.
     address internal constant DEPOSITOR_ACCOUNT = 0xDeaDDEaDDeAdDeAdDEAdDEaddeAddEAdDEAd0001;
+    /// @notice Another fixed address to avoid potential risky calls for deposit tx on L2.
+    address internal constant QKC_DEPOSITOR_ACCOUNT = 0xDEAdDeaddEAdDeadDEaddeAdDeaddEAd00514b43;
 
     /// @notice Returns the default values for the ResourceConfig. These are the recommended values
     ///         for a production network.

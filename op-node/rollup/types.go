@@ -176,8 +176,8 @@ type InboxContractConfig struct {
 }
 
 // IsL2Blob returns whether l2 blob is enabled
-func (cfg *Config) IsL2Blob(parentTime uint64) bool {
-	return cfg.IsL2BlobTimeSet() && *cfg.L2BlobConfig.L2BlobTime <= parentTime
+func (cfg *Config) IsL2Blob(timestamp uint64) bool {
+	return cfg.IsL2BlobTimeSet() && *cfg.L2BlobConfig.L2BlobTime <= timestamp
 }
 
 // UseInboxContract returns whether inbox contract is enabled

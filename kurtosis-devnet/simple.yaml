@@ -63,7 +63,7 @@ optimism_package:
     global_deploy_overrides:
       faultGameAbsolutePrestate: {{ localPrestate.Hashes.prestate }}
       useSoulGasToken: true
-      soulGasTokenBlock: 0
+      soulGasTokenTimeOffset: 0
       isSoulBackedByNative: true
       l2GenesisBlobTimeOffset: "0x0"
   global_log_level: "info"

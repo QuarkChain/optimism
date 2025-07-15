@@ -880,11 +880,16 @@ type L1DependenciesConfig struct {
 type SoulGasTokenConfig struct {
 	// UseSoulGasToken is a flag that indicates if the system is using SoulGasToken
 	UseSoulGasToken bool `json:"useSoulGasToken,omitempty"`
-	// The height of the block at which the SoulGasToken is activated.
-	SoulGasTokenBlock uint64 `json:"soulGasTokenBlock,omitempty"`
+	// The time offset of the block at which the SoulGasToken is activated.
+	SoulGasTokenTimeOffset uint64 `json:"soulGasTokenTimeOffset,omitempty"`
 	// IsSoulBackedByNative is a flag that indicates if the SoulGasToken is backed by native.
 	// Only effective when UseSoulGasToken is true.
 	IsSoulBackedByNative bool `json:"isSoulBackedByNative,omitempty"`
+}
+
+func (c *SoulGasTokenConfig) SoulGasTokenTime(genesisTime uint64) *uint64 {
+	offset := hexutil.Uint64(c.SoulGasTokenTimeOffset)
+	return offsetToUpgradeTime(&offset, genesisTime)
 }
 
 // InboxContractConfig configures whether inbox contract is enabled.
@@ -1044,15 +1049,17 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		return nil, errors.New("SystemConfigProxy cannot be address(0)")
 	}
 
-	var soulGasTokenBlock *uint64
+	l1StartTime := l1StartBlock.Time
+
+	var soulGasTokenTime *uint64
 	if d.UseSoulGasToken {
-		soulGasTokenBlock = u64ptr(d.SoulGasTokenBlock)
+		soulGasTokenTime = d.SoulGasTokenTime(l1StartTime)
 	}
 	chainOpConfig := &params.OptimismConfig{
 		EIP1559Elasticity:             d.EIP1559Elasticity,
 		EIP1559Denominator:            d.EIP1559Denominator,
 		EIP1559DenominatorCanyon:      &d.EIP1559DenominatorCanyon,
-		SoulGasTokenBlock:             soulGasTokenBlock,
+		SoulGasTokenTime:              soulGasTokenTime,
 		IsSoulBackedByNative:          d.IsSoulBackedByNative,
 		L1BaseFeeScalarMultiplier:     d.L1BaseFeeScalarMultiplier,
 		L1BlobBaseFeeScalarMultiplier: d.L1BlobBaseFeeScalarMultiplier,
@@ -1067,8 +1074,6 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 			DAResolveWindow:    d.DAResolveWindow,
 		}
 	}
-
-	l1StartTime := l1StartBlock.Time
 
 	var l2BlobConfig *rollup.L2BlobConfig
 	if d.L2GenesisBlobTimeOffset != nil {

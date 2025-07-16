@@ -15,6 +15,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -47,7 +48,7 @@ func startSystemWithSGT(sgtTimeOffset *uint64, t *testing.T) *e2esys.System {
 
 	if sgtTimeOffset != nil {
 		cfg.DeployConfig.UseSoulGasToken = true
-		cfg.DeployConfig.SoulGasTokenTimeOffset = *sgtTimeOffset
+		cfg.DeployConfig.SoulGasTokenTimeOffset = (*hexutil.Uint64)(sgtTimeOffset)
 	} else {
 		cfg.DeployConfig.UseSoulGasToken = false
 	}

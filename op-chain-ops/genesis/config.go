@@ -881,15 +881,14 @@ type SoulGasTokenConfig struct {
 	// UseSoulGasToken is a flag that indicates if the system is using SoulGasToken
 	UseSoulGasToken bool `json:"useSoulGasToken,omitempty"`
 	// The time offset of the block at which the SoulGasToken is activated.
-	SoulGasTokenTimeOffset uint64 `json:"soulGasTokenTimeOffset,omitempty"`
+	SoulGasTokenTimeOffset *hexutil.Uint64 `json:"soulGasTokenTimeOffset,omitempty"`
 	// IsSoulBackedByNative is a flag that indicates if the SoulGasToken is backed by native.
 	// Only effective when UseSoulGasToken is true.
 	IsSoulBackedByNative bool `json:"isSoulBackedByNative,omitempty"`
 }
 
 func (c *SoulGasTokenConfig) SoulGasTokenTime(genesisTime uint64) *uint64 {
-	offset := hexutil.Uint64(c.SoulGasTokenTimeOffset)
-	return offsetToUpgradeTime(&offset, genesisTime)
+	return offsetToUpgradeTime(c.SoulGasTokenTimeOffset, genesisTime)
 }
 
 // InboxContractConfig configures whether inbox contract is enabled.

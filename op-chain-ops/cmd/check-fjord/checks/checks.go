@@ -28,12 +28,13 @@ import (
 )
 
 type CheckFjordConfig struct {
-	Log       log.Logger
-	L2        *ethclient.Client
-	Key       *ecdsa.PrivateKey
-	Addr      common.Address
-	GasUsed   uint64
-	L1GasUsed uint64
+	Log            log.Logger
+	L2             *ethclient.Client
+	Key            *ecdsa.PrivateKey
+	Addr           common.Address
+	GasUsed        uint64
+	L1GasUsed      uint64
+	OptimismConfig *params.OptimismConfig
 }
 
 func (ae *CheckFjordConfig) RecordGasUsed(rec *types.Receipt) {
@@ -191,7 +192,7 @@ func sendTxAndCheckFees(ctx context.Context, env *CheckFjordConfig, to *common.A
 		return fmt.Errorf("calling GasPriceOracle.GetL1Fee: %w", err)
 	}
 
-	gethGPOFee, err := fjordL1Cost(gasPriceOracle, blockHash, uint64(types.FlzCompressLen(txUnsigned)+68))
+	gethGPOFee, err := fjordL1Cost(env.OptimismConfig, gasPriceOracle, blockHash, uint64(types.FlzCompressLen(txUnsigned)+68))
 	if err != nil {
 		return fmt.Errorf("calculating GPO fjordL1Cost: %w", err)
 	}
@@ -200,7 +201,7 @@ func sendTxAndCheckFees(ctx context.Context, env *CheckFjordConfig, to *common.A
 	}
 	env.Log.Info("gethGPOFee matches gpoFee")
 
-	gethFee, err := fjordL1Cost(gasPriceOracle, blockHash, uint64(types.FlzCompressLen(txSigned)))
+	gethFee, err := fjordL1Cost(env.OptimismConfig, gasPriceOracle, blockHash, uint64(types.FlzCompressLen(txSigned)))
 	if err != nil {
 		return fmt.Errorf("calculating receipt fjordL1Cost: %w", err)
 	}
@@ -217,7 +218,7 @@ func sendTxAndCheckFees(ctx context.Context, env *CheckFjordConfig, to *common.A
 
 	txLenGPO := len(txUnsigned) + 68
 	flzUpperBound := uint64(txLenGPO + txLenGPO/255 + 16)
-	upperBoundCost, err := fjordL1Cost(gasPriceOracle, blockHash, flzUpperBound)
+	upperBoundCost, err := fjordL1Cost(env.OptimismConfig, gasPriceOracle, blockHash, flzUpperBound)
 	if err != nil {
 		return fmt.Errorf("failed to calculate fjordL1Cost: %w", err)
 	}
@@ -260,7 +261,7 @@ func CheckTxRandom(ctx context.Context, env *CheckFjordConfig) error {
 	return sendTxAndCheckFees(ctx, env, to, txData)
 }
 
-func fjordL1Cost(gasPriceOracle *bindings.GasPriceOracleCaller, block common.Hash, fastLzSize uint64) (*big.Int, error) {
+func fjordL1Cost(config *params.OptimismConfig, gasPriceOracle *bindings.GasPriceOracleCaller, block common.Hash, fastLzSize uint64) (*big.Int, error) {
 	opts := &bind.CallOpts{BlockHash: block}
 	baseFeeScalar, err := gasPriceOracle.BaseFeeScalar(opts)
 	if err != nil {
@@ -283,7 +284,10 @@ func fjordL1Cost(gasPriceOracle *bindings.GasPriceOracleCaller, block common.Has
 		l1BaseFee,
 		blobBaseFee,
 		new(big.Int).SetUint64(uint64(baseFeeScalar)),
-		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)),
+		new(big.Int).SetUint64(config.L1BaseFeeScalarMultiplier),
+		new(big.Int).SetUint64(config.L1BlobBaseFeeScalarMultiplier),
+	)
 
 	fee, _ := costFunc(types.RollupCostData{FastLzSize: fastLzSize})
 	return fee, nil

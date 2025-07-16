@@ -212,7 +212,7 @@ func Test_ProgramAction_OperatorFeeConsistency(gt *testing.T) {
 			l1BlockInfo, err := derive.L1BlockInfoFromBytes(env.Sd.RollupCfg, unsafeHeader.Time, unsafeBlock.Transactions()[0].Data())
 			require.NoError(t, err)
 
-			daCost := fjordL1Cost(l1BlockInfo, types.NewRollupCostData(rlp, len(tx.BlobHashes())))
+			daCost := fjordL1Cost(env.Dp.DeployConfig, l1BlockInfo, types.NewRollupCostData(rlp, len(tx.BlobHashes())))
 			expectedFeePreIsthmus := nextBaseFee.Mul(nextBaseFee, big.NewInt(int64(params.TxGas)))
 			expectedFeePreIsthmus.Add(expectedFeePreIsthmus, daCost)
 
@@ -386,12 +386,15 @@ func Test_ProgramAction_OperatorFeeConsistency(gt *testing.T) {
 	matrix.Run(gt)
 }
 
-func fjordL1Cost(l1BlockInfo *derive.L1BlockInfo, rollupCostData types.RollupCostData) *big.Int {
+func fjordL1Cost(config *genesis.DeployConfig, l1BlockInfo *derive.L1BlockInfo, rollupCostData types.RollupCostData) *big.Int {
 	costFunc := types.NewL1CostFuncFjord(
 		l1BlockInfo.BaseFee,
 		l1BlockInfo.BlobBaseFee,
 		new(big.Int).SetUint64(uint64(l1BlockInfo.BaseFeeScalar)),
-		new(big.Int).SetUint64(uint64(l1BlockInfo.BlobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(l1BlockInfo.BlobBaseFeeScalar)),
+		new(big.Int).SetUint64(config.L1BaseFeeScalarMultiplier),
+		new(big.Int).SetUint64(config.L1BlobBaseFeeScalarMultiplier),
+	)
 
 	fee, _ := costFunc(rollupCostData)
 	return fee

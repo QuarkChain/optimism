@@ -138,11 +138,16 @@ func fjordL1Cost(t require.TestingT, gasPriceOracle *bindings.GasPriceOracleCall
 	blobBaseFee, err := gasPriceOracle.BlobBaseFee(nil)
 	require.NoError(t, err)
 
+	dp := e2eutils.MakeDeployParams(t, helpers.DefaultRollupTestParams())
+
 	costFunc := types.NewL1CostFuncFjord(
 		l1BaseFee,
 		blobBaseFee,
 		new(big.Int).SetUint64(uint64(baseFeeScalar)),
-		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)),
+		new(big.Int).SetUint64(dp.DeployConfig.L1BaseFeeScalarMultiplier),
+		new(big.Int).SetUint64(dp.DeployConfig.L1BlobBaseFeeScalarMultiplier),
+	)
 
 	fee, _ := costFunc(rollupCostData)
 	return fee

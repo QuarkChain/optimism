@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/cmd/check-fjord/checks"
 	op_service "github.com/ethereum-optimism/optimism/op-service"
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
+	"github.com/ethereum-optimism/optimism/op-service/dial"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -23,6 +25,12 @@ var (
 		Usage:   "L2 execution RPC endpoint",
 		EnvVars: op_service.PrefixEnvVar(prefix, "L2"),
 		Value:   "http://localhost:9545",
+	}
+	EndpointRollup = &cli.StringFlag{
+		Name:    "rollup",
+		Usage:   "L2 rollup-node RPC endpoint",
+		EnvVars: op_service.PrefixEnvVar(prefix, "ROLLUP"),
+		Value:   "http://localhost:5545",
 	}
 	AccountKey = &cli.StringFlag{
 		Name:    "account",
@@ -63,11 +71,20 @@ func makeCommandAction(fn CheckAction) func(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to parse test private key: %w", err)
 		}
+		rollupCl, err := dial.DialRollupClientWithTimeout(c.Context, time.Second*20, logger, c.String(EndpointRollup.Name))
+		if err != nil {
+			return fmt.Errorf("failed to dial rollup node RPC: %w", err)
+		}
+		rollupConf, err := rollupCl.RollupConfig(c.Context)
+		if err != nil {
+			return fmt.Errorf("rollup config retrieval failed: %w", err)
+		}
 		if err := fn(c.Context, &checks.CheckFjordConfig{
-			Log:  logger,
-			L2:   l2Cl,
-			Key:  key,
-			Addr: crypto.PubkeyToAddress(key.PublicKey),
+			Log:            logger,
+			L2:             l2Cl,
+			Key:            key,
+			Addr:           crypto.PubkeyToAddress(key.PublicKey),
+			OptimismConfig: rollupConf.ChainOpConfig,
 		}); err != nil {
 			return fmt.Errorf("command error: %w", err)
 		}

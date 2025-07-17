@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -21,7 +22,9 @@ func TestDynamicSGT(gt *testing.T) {
 	t := helpers.NewDefaultTesting(gt)
 	dp := e2eutils.MakeDeployParams(t, helpers.DefaultRollupTestParams())
 	dp.DeployConfig.UseSoulGasToken = true
-	dp.DeployConfig.SoulGasTokenBlock = 100
+	timeOffset := new(hexutil.Uint64)
+	*timeOffset = 100
+	dp.DeployConfig.SoulGasTokenTimeOffset = timeOffset
 	sd := e2eutils.Setup(t, dp, helpers.DefaultAlloc)
 	log := testlog.Logger(t, log.LevelDebug)
 	miner, engine, sequencer := helpers.SetupSequencerTest(t, sd, log)
@@ -67,7 +70,7 @@ func TestDynamicSGT(gt *testing.T) {
 	require.True(t, balance2.Cmp(balance1) < 0)
 
 	// advance to the block where the SGT is active
-	sequencer.ActBuildL2ToTime(t, genesisTime+dp.DeployConfig.L2BlockTime*dp.DeployConfig.SoulGasTokenBlock)
+	sequencer.ActBuildL2ToTime(t, genesisTime+(uint64)(*dp.DeployConfig.SoulGasTokenTimeOffset))
 
 	// Alice makes a L2 tx
 	n, err = cl.PendingNonceAt(t.Ctx(), dp.Addresses.Alice)

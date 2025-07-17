@@ -42,9 +42,9 @@ func NewL2Genesis(config *DeployConfig, l1StartHeader *eth.BlockRef) (*core.Gene
 	}
 
 	l1StartTime := l1StartHeader.Time
-	var soulGasTokenBlock *uint64
+	var soulGasTokenTime *uint64
 	if config.UseSoulGasToken {
-		soulGasTokenBlock = u64ptr(config.SoulGasTokenBlock)
+		soulGasTokenTime = config.SoulGasTokenTime(l1StartTime)
 	}
 
 	optimismChainConfig := params.ChainConfig{
@@ -85,7 +85,7 @@ func NewL2Genesis(config *DeployConfig, l1StartHeader *eth.BlockRef) (*core.Gene
 			EIP1559Elasticity:             eip1559Elasticity,
 			EIP1559DenominatorCanyon:      &eip1559DenomCanyon,
 			IsSoulBackedByNative:          config.IsSoulBackedByNative,
-			SoulGasTokenBlock:             soulGasTokenBlock,
+			SoulGasTokenTime:              soulGasTokenTime,
 			L1BaseFeeScalarMultiplier:     config.L1BaseFeeScalarMultiplier,
 			L1BlobBaseFeeScalarMultiplier: config.L1BlobBaseFeeScalarMultiplier,
 		},

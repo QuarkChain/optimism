@@ -804,7 +804,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         if (msg.value > 0) {
             QKCConfigStorage storage $ = _getQKCConfigStorage();
             if ($.disableNativeDeposit) {
-                revert NativeDepositForbidden();
+                revert OptimismPortal_NativeDepositForbidden();
             }
         }
         // Lock the ETH in the ETHLockbox.

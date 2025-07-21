@@ -1058,6 +1058,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		EIP1559Elasticity:             d.EIP1559Elasticity,
 		EIP1559Denominator:            d.EIP1559Denominator,
 		EIP1559DenominatorCanyon:      &d.EIP1559DenominatorCanyon,
+		L2BlobTime:                    d.L2BlobTime(l1StartTime),
 		SoulGasTokenTime:              soulGasTokenTime,
 		IsSoulBackedByNative:          d.IsSoulBackedByNative,
 		L1BaseFeeScalarMultiplier:     d.L1BaseFeeScalarMultiplier,
@@ -1074,12 +1075,6 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		}
 	}
 
-	var l2BlobConfig *rollup.L2BlobConfig
-	if d.L2GenesisBlobTimeOffset != nil {
-		l2BlobConfig = &rollup.L2BlobConfig{
-			L2BlobTime: d.L2BlobTime(l1StartTime),
-		}
-	}
 	var inboxContractConfig *rollup.InboxContractConfig
 	if d.UseInboxContract {
 		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
@@ -1120,7 +1115,6 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		InteropTime:             d.InteropTime(l1StartTime),
 		ProtocolVersionsAddress: d.ProtocolVersionsProxy,
 		AltDAConfig:             altDA,
-		L2BlobConfig:            l2BlobConfig,
 		InboxContractConfig:     inboxContractConfig,
 		ChainOpConfig:           chainOpConfig,
 	}, nil

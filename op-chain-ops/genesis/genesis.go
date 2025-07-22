@@ -42,9 +42,10 @@ func NewL2Genesis(config *DeployConfig, l1StartHeader *eth.BlockRef) (*core.Gene
 	}
 
 	l1StartTime := l1StartHeader.Time
-	var soulGasTokenTime *uint64
-	if config.UseSoulGasToken {
-		soulGasTokenTime = config.SoulGasTokenTime(l1StartTime)
+	soulGasTokenTime := config.SoulGasTokenTime(l1StartTime)
+	// The SGT contract will only be deployed if UseSoulGasToken is true.
+	if !config.UseSoulGasToken && soulGasTokenTime != nil {
+		return nil, fmt.Errorf("soulGasTokenTimeOffset is set, but UseSoulGasToken is false")
 	}
 
 	optimismChainConfig := params.ChainConfig{

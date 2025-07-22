@@ -1050,9 +1050,11 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 
 	l1StartTime := l1StartBlock.Time
 
-	var soulGasTokenTime *uint64
-	if d.UseSoulGasToken {
-		soulGasTokenTime = d.SoulGasTokenTime(l1StartTime)
+	soulGasTokenTime := d.SoulGasTokenTime(l1StartTime)
+	// The SGT contract will only be deployed if UseSoulGasToken is true.
+	if !d.UseSoulGasToken && soulGasTokenTime != nil {
+		return nil, fmt.Errorf("soulGasTokenTimeOffset is set, but UseSoulGasToken is false")
+
 	}
 	chainOpConfig := &params.OptimismConfig{
 		EIP1559Elasticity:             d.EIP1559Elasticity,

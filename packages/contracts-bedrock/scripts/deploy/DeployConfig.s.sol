@@ -90,7 +90,7 @@ contract DeployConfig is Script {
     uint256 public daResolverRefundPercentage;
 
     bool public useInterop;
-    bool public useSoulGasToken;
+    bool public deploySoulGasToken;
     bool public isSoulBackedByNative;
     bool public useUpgradedFork;
 
@@ -179,7 +179,7 @@ contract DeployConfig is Script {
         daResolverRefundPercentage = _readOr(_json, "$.daResolverRefundPercentage", 0);
 
         useInterop = _readOr(_json, "$.useInterop", false);
-        useSoulGasToken = _readOr(_json, "$.useSoulGasToken", false);
+        deploySoulGasToken = _readOr(_json, "$.deploySoulGasToken", false);
         isSoulBackedByNative = _readOr(_json, "$.isSoulBackedByNative", false);
         useUpgradedFork;
     }
@@ -233,9 +233,9 @@ contract DeployConfig is Script {
         useInterop = _useInterop;
     }
 
-    /// @notice Allow the `useSoulGasToken` config to be overridden in testing environments
-    function setUseSoulGasToken(bool _useSoulGasToken) public {
-        useSoulGasToken = _useSoulGasToken;
+    /// @notice Allow the `deploySoulGasToken` config to be overridden in testing environments
+    function setDeploySoulGasToken(bool _deploySoulGasToken) public {
+        deploySoulGasToken = _deploySoulGasToken;
     }
 
     /// @notice Allow the `isSoulBackedByNative` config to be overridden in testing environments

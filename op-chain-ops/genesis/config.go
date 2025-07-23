@@ -878,12 +878,12 @@ type L1DependenciesConfig struct {
 
 // SoulGasTokenConfig configures the SoulGasToken deployment to L2.
 type SoulGasTokenConfig struct {
-	// UseSoulGasToken is a flag that indicates if the system is using SoulGasToken
-	UseSoulGasToken bool `json:"useSoulGasToken,omitempty"`
+	// DeploySoulGasToken is a flag that indicates if the SGT contract will be deploy at genesis.
+	DeploySoulGasToken bool `json:"deploySoulGasToken,omitempty"`
 	// The time offset of the block at which the SoulGasToken is activated.
 	SoulGasTokenTimeOffset *hexutil.Uint64 `json:"soulGasTokenTimeOffset,omitempty"`
 	// IsSoulBackedByNative is a flag that indicates if the SoulGasToken is backed by native.
-	// Only effective when UseSoulGasToken is true.
+	// Only effective when DeploySoulGasToken is true.
 	IsSoulBackedByNative bool `json:"isSoulBackedByNative,omitempty"`
 }
 
@@ -1051,10 +1051,9 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 	l1StartTime := l1StartBlock.Time
 
 	soulGasTokenTime := d.SoulGasTokenTime(l1StartTime)
-	// The SGT contract will only be deployed if UseSoulGasToken is true.
-	if !d.UseSoulGasToken && soulGasTokenTime != nil {
-		return nil, fmt.Errorf("soulGasTokenTimeOffset is set, but UseSoulGasToken is false")
-
+	// The SGT contract will only be deployed if DeploySoulGasToken is true.
+	if !d.DeploySoulGasToken && soulGasTokenTime != nil {
+		return nil, fmt.Errorf("soulGasTokenTimeOffset is set, but DeploySoulGasToken is false")
 	}
 	chainOpConfig := &params.OptimismConfig{
 		EIP1559Elasticity:             d.EIP1559Elasticity,

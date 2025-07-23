@@ -288,7 +288,7 @@ func initAllocType(root string, allocType AllocType) {
 				"l2GenesisHoloceneTimeOffset": nil,
 				"l2GenesisIsthmusTimeOffset":  nil,
 				// SWC changes
-				"useSoulGasToken":      true,
+				"deploySoulGasToken":   true,
 				"isSoulBackedByNative": true,
 			}
 
@@ -349,7 +349,7 @@ func initAllocType(root string, allocType AllocType) {
 				dc.L2BlockTime = 1
 				dc.SetDeployments(l1Deployments)
 				// SWC changes
-				dc.UseSoulGasToken = true
+				dc.DeploySoulGasToken = true
 				dc.IsSoulBackedByNative = true
 				mtx.Lock()
 				deployConfigsByType[allocType] = dc

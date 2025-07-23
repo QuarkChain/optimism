@@ -21,7 +21,7 @@ import (
 func TestDynamicSGT(gt *testing.T) {
 	t := helpers.NewDefaultTesting(gt)
 	dp := e2eutils.MakeDeployParams(t, helpers.DefaultRollupTestParams())
-	dp.DeployConfig.UseSoulGasToken = true
+	dp.DeployConfig.DeploySoulGasToken = true
 	timeOffset := new(hexutil.Uint64)
 	*timeOffset = 100
 	dp.DeployConfig.SoulGasTokenTimeOffset = timeOffset

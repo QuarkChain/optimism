@@ -47,10 +47,10 @@ func startSystemWithSGT(sgtTimeOffset *uint64, t *testing.T) *e2esys.System {
 	require.True(t, ok, "sequencer is required")
 
 	if sgtTimeOffset != nil {
-		cfg.DeployConfig.UseSoulGasToken = true
+		cfg.DeployConfig.DeploySoulGasToken = true
 		cfg.DeployConfig.SoulGasTokenTimeOffset = (*hexutil.Uint64)(sgtTimeOffset)
 	} else {
-		cfg.DeployConfig.UseSoulGasToken = false
+		cfg.DeployConfig.DeploySoulGasToken = false
 	}
 	// Disable proposer creating fast games automatically - required games are manually created
 	cfg.DisableProposer = true

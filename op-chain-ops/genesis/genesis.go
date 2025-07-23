@@ -42,9 +42,10 @@ func NewL2Genesis(config *DeployConfig, l1StartHeader *eth.BlockRef) (*core.Gene
 	}
 
 	l1StartTime := l1StartHeader.Time
-	var soulGasTokenTime *uint64
-	if config.UseSoulGasToken {
-		soulGasTokenTime = config.SoulGasTokenTime(l1StartTime)
+	soulGasTokenTime := config.SoulGasTokenTime(l1StartTime)
+	// The SGT contract will only be deployed if UseSoulGasToken is true.
+	if !config.UseSoulGasToken && soulGasTokenTime != nil {
+		return nil, fmt.Errorf("soulGasTokenTimeOffset is set, but UseSoulGasToken is false")
 	}
 
 	optimismChainConfig := params.ChainConfig{
@@ -79,11 +80,11 @@ func NewL2Genesis(config *DeployConfig, l1StartHeader *eth.BlockRef) (*core.Gene
 		JovianTime:              config.JovianTime(l1StartTime),
 		PragueTime:              config.IsthmusTime(l1StartTime),
 		InteropTime:             config.InteropTime(l1StartTime),
-		L2BlobTime:              config.L2BlobTime(l1StartTime),
 		Optimism: &params.OptimismConfig{
 			EIP1559Denominator:            eip1559Denom,
 			EIP1559Elasticity:             eip1559Elasticity,
 			EIP1559DenominatorCanyon:      &eip1559DenomCanyon,
+			L2BlobTime:                    config.L2BlobTime(l1StartTime),
 			IsSoulBackedByNative:          config.IsSoulBackedByNative,
 			SoulGasTokenTime:              soulGasTokenTime,
 			L1BaseFeeScalarMultiplier:     config.L1BaseFeeScalarMultiplier,

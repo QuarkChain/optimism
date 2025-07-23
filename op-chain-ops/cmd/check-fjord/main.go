@@ -44,6 +44,7 @@ type CheckAction func(ctx context.Context, env *checks.CheckFjordConfig) error
 func makeFlags() []cli.Flag {
 	flags := []cli.Flag{
 		EndpointL2,
+		EndpointRollup,
 		AccountKey,
 	}
 	return append(flags, oplog.CLIFlags(prefix)...)

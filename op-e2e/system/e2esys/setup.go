@@ -347,11 +347,6 @@ type SystemConfig struct {
 	// SupportL1TimeTravel determines if the L1 node supports quickly skipping forward in time
 	SupportL1TimeTravel bool
 
-	// Use Soul Gas Token to pay tx fee
-	UseSoulGasToken bool
-	// Whether the Soul Gas Token is backed by native gas token or not
-	IsSoulBackedByNative bool
-
 	AllocType config.AllocType
 }
 

@@ -172,7 +172,7 @@ contract L2GenesisTest is Test {
 
     /// @notice Tests the number of accounts in the genesis setup
     function _test_allocs_size(string memory _path) internal {
-        vm.mockCall(address(genesis.cfg()), abi.encodeCall(genesis.cfg().useSoulGasToken, ()), abi.encode(true));
+        vm.mockCall(address(genesis.cfg()), abi.encodeCall(genesis.cfg().deploySoulGasToken, ()), abi.encode(true));
         vm.mockCall(address(genesis.cfg()), abi.encodeCall(genesis.cfg().isSoulBackedByNative, ()), abi.encode(true));
 
         genesis.cfg().setFundDevAccounts(false);

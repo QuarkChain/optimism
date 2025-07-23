@@ -15,6 +15,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -29,8 +30,8 @@ var (
 
 func TestSGTDepositFunctionSuccess(t *testing.T) {
 	op_e2e.InitParallel(t)
-	sgtBlock := uint64(0)
-	sys := startSystemWithSGT(&sgtBlock, t)
+	sgtTimeOffset := uint64(0)
+	sys := startSystemWithSGT(&sgtTimeOffset, t)
 	t.Cleanup(sys.Close)
 	ctx := context.Background()
 
@@ -39,17 +40,17 @@ func TestSGTDepositFunctionSuccess(t *testing.T) {
 	_, _, _ = setUpTestAccount(t, ctx, 0, sgt, depositSgtValue, big.NewInt(0))
 }
 
-func startSystemWithSGT(sgtBlock *uint64, t *testing.T) *e2esys.System {
+func startSystemWithSGT(sgtTimeOffset *uint64, t *testing.T) *e2esys.System {
 	cfg := e2esys.DefaultSystemConfig(t)
 	delete(cfg.Nodes, "verifier")
 	_, ok := cfg.Nodes["sequencer"]
 	require.True(t, ok, "sequencer is required")
 
-	if sgtBlock != nil {
-		cfg.DeployConfig.UseSoulGasToken = true
-		cfg.DeployConfig.SoulGasTokenBlock = *sgtBlock
+	if sgtTimeOffset != nil {
+		cfg.DeployConfig.DeploySoulGasToken = true
+		cfg.DeployConfig.SoulGasTokenTimeOffset = (*hexutil.Uint64)(sgtTimeOffset)
 	} else {
-		cfg.DeployConfig.UseSoulGasToken = false
+		cfg.DeployConfig.DeploySoulGasToken = false
 	}
 	// Disable proposer creating fast games automatically - required games are manually created
 	cfg.DisableProposer = true
@@ -62,8 +63,8 @@ func startSystemWithSGT(sgtBlock *uint64, t *testing.T) *e2esys.System {
 // unless there is insufficient sgt balance, in which case the native balance will be used instead.
 func TestSGTAsGasPayment(t *testing.T) {
 	op_e2e.InitParallel(t)
-	sgtBlock := uint64(0)
-	sys := startSystemWithSGT(&sgtBlock, t)
+	sgtTimeOffset := uint64(0)
+	sys := startSystemWithSGT(&sgtTimeOffset, t)
 	t.Cleanup(sys.Close)
 	ctx := context.Background()
 

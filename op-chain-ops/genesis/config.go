@@ -878,13 +878,17 @@ type L1DependenciesConfig struct {
 
 // SoulGasTokenConfig configures the SoulGasToken deployment to L2.
 type SoulGasTokenConfig struct {
-	// UseSoulGasToken is a flag that indicates if the system is using SoulGasToken
-	UseSoulGasToken bool `json:"useSoulGasToken,omitempty"`
-	// The height of the block at which the SoulGasToken is activated.
-	SoulGasTokenBlock uint64 `json:"soulGasTokenBlock,omitempty"`
+	// DeploySoulGasToken is a flag that indicates if the SGT contract will be deploy at genesis.
+	DeploySoulGasToken bool `json:"deploySoulGasToken,omitempty"`
+	// The time offset of the block at which the SoulGasToken is activated.
+	SoulGasTokenTimeOffset *hexutil.Uint64 `json:"soulGasTokenTimeOffset,omitempty"`
 	// IsSoulBackedByNative is a flag that indicates if the SoulGasToken is backed by native.
-	// Only effective when UseSoulGasToken is true.
+	// Only effective when DeploySoulGasToken is true.
 	IsSoulBackedByNative bool `json:"isSoulBackedByNative,omitempty"`
+}
+
+func (c *SoulGasTokenConfig) SoulGasTokenTime(genesisTime uint64) *uint64 {
+	return offsetToUpgradeTime(c.SoulGasTokenTimeOffset, genesisTime)
 }
 
 // InboxContractConfig configures whether inbox contract is enabled.
@@ -1044,15 +1048,19 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		return nil, errors.New("SystemConfigProxy cannot be address(0)")
 	}
 
-	var soulGasTokenBlock *uint64
-	if d.UseSoulGasToken {
-		soulGasTokenBlock = u64ptr(d.SoulGasTokenBlock)
+	l1StartTime := l1StartBlock.Time
+
+	soulGasTokenTime := d.SoulGasTokenTime(l1StartTime)
+	// The SGT contract will only be deployed if DeploySoulGasToken is true.
+	if !d.DeploySoulGasToken && soulGasTokenTime != nil {
+		return nil, fmt.Errorf("soulGasTokenTimeOffset is set, but DeploySoulGasToken is false")
 	}
 	chainOpConfig := &params.OptimismConfig{
 		EIP1559Elasticity:             d.EIP1559Elasticity,
 		EIP1559Denominator:            d.EIP1559Denominator,
 		EIP1559DenominatorCanyon:      &d.EIP1559DenominatorCanyon,
-		SoulGasTokenBlock:             soulGasTokenBlock,
+		L2BlobTime:                    d.L2BlobTime(l1StartTime),
+		SoulGasTokenTime:              soulGasTokenTime,
 		IsSoulBackedByNative:          d.IsSoulBackedByNative,
 		L1BaseFeeScalarMultiplier:     d.L1BaseFeeScalarMultiplier,
 		L1BlobBaseFeeScalarMultiplier: d.L1BlobBaseFeeScalarMultiplier,
@@ -1068,14 +1076,6 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		}
 	}
 
-	l1StartTime := l1StartBlock.Time
-
-	var l2BlobConfig *rollup.L2BlobConfig
-	if d.L2GenesisBlobTimeOffset != nil {
-		l2BlobConfig = &rollup.L2BlobConfig{
-			L2BlobTime: d.L2BlobTime(l1StartTime),
-		}
-	}
 	var inboxContractConfig *rollup.InboxContractConfig
 	if d.UseInboxContract {
 		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
@@ -1116,7 +1116,6 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		InteropTime:             d.InteropTime(l1StartTime),
 		ProtocolVersionsAddress: d.ProtocolVersionsProxy,
 		AltDAConfig:             altDA,
-		L2BlobConfig:            l2BlobConfig,
 		InboxContractConfig:     inboxContractConfig,
 		ChainOpConfig:           chainOpConfig,
 	}, nil

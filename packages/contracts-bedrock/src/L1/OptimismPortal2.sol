@@ -216,7 +216,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     // @notice Thrown when native token is deposited to the portal contract when disabled.
     //         For swc, the native token is actually qkc so we need to disable ETH deposits.
-    error NativeDepositForbidden();
+    error OptimismPortal_NativeDepositForbidden();
 
     /// @notice Thrown when the target of a withdrawal is not a proper dispute game.
     error OptimismPortal_ImproperDisputeGame();
@@ -804,7 +804,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         if (msg.value > 0) {
             QKCConfigStorage storage $ = _getQKCConfigStorage();
             if ($.disableNativeDeposit) {
-                revert NativeDepositForbidden();
+                revert OptimismPortal_NativeDepositForbidden();
             }
         }
         // Lock the ETH in the ETHLockbox.

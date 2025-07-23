@@ -34,7 +34,7 @@ contract CommonTest is Test, Setup, Events {
 
     bool useAltDAOverride;
     bool useInteropOverride;
-    bool useSoulGasToken;
+    bool deploySoulGasToken;
     bool isSoulBackedByNative;
 
     /// @dev This value is only used in forked tests. During forked tests, the default is to perform the upgrade before
@@ -69,8 +69,8 @@ contract CommonTest is Test, Setup, Events {
             deploy.cfg().setUseInterop(true);
         }
 
-        if (useSoulGasToken) {
-            deploy.cfg().setUseSoulGasToken(true);
+        if (deploySoulGasToken) {
+            deploy.cfg().setDeploySoulGasToken(true);
             if (isSoulBackedByNative) {
                 deploy.cfg().setIsSoulBackedByNative(true);
             }
@@ -208,7 +208,7 @@ contract CommonTest is Test, Setup, Events {
     function enableSoulGasToken() public {
         _checkNotDeployed("sgt");
 
-        useSoulGasToken = true;
+        deploySoulGasToken = true;
         isSoulBackedByNative = true;
     }
 

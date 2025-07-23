@@ -73,6 +73,9 @@ contract L2ToL1MessagePasser is ISemver {
     /// @notice Emitted when native deposit is enabled.
     event NativeDepositEnabled();
 
+    /// @notice Error for disabled native deposit/withdraw.
+    error L2ToL1MessagePasser_NativeDepositDisabled();
+
     /// @custom:semver 1.1.2
     string public constant version = "1.1.2";
 
@@ -98,7 +101,7 @@ contract L2ToL1MessagePasser is ISemver {
     function initiateWithdrawal(address _target, uint256 _gasLimit, bytes memory _data) public payable {
         QKCConfigStorage storage $ = _getQKCConfigStorage();
         if ($.disableNativeDeposit && msg.value > 0) {
-            revert("native deposit/withdraw is disabled");
+            revert L2ToL1MessagePasser_NativeDepositDisabled();
         }
         bytes32 withdrawalHash = Hashing.hashWithdrawal(
             Types.WithdrawalTransaction({

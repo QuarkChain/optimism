@@ -8,7 +8,6 @@ import (
 	"math/big"
 	_ "net/http/pprof"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -113,7 +112,6 @@ type BatchSubmitter struct {
 	txpoolState       TxPoolState
 	txpoolBlockedBlob bool
 
-	inboxIsEOA      atomic.Pointer[bool]
 	channelMgrMutex sync.Mutex // guards channelMgr and prevCurrentL1
 	channelMgr      *channelManager
 	prevCurrentL1   eth.L1BlockRef // cached CurrentL1 from the last syncStatus
@@ -905,32 +903,8 @@ type TxSender[T any] interface {
 // sendTx uses the txmgr queue to send the given transaction candidate after setting its
 // gaslimit. It will block if the txmgr queue has reached its MaxPendingTransactions limit.
 func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue TxSender[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
-	var isEOAPointer *bool
-	if l.RollupConfig.UseInboxContract() {
-		// RollupConfig.UseInboxContract() being true just means the batcher's transaction status matters,
-		// but the actual inbox may still be an EOA.
-		isEOAPointer = l.inboxIsEOA.Load()
-		if isEOAPointer == nil {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-			defer cancel()
-			var code []byte
-			code, err := l.L1Client.CodeAt(ctx, *candidate.To, nil)
-			if err != nil {
-				l.Log.Error("CodeAt failed, assuming code exists", "err", err)
-				// assume code exist, but don't persist the result
-				isEOA := false
-				isEOAPointer = &isEOA
-			} else {
-				isEOA := len(code) == 0
-				isEOAPointer = &isEOA
-				l.inboxIsEOA.Store(isEOAPointer)
-			}
-		}
-	}
-
-	// Set GasLimit as intrinstic gas if the inbox is EOA, otherwise
 	// Leave GasLimit unset when inbox is contract so that later on `EstimateGas` will be called
-	if !l.RollupConfig.UseInboxContract() || *isEOAPointer {
+	if !l.RollupConfig.UseInboxContract() {
 		floorDataGas, err := core.FloorDataGas(candidate.TxData)
 		if err != nil {
 			// We log instead of return an error here because the txmgr will do its own gas estimation.
@@ -996,9 +970,6 @@ func (l *BatchSubmitter) recordFailedTx(id txID, err error) {
 	l.channelMgrMutex.Lock()
 	defer l.channelMgrMutex.Unlock()
 
-	if l.RollupConfig.UseInboxContract() {
-		l.inboxIsEOA.Store(nil)
-	}
 	l.Log.Warn("Transaction failed to send", logFields(id, err)...)
 	l.channelMgr.TxFailed(id)
 }

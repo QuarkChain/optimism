@@ -282,7 +282,7 @@ contract L2Genesis is Deployer {
         // 1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
-        if (cfg.useSoulGasToken()) setSoulGasToken(); // 800
+        if (cfg.deploySoulGasToken()) setSoulGasToken(); // 800
         setGovernanceToken(); // 42: OP (not behind a proxy)
         if (cfg.useInterop()) {
             setCrossL2Inbox(); // 22

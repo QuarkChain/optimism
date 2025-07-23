@@ -259,6 +259,9 @@ contract Specification_Test is CommonTest {
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("ethLockbox()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("migrateLiquidity()") });
         _addSpec({ _name: "OptimismPortal2", _sel: _getSel("proxyAdminOwner()") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("setMinter(address)") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("mintTransaction(address,uint256)") });
+        _addSpec({ _name: "OptimismPortal2", _sel: _getSel("setNativeDeposit(bool)") });
 
         // ProxyAdminOwnedBase
         _addSpec({ _name: "ProxyAdminOwnedBase", _sel: _getSel("proxyAdminOwner()") });

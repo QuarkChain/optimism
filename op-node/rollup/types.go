@@ -150,7 +150,6 @@ type Config struct {
 	// If missing, it is loaded by the op-node from the embedded superchain config at startup.
 	ChainOpConfig *params.OptimismConfig `json:"chain_op_config,omitempty"`
 
-	L2BlobConfig        *L2BlobConfig        `json:"l2_blob_config,omitempty"`
 	InboxContractConfig *InboxContractConfig `json:"inbox_contract_config,omitempty"`
 
 	// Optional Features
@@ -176,8 +175,8 @@ type InboxContractConfig struct {
 }
 
 // IsL2Blob returns whether l2 blob is enabled
-func (cfg *Config) IsL2Blob(parentTime uint64) bool {
-	return cfg.IsL2BlobTimeSet() && *cfg.L2BlobConfig.L2BlobTime <= parentTime
+func (cfg *Config) IsL2Blob(timestamp uint64) bool {
+	return cfg.IsL2BlobTimeSet() && *cfg.ChainOpConfig.L2BlobTime <= timestamp
 }
 
 // UseInboxContract returns whether inbox contract is enabled
@@ -187,7 +186,7 @@ func (cfg *Config) UseInboxContract() bool {
 
 // IsL2BlobTimeSet returns whether l2 blob activation time is set
 func (cfg *Config) IsL2BlobTimeSet() bool {
-	return cfg.L2BlobConfig != nil && cfg.L2BlobConfig.L2BlobTime != nil
+	return cfg.ChainOpConfig != nil && cfg.ChainOpConfig.L2BlobTime != nil
 }
 
 // ValidateL1Config checks L1 config variables for errors.
@@ -736,8 +735,8 @@ func (c *Config) Description(l2Chains map[string]string) string {
 		banner += fmt.Sprintf("  - %v: %s\n", name, fmtForkTimeOrUnset(time))
 	})
 	var l2BlobTime *uint64
-	if c.L2BlobConfig != nil {
-		l2BlobTime = c.L2BlobConfig.L2BlobTime
+	if c.ChainOpConfig != nil {
+		l2BlobTime = c.ChainOpConfig.L2BlobTime
 	}
 	banner += fmt.Sprintf("  - L2Blob: %s\n", fmtForkTimeOrUnset(l2BlobTime))
 	banner += fmt.Sprintf("  - Use inbox contract: %v\n", c.UseInboxContract())
@@ -784,8 +783,8 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 		ctx = append(ctx, "alt_da", *c.AltDAConfig)
 	}
 	var l2BlobTime *uint64
-	if c.L2BlobConfig != nil {
-		l2BlobTime = c.L2BlobConfig.L2BlobTime
+	if c.ChainOpConfig != nil {
+		l2BlobTime = c.ChainOpConfig.L2BlobTime
 	}
 	ctx = append(ctx, "l2_blob_config", fmtForkTimeOrUnset(l2BlobTime))
 	ctx = append(ctx, "use_inbox_contract", c.UseInboxContract())

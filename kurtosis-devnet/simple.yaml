@@ -62,8 +62,8 @@ optimism_package:
     l2_artifacts_locator: {{ localContractArtifacts "l2" }}
     global_deploy_overrides:
       faultGameAbsolutePrestate: {{ localPrestate.Hashes.prestate }}
-      useSoulGasToken: true
-      soulGasTokenBlock: 0
+      deploySoulGasToken: true
+      soulGasTokenTimeOffset: "0x0"
       isSoulBackedByNative: true
       l2GenesisBlobTimeOffset: "0x0"
   global_log_level: "info"

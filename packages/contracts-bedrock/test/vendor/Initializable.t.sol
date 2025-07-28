@@ -45,6 +45,7 @@ contract Initializer_Test is CommonTest {
 
     function setUp() public override {
         super.enableAltDA();
+        super.enableSoulGasToken();
         super.setUp();
 
         // Initialize the `contracts` array with the addresses of the contracts to test, the
@@ -225,6 +226,22 @@ contract Initializer_Test is CommonTest {
                 initCalldata: abi.encodeCall(
                     protocolVersions.initialize, (address(0), ProtocolVersion.wrap(1), ProtocolVersion.wrap(2))
                 )
+            })
+        );
+        // SoulGasTokenImpl
+        contracts.push(
+            InitializeableContract({
+                name: "SoulGasTokenImpl",
+                target: EIP1967Helper.getImplementation(address(soulGasToken)),
+                initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
+            })
+        );
+        // SoulGasTokenProxy
+        contracts.push(
+            InitializeableContract({
+                name: "SoulGasTokenProxy",
+                target: address(soulGasToken),
+                initCalldata: abi.encodeCall(soulGasToken.initialize, ("SoulGasToken", "SGT", address(0)))
             })
         );
         // L1StandardBridgeImpl

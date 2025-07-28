@@ -115,7 +115,8 @@ func NewConfig(ctx *cli.Context, log log.Logger) (*config.Config, error) {
 		},
 		ConductorRpcTimeout: ctx.Duration(flags.ConductorRpcTimeoutFlag.Name),
 
-		AltDA: altda.ReadCLIConfig(ctx),
+		AltDA:     altda.ReadCLIConfig(ctx),
+		DACConfig: node.ReadDACConfigFromCLI(ctx),
 
 		IgnoreMissingPectraBlobSchedule: ctx.Bool(flags.IgnoreMissingPectraBlobSchedule.Name),
 		FetchWithdrawalRootFromState:    ctx.Bool(flags.FetchWithdrawalRootFromState.Name),

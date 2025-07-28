@@ -212,7 +212,7 @@ func Test_ProgramAction_OperatorFeeConsistency(gt *testing.T) {
 			l1BlockInfo, err := derive.L1BlockInfoFromBytes(env.Sd.RollupCfg, unsafeHeader.Time, unsafeBlock.Transactions()[0].Data())
 			require.NoError(t, err)
 
-			daCost := fjordL1Cost(l1BlockInfo, types.NewRollupCostData(rlp))
+			daCost := fjordL1Cost(l1BlockInfo, types.NewRollupCostData(rlp, len(tx.BlobHashes())))
 			expectedFeePreIsthmus := nextBaseFee.Mul(nextBaseFee, big.NewInt(int64(params.TxGas)))
 			expectedFeePreIsthmus.Add(expectedFeePreIsthmus, daCost)
 
@@ -361,7 +361,9 @@ func Test_ProgramAction_OperatorFeeConsistency(gt *testing.T) {
 				// Ensure that the logs contain a mention of the block being replaced _due to the signer not having enough
 				// balance_.
 				require.NotNil(t, env.Logs.FindLog(testlog.NewAttributesContainsFilter("err", "insufficient funds for gas * price + value")))
-				require.NotNil(t, env.Logs.FindLog(testlog.NewAttributesContainsFilter("err", "have 1400000021000 want 1400000086535")))
+				// log diff is caused by sgt, which is enabled by default
+				require.NotNil(t, env.Logs.FindLog(testlog.NewAttributesContainsFilter("err", "have total balance 1400000021000 want 1400000086535")))
+				// require.NotNil(t, env.Logs.FindLog(testlog.NewAttributesContainsFilter("err", "have 1400000021000 want 1400000086535")))
 			} else {
 				require.Equal(t, len(safeHeadBlock.Transactions()), 2)
 			}

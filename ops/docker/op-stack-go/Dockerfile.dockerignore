@@ -21,8 +21,13 @@
 !/op-test-sequencer
 !/op-wheel
 !/op-alt-da
+<<<<<<< HEAD
 !/op-faucet
 !/op-interop-mon
+=======
+!/da-server
+!/op-geth
+>>>>>>> qkc/op-es
 !/go.mod
 !/go.sum
 !/justfiles

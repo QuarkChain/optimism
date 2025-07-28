@@ -150,6 +150,8 @@ type Config struct {
 	// If missing, it is loaded by the op-node from the embedded superchain config at startup.
 	ChainOpConfig *params.OptimismConfig `json:"chain_op_config,omitempty"`
 
+	InboxContractConfig *InboxContractConfig `json:"inbox_contract_config,omitempty"`
+
 	// Optional Features
 
 	// AltDAConfig. We are in the process of migrating to the AltDAConfig from these legacy top level values
@@ -162,6 +164,29 @@ type Config struct {
 	// This feature (de)activates by L1 origin timestamp, to keep a consistent L1 block info per L2
 	// epoch.
 	PectraBlobScheduleTime *uint64 `json:"pectra_blob_schedule_time,omitempty"`
+}
+
+type L2BlobConfig struct {
+	L2BlobTime *uint64 `json:"l2BlobTime,omitempty"`
+}
+
+type InboxContractConfig struct {
+	UseInboxContract bool `json:"use_inbox_contract,omitempty"`
+}
+
+// IsL2Blob returns whether l2 blob is enabled
+func (cfg *Config) IsL2Blob(timestamp uint64) bool {
+	return cfg.IsL2BlobTimeSet() && *cfg.ChainOpConfig.L2BlobTime <= timestamp
+}
+
+// UseInboxContract returns whether inbox contract is enabled
+func (cfg *Config) UseInboxContract() bool {
+	return cfg.InboxContractConfig != nil && cfg.InboxContractConfig.UseInboxContract
+}
+
+// IsL2BlobTimeSet returns whether l2 blob activation time is set
+func (cfg *Config) IsL2BlobTimeSet() bool {
+	return cfg.ChainOpConfig != nil && cfg.ChainOpConfig.L2BlobTime != nil
 }
 
 // ValidateL1Config checks L1 config variables for errors.
@@ -734,6 +759,12 @@ func (c *Config) Description(l2Chains map[string]string) string {
 	c.forEachFork(func(name string, _ string, time *uint64) {
 		banner += fmt.Sprintf("  - %v: %s\n", name, fmtForkTimeOrUnset(time))
 	})
+	var l2BlobTime *uint64
+	if c.ChainOpConfig != nil {
+		l2BlobTime = c.ChainOpConfig.L2BlobTime
+	}
+	banner += fmt.Sprintf("  - L2Blob: %s\n", fmtForkTimeOrUnset(l2BlobTime))
+	banner += fmt.Sprintf("  - Use inbox contract: %v\n", c.UseInboxContract())
 	// Report the protocol version
 	banner += fmt.Sprintf("Node supports up to OP-Stack Protocol Version: %s\n", OPStackSupport)
 	if c.AltDAConfig != nil {
@@ -776,6 +807,19 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 	if c.AltDAConfig != nil {
 		ctx = append(ctx, "alt_da", *c.AltDAConfig)
 	}
+<<<<<<< HEAD
+=======
+	var l2BlobTime *uint64
+	if c.ChainOpConfig != nil {
+		l2BlobTime = c.ChainOpConfig.L2BlobTime
+	}
+	ctx = append(ctx, "l2_blob_config", fmtForkTimeOrUnset(l2BlobTime))
+	ctx = append(ctx, "use_inbox_contract", c.UseInboxContract())
+	if c.PectraBlobScheduleTime != nil {
+		// only print in config if set at all
+		ctx = append(ctx, "pectra_blob_schedule_time", fmtForkTimeOrUnset(c.PectraBlobScheduleTime))
+	}
+>>>>>>> qkc/op-es
 	log.Info("Rollup Config", ctx...)
 }
 

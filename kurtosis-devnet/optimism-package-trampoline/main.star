@@ -1,4 +1,4 @@
-optimism_package = import_module("github.com/ethpandaops/optimism-package/main.star")
+optimism_package = import_module("github.com/QuarkChain/optimism-package/main.star")
 
 def run(plan, args):
     # just delegate to optimism-package

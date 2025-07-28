@@ -377,6 +377,16 @@ type UpgradeScheduleDeployConfig struct {
 	L1CancunTimeOffset *hexutil.Uint64 `json:"l1CancunTimeOffset,omitempty"`
 	// When Prague activates. Relative to L1 genesis.
 	L1PragueTimeOffset *hexutil.Uint64 `json:"l1PragueTimeOffset,omitempty"`
+<<<<<<< HEAD
+=======
+
+	// UseInterop is a flag that indicates if the system is using interop
+	UseInterop bool `json:"useInterop,omitempty"`
+
+	// L2GenesisBlobTimeOffset is the number of seconds after genesis block that the L2Blob hard fork activates.
+	// Set it to 0 to activate at genesis. Nil to disable L2Blob.
+	L2GenesisBlobTimeOffset *hexutil.Uint64 `json:"l2GenesisBlobTimeOffset,omitempty"`
+>>>>>>> qkc/op-es
 }
 
 var _ ConfigChecker = (*UpgradeScheduleDeployConfig)(nil)
@@ -518,6 +528,10 @@ func (d *UpgradeScheduleDeployConfig) JovianTime(genesisTime uint64) *uint64 {
 
 func (d *UpgradeScheduleDeployConfig) InteropTime(genesisTime uint64) *uint64 {
 	return offsetToUpgradeTime(d.L2GenesisInteropTimeOffset, genesisTime)
+}
+
+func (d *UpgradeScheduleDeployConfig) L2BlobTime(genesisTime uint64) *uint64 {
+	return offsetToUpgradeTime(d.L2GenesisBlobTimeOffset, genesisTime)
 }
 
 func (d *UpgradeScheduleDeployConfig) AllocMode(genesisTime uint64) L2AllocsMode {
@@ -718,6 +732,9 @@ type L2InitializationConfig struct {
 	UpgradeScheduleDeployConfig
 	L2CoreDeployConfig
 	AltDADeployConfig
+	SoulGasTokenConfig
+	InboxContractConfig
+	L1ScalarMultiplierConfig
 }
 
 func (d *L2InitializationConfig) Check(log log.Logger) error {
@@ -890,6 +907,33 @@ type L1DependenciesConfig struct {
 	ProtocolVersionsProxy common.Address `json:"protocolVersionsProxy"`
 }
 
+// SoulGasTokenConfig configures the SoulGasToken deployment to L2.
+type SoulGasTokenConfig struct {
+	// DeploySoulGasToken is a flag that indicates if the SGT contract will be deploy at genesis.
+	DeploySoulGasToken bool `json:"deploySoulGasToken,omitempty"`
+	// The time offset of the block at which the SoulGasToken is activated.
+	SoulGasTokenTimeOffset *hexutil.Uint64 `json:"soulGasTokenTimeOffset,omitempty"`
+	// IsSoulBackedByNative is a flag that indicates if the SoulGasToken is backed by native.
+	// Only effective when DeploySoulGasToken is true.
+	IsSoulBackedByNative bool `json:"isSoulBackedByNative,omitempty"`
+}
+
+func (c *SoulGasTokenConfig) SoulGasTokenTime(genesisTime uint64) *uint64 {
+	return offsetToUpgradeTime(c.SoulGasTokenTimeOffset, genesisTime)
+}
+
+// InboxContractConfig configures whether inbox contract is enabled.
+// If enabled, the batcher tx will be further filtered by tx status.
+type InboxContractConfig struct {
+	UseInboxContract bool `json:"useInboxContract,omitempty"`
+}
+
+// L1ScalarMultiplierConfig configures the scalar multipliers for L1 base fee and blob base fee.
+type L1ScalarMultiplierConfig struct {
+	L1BaseFeeScalarMultiplier     uint64 `json:"l1BaseFeeScalarMultiplier,omitempty"`
+	L1BlobBaseFeeScalarMultiplier uint64 `json:"l1BlobBaseFeeScalarMultiplier,omitempty"`
+}
+
 // DependencyContext is the contextual configuration needed to verify the L1 dependencies,
 // used by DeployConfig.CheckAddresses.
 type DependencyContext struct {
@@ -1044,10 +1088,22 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		return nil, errors.New("SystemConfigProxy cannot be address(0)")
 	}
 
+	l1StartTime := l1StartBlock.Time
+
+	soulGasTokenTime := d.SoulGasTokenTime(l1StartTime)
+	// The SGT contract will only be deployed if DeploySoulGasToken is true.
+	if !d.DeploySoulGasToken && soulGasTokenTime != nil {
+		return nil, fmt.Errorf("soulGasTokenTimeOffset is set, but DeploySoulGasToken is false")
+	}
 	chainOpConfig := &params.OptimismConfig{
-		EIP1559Elasticity:        d.EIP1559Elasticity,
-		EIP1559Denominator:       d.EIP1559Denominator,
-		EIP1559DenominatorCanyon: &d.EIP1559DenominatorCanyon,
+		EIP1559Elasticity:             d.EIP1559Elasticity,
+		EIP1559Denominator:            d.EIP1559Denominator,
+		EIP1559DenominatorCanyon:      &d.EIP1559DenominatorCanyon,
+		L2BlobTime:                    d.L2BlobTime(l1StartTime),
+		SoulGasTokenTime:              soulGasTokenTime,
+		IsSoulBackedByNative:          d.IsSoulBackedByNative,
+		L1BaseFeeScalarMultiplier:     d.L1BaseFeeScalarMultiplier,
+		L1BlobBaseFeeScalarMultiplier: d.L1BlobBaseFeeScalarMultiplier,
 	}
 
 	var altDA *rollup.AltDAConfig
@@ -1060,7 +1116,10 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		}
 	}
 
-	l1StartTime := l1StartBlock.Time
+	var inboxContractConfig *rollup.InboxContractConfig
+	if d.UseInboxContract {
+		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
+	}
 
 	return &rollup.Config{
 		Genesis: rollup.Genesis{
@@ -1097,6 +1156,7 @@ func (d *DeployConfig) RollupConfig(l1StartBlock *eth.BlockRef, l2GenesisBlockHa
 		InteropTime:             d.InteropTime(l1StartTime),
 		ProtocolVersionsAddress: d.ProtocolVersionsProxy,
 		AltDAConfig:             altDA,
+		InboxContractConfig:     inboxContractConfig,
 		ChainOpConfig:           chainOpConfig,
 	}, nil
 }

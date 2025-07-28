@@ -207,6 +207,62 @@ contract L1Block_SetL1BlockValuesEcotone_Test is L1Block_TestInit {
         bytes memory expReturn = hex"3cc50b45";
         assertEq(data, expReturn);
     }
+
+    /// @dev Tests that `blockHash` works for block range [n-256, n) where n is the latest
+    /// L1 block number known by the L2 system.
+    function testFuzz_blockHash_succeeds(
+        uint32 baseFeeScalar,
+        uint32 blobBaseFeeScalar,
+        uint64 sequenceNumber,
+        uint64 timestamp,
+        uint64 number,
+        uint256 baseFee,
+        uint256 blobBaseFee,
+        bytes32 hash,
+        bytes32 batcherHash
+    )
+        external
+    {
+        if (number > type(uint64).max - uint64(l1Block.historySize()) - 1) {
+            number = type(uint64).max - uint64(l1Block.historySize()) - 1;
+        }
+        if (uint256(hash) > type(uint256).max - l1Block.historySize() - 1) {
+            hash = bytes32(type(uint256).max - l1Block.historySize() - 1);
+        }
+
+        for (uint256 i = 1; i <= l1Block.historySize() + 1; i++) {
+            bytes memory functionCallDataPacked = Encoding.encodeSetL1BlockValuesEcotone(
+                baseFeeScalar,
+                blobBaseFeeScalar,
+                sequenceNumber,
+                timestamp,
+                number + uint64(i),
+                baseFee,
+                blobBaseFee,
+                bytes32(uint256(hash) + i),
+                batcherHash
+            );
+
+            vm.prank(depositor);
+            (bool success,) = address(l1Block).call(functionCallDataPacked);
+            assertTrue(success, "function call failed");
+
+            assertEq(l1Block.number(), number + uint64(i));
+            assertEq(l1Block.hash(), bytes32(uint256(hash) + i));
+        }
+
+        assertTrue(
+            l1Block.blockHash(number + l1Block.historySize() + 1) == bytes32(0),
+            "should return bytes32(0) for the latest L1 block"
+        );
+        assertTrue(l1Block.blockHash(number + 1) == bytes32(0), "should return bytes32(0) for blocks out of range");
+        for (uint256 i = 2; i <= l1Block.historySize(); i++) {
+            assertTrue(
+                l1Block.blockHash(number + i) == bytes32(uint256(hash) + i),
+                "blockHash's return value should match the value set"
+            );
+        }
+    }
 }
 
 /// @title L1Block_SetL1BlockValuesIsthmus_Test

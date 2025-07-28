@@ -253,6 +253,30 @@ func RandomDynamicFeeTx(rng *rand.Rand, signer types.Signer) *types.Transaction 
 	return RandomDynamicFeeTxWithBaseFee(rng, baseFee, signer)
 }
 
+func RandomBlobTx(rng *rand.Rand, signer types.Signer) *types.Transaction {
+	baseFee := new(big.Int).SetUint64(rng.Uint64())
+	key := InsecureRandomKey(rng)
+	tip := big.NewInt(rng.Int63n(10 * params.GWei))
+	txData := &types.BlobTx{
+		ChainID:    uint256.MustFromBig(signer.ChainID()),
+		Nonce:      rng.Uint64(),
+		GasTipCap:  uint256.MustFromBig(tip),
+		GasFeeCap:  uint256.MustFromBig(new(big.Int).Add(baseFee, tip)),
+		Gas:        params.TxGas + uint64(rng.Int63n(2_000_000)),
+		To:         RandomAddress(rng),
+		Value:      uint256.MustFromBig(RandomETH(rng, 10)),
+		Data:       RandomData(rng, rng.Intn(1000)),
+		AccessList: nil,
+		BlobFeeCap: uint256.MustFromBig(baseFee),
+		BlobHashes: []common.Hash{RandomHash(rng)},
+	}
+	tx, err := types.SignNewTx(key, signer, txData)
+	if err != nil {
+		panic(err)
+	}
+	return tx
+}
+
 func RandomSetCodeAuth(rng *rand.Rand) types.SetCodeAuthorization {
 	key := InsecureRandomKey(rng)
 

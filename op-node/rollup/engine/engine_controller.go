@@ -50,6 +50,10 @@ type ECMetrics interface {
 	RecordL2Ref(name string, ref eth.L2BlockRef)
 }
 
+type DACClient interface {
+	UploadBlobs(context.Context, *eth.ExecutionPayloadEnvelope) error
+}
+
 type EngineController struct {
 	engine     ExecEngine // Underlying execution engine RPC
 	log        log.Logger

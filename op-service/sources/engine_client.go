@@ -107,6 +107,8 @@ func (s *EngineAPIClient) NewPayload(ctx context.Context, payload *eth.Execution
 	case eth.NewPayloadV4:
 		err = s.RPC.CallContext(ctx, &result, string(method), payload, []common.Hash{}, parentBeaconBlockRoot, []hexutil.Bytes{})
 	case eth.NewPayloadV3:
+		// now we pass empty array to skip checking versionedHashes
+		// TODO: sync with OP upstream once they support L2 blob tx
 		err = s.RPC.CallContext(ctx, &result, string(method), payload, []common.Hash{}, parentBeaconBlockRoot)
 	case eth.NewPayloadV2:
 		err = s.RPC.CallContext(ctx, &result, string(method), payload)

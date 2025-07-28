@@ -32,8 +32,9 @@ import (
 )
 
 var (
-	ErrBatcherNotRunning = errors.New("batcher is not running")
-	emptyTxData          = txData{
+	ErrBatcherNotRunning      = errors.New("batcher is not running")
+	ErrInboxTransactionFailed = errors.New("inbox transaction failed")
+	emptyTxData               = txData{
 		frames: []frameData{
 			{
 				data: []byte{},
@@ -71,6 +72,7 @@ func (r txRef) string(txIDStringer func(txID) string) string {
 type L1Client interface {
 	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
 	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
+	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
 }
 
 type L2Client interface {
@@ -967,6 +969,10 @@ func (l *BatchSubmitter) sendTransaction(txdata txData, queue *txmgr.Queue[txRef
 		candidate = l.calldataTxCandidate(txdata.CallData())
 	}
 
+	if *candidate.To != l.RollupConfig.BatchInboxAddress {
+		return fmt.Errorf("candidate.To is not inbox")
+	}
+
 	l.sendTx(txdata, false, candidate, queue, receiptsCh)
 	return nil
 }
@@ -978,12 +984,15 @@ type TxSender[T any] interface {
 // sendTx uses the txmgr queue to send the given transaction candidate after setting its
 // gaslimit. It will block if the txmgr queue has reached its MaxPendingTransactions limit.
 func (l *BatchSubmitter) sendTx(txdata txData, isCancel bool, candidate *txmgr.TxCandidate, queue TxSender[txRef], receiptsCh chan txmgr.TxReceipt[txRef]) {
-	floorDataGas, err := core.FloorDataGas(candidate.TxData)
-	if err != nil {
-		// We log instead of return an error here because the txmgr will do its own gas estimation.
-		l.Log.Warn("Failed to calculate floor data gas", "err", err)
-	} else {
-		candidate.GasLimit = floorDataGas
+	// Leave GasLimit unset when inbox is contract so that later on `EstimateGas` will be called
+	if !l.RollupConfig.UseInboxContract() {
+		floorDataGas, err := core.FloorDataGas(candidate.TxData)
+		if err != nil {
+			// We log instead of return an error here because the txmgr will do its own gas estimation.
+			l.Log.Warn("Failed to calculate floor data gas", "err", err)
+		} else {
+			candidate.GasLimit = floorDataGas
+		}
 	}
 
 	queue.Send(txRef{id: txdata.ID(), isCancel: isCancel, isBlob: txdata.asBlob}, *candidate, receiptsCh)
@@ -1018,6 +1027,12 @@ func (l *BatchSubmitter) handleReceipt(r txmgr.TxReceipt[txRef]) {
 	if r.Err != nil {
 		l.recordFailedTx(r.ID.id, r.Err)
 	} else if r.Receipt != nil {
+		// check tx status
+		if l.RollupConfig.UseInboxContract() && r.Receipt.Status == types.ReceiptStatusFailed {
+			l.recordFailedTx(r.ID.id, ErrInboxTransactionFailed)
+			return
+		}
+
 		l.recordConfirmedTx(r.ID.id, r.Receipt)
 	}
 	// Both r.Err and r.Receipt can be nil, in which case we do nothing.
@@ -1035,6 +1050,7 @@ func (l *BatchSubmitter) recordFailedDARequest(id txID, err error) {
 func (l *BatchSubmitter) recordFailedTx(id txID, err error) {
 	l.channelMgrMutex.Lock()
 	defer l.channelMgrMutex.Unlock()
+
 	l.Log.Warn("Transaction failed to send", logFields(id, err)...)
 	l.channelMgr.TxFailed(id)
 }

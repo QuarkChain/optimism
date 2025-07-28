@@ -123,6 +123,8 @@ type Sequencer struct {
 
 	// toBlockRef converts a payload to a block-ref, and is only configurable for test-purposes
 	toBlockRef func(rollupCfg *rollup.Config, payload *eth.ExecutionPayload) (eth.L2BlockRef, error)
+
+	dacClient engine.DACClient
 }
 
 var _ SequencerIface = (*Sequencer)(nil)
@@ -134,6 +136,7 @@ func NewSequencer(driverCtx context.Context, log log.Logger, rollupCfg *rollup.C
 	conductor conductor.SequencerConductor,
 	asyncGossip AsyncGossiper,
 	metrics Metrics,
+	dacClient engine.DACClient,
 ) *Sequencer {
 	return &Sequencer{
 		ctx:              driverCtx,
@@ -148,6 +151,7 @@ func NewSequencer(driverCtx context.Context, log log.Logger, rollupCfg *rollup.C
 		metrics:          metrics,
 		timeNow:          time.Now,
 		toBlockRef:       derive.PayloadToBlockRef,
+		dacClient:        dacClient,
 	}
 }
 
@@ -269,6 +273,28 @@ func (d *Sequencer) onBuildSealed(x engine.BuildSealedEvent) {
 		"parent", x.Envelope.ExecutionPayload.ParentID(),
 		"txs", len(x.Envelope.ExecutionPayload.Transactions),
 		"time", uint64(x.Envelope.ExecutionPayload.Timestamp))
+
+	{
+		envelope := x.Envelope
+		if envelope.BlobsBundle != nil && len(envelope.BlobsBundle.Blobs) > 0 {
+			// Deriving is based on onchain-data which doesn't contain L2 blob.
+			if x.DerivedFrom != (eth.L1BlockRef{}) {
+				d.emitter.Emit(rollup.EngineTemporaryErrorEvent{
+					Err: fmt.Errorf("got blobs when deriving")})
+				return
+			}
+			if d.dacClient != nil {
+				ctx, cancel := context.WithTimeout(d.ctx, time.Second*5)
+				defer cancel()
+				err := d.dacClient.UploadBlobs(ctx, envelope)
+				if err != nil {
+					d.emitter.Emit(rollup.EngineTemporaryErrorEvent{
+						Err: fmt.Errorf("UploadBlobs failed: %w", err)})
+					return
+				}
+			}
+		}
+	}
 
 	// generous timeout, the conductor is important
 	ctx, cancel := context.WithTimeout(d.ctx, time.Second*30)

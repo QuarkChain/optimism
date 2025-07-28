@@ -12,6 +12,14 @@ import (
 
 var OPStackSupport = params.ProtocolVersionV0{Build: [8]byte{}, Major: 9, Minor: 0, Patch: 0, PreRelease: 0}.Encode()
 
+func copyuint64ptr(ptr *uint64) *uint64 {
+	if ptr == nil {
+		return nil
+	}
+	val := *ptr
+	return &val
+}
+
 // LoadOPStackRollupConfig loads the rollup configuration of the requested chain ID from the superchain-registry.
 // Some chains may require a SystemConfigProvider to retrieve any values not part of the registry.
 func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
@@ -25,9 +33,14 @@ func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
 		return nil, fmt.Errorf("unable to retrieve chain %d config: %w", chainID, err)
 	}
 	chOpConfig := &params.OptimismConfig{
-		EIP1559Elasticity:        chConfig.Optimism.EIP1559Elasticity,
-		EIP1559Denominator:       chConfig.Optimism.EIP1559Denominator,
-		EIP1559DenominatorCanyon: chConfig.Optimism.EIP1559DenominatorCanyon,
+		EIP1559Elasticity:             chConfig.Optimism.EIP1559Elasticity,
+		EIP1559Denominator:            chConfig.Optimism.EIP1559Denominator,
+		EIP1559DenominatorCanyon:      chConfig.Optimism.EIP1559DenominatorCanyon,
+		L2BlobTime:                    copyuint64ptr(chConfig.Optimism.L2BlobTime),
+		SoulGasTokenTime:              copyuint64ptr(chConfig.Optimism.SoulGasTokenTime),
+		IsSoulBackedByNative:          chConfig.Optimism.IsSoulBackedByNative,
+		L1BaseFeeScalarMultiplier:     chConfig.Optimism.L1BaseFeeScalarMultiplier,
+		L1BlobBaseFeeScalarMultiplier: chConfig.Optimism.L1BlobBaseFeeScalarMultiplier,
 	}
 
 	superConfig, err := superchain.GetSuperchain(chain.Network)

@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+<<<<<<< HEAD:op-node/config/config.go
+=======
+	"math"
+	"strings"
+>>>>>>> qkc/op-es:op-node/node/config.go
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -14,12 +19,18 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/p2p"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/driver"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/interop"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
 	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
+<<<<<<< HEAD:op-node/config/config.go
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
+=======
+	"github.com/ethstorage/da-server/pkg/da/client"
+	"github.com/urfave/cli/v2"
+>>>>>>> qkc/op-es:op-node/node/config.go
 )
 
 type Config struct {
@@ -81,12 +92,35 @@ type Config struct {
 
 	// AltDA config
 	AltDA altda.CLIConfig
+	// DACConfig for sequencer when l2 blob is enabled
+	DACConfig *DACConfig
 
 	IgnoreMissingPectraBlobSchedule bool
 	FetchWithdrawalRootFromState    bool
 
 	// Experimental. Enables new opstack RPC namespace. Used by op-test-sequencer.
 	ExperimentalOPStackAPI bool
+}
+
+func ReadDACConfigFromCLI(c *cli.Context) *DACConfig {
+	urls := c.String(flags.DACUrlsFlag.Name)
+	if urls == "" {
+		return nil
+	}
+	return &DACConfig{
+		URLS: strings.Split(urls, ","),
+	}
+}
+
+type DACConfig struct {
+	URLS []string
+}
+
+func (dacConfig *DACConfig) Client() engine.DACClient {
+	if dacConfig == nil || len(dacConfig.URLS) == 0 {
+		return nil
+	}
+	return client.New(dacConfig.URLS)
 }
 
 // ConductorRPCFunc retrieves the endpoint. The RPC may not immediately be available.
@@ -174,6 +208,12 @@ func (cfg *Config) Check() error {
 	}
 	if cfg.AltDA.Enabled {
 		log.Warn("Alt-DA Mode is a Beta feature of the MIT licensed OP Stack.  While it has received initial review from core contributors, it is still undergoing testing, and may have bugs or other issues.")
+	}
+	if cfg.Driver.SequencerEnabled && cfg.Rollup.IsL2BlobTimeSet() && cfg.DACConfig == nil {
+		return fmt.Errorf("dac.urls must be set for sequencer when l2 blob time is set")
+	}
+	if (!cfg.Driver.SequencerEnabled || !cfg.Rollup.IsL2BlobTimeSet()) && cfg.DACConfig != nil {
+		return fmt.Errorf("dac.urls can only be set for sequencer when l2 blob time is set")
 	}
 	return nil
 }

@@ -34,6 +34,8 @@ contract CommonTest is Test, Setup, Events {
 
     bool useAltDAOverride;
     bool useInteropOverride;
+    bool deploySoulGasToken;
+    bool isSoulBackedByNative;
 
     /// @dev This value is only used in forked tests. During forked tests, the default is to perform the upgrade before
     ///      running the tests.
@@ -66,6 +68,14 @@ contract CommonTest is Test, Setup, Events {
         if (useInteropOverride) {
             deploy.cfg().setUseInterop(true);
         }
+
+        if (deploySoulGasToken) {
+            deploy.cfg().setDeploySoulGasToken(true);
+            if (isSoulBackedByNative) {
+                deploy.cfg().setIsSoulBackedByNative(true);
+            }
+        }
+
         if (useUpgradedFork) {
             deploy.cfg().setUseUpgradedFork(true);
         }
@@ -193,6 +203,13 @@ contract CommonTest is Test, Setup, Events {
     function enableInterop() public {
         _checkNotDeployed("interop");
         useInteropOverride = true;
+    }
+
+    function enableSoulGasToken() public {
+        _checkNotDeployed("sgt");
+
+        deploySoulGasToken = true;
+        isSoulBackedByNative = true;
     }
 
     /// @dev Disables upgrade mode for testing. By default the fork testing env will be upgraded to the latest

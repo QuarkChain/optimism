@@ -92,6 +92,25 @@ contract L1Block is ISemver {
         is_ = false;
     }
 
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.L1Block.HistoryHashesStorage")) - 1)) &
+    // ~bytes32(uint256(0xff))
+    bytes32 private constant _L1BLOCK_HISTORY_HASHES_LOCATION =
+        0xb6e35d777715793a0808adb4ab3d51fc56065457feaf3a18bd958afef33bef00;
+    /// @notice size of historyHashes.
+    uint256 internal constant HISTORY_SIZE = 8192;
+    /// @custom:storage-location erc7201:openzeppelin.storage.L1Block.HistoryHashesStorage
+
+    struct HistoryHashesStorage {
+        /// @notice The 8191 history L1 blockhashes and 1 latest L1 blockhash.
+        bytes32[HISTORY_SIZE] historyHashes;
+    }
+
+    function _getHistoryHashesStorage() private pure returns (HistoryHashesStorage storage $) {
+        assembly {
+            $.slot := _L1BLOCK_HISTORY_HASHES_LOCATION
+        }
+    }
+
     /// @custom:legacy
     /// @notice Updates the L1 block values.
     /// @param _number         L1 blocknumber.
@@ -171,6 +190,36 @@ contract L1Block is ISemver {
             sstore(hash.slot, calldataload(100)) // bytes32
             sstore(batcherHash.slot, calldataload(132)) // bytes32
         }
+
+        HistoryHashesStorage storage $ = _getHistoryHashesStorage();
+        $.historyHashes[number % HISTORY_SIZE] = hash;
+    }
+
+    /// @notice Returns the L1 block hash at the requested L1 blocknumber.
+    /// Only the most recent 8191 L1 block hashes are available, excluding the current one.
+    /// @param _historyNumber         L1 blocknumber.
+    function blockHash(uint256 _historyNumber) external view returns (bytes32) {
+        // translated from
+        // [opBlockhash](https://github.com/ethereum/go-ethereum/blob/e31709db6570e302557a9bccd681034ea0dcc246/core/vm/instructions.go#L434)
+        // with 256 => HISTORY_SIZE-1
+        uint256 lower;
+        uint256 upper = number;
+        if (upper < HISTORY_SIZE) {
+            lower = 0;
+        } else {
+            lower = upper - HISTORY_SIZE + 1;
+        }
+        if (_historyNumber >= lower && _historyNumber < upper) {
+            HistoryHashesStorage storage $ = _getHistoryHashesStorage();
+            return $.historyHashes[_historyNumber % HISTORY_SIZE];
+        } else {
+            return bytes32(0);
+        }
+    }
+
+    /// @notice Returns the size of history hashes.
+    function historySize() external pure returns (uint256) {
+        return HISTORY_SIZE;
     }
 
     /// @notice Updates the L1 block values for an Isthmus upgraded chain.

@@ -21,6 +21,7 @@ interface IL2ToL1MessagePasser {
     function messageNonce() external view returns (uint256);
     function sentMessages(bytes32) external view returns (bool);
     function version() external view returns (string memory);
+    function setNativeDeposit(bool _disable) external;
 
     function __constructor__() external;
 }

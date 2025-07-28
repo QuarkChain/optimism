@@ -168,6 +168,7 @@ func checkSingularBatch(cfg *rollup.Config, log log.Logger, l1Blocks []eth.L1Blo
 	}
 
 	isIsthmus := cfg.IsIsthmus(batch.Timestamp)
+	isL2Blob := cfg.IsL2Blob(batch.Timestamp)
 
 	// We can do this check earlier, but it's a more intensive one, so we do this last.
 	for i, txBytes := range batch.Transactions {
@@ -181,6 +182,10 @@ func checkSingularBatch(cfg *rollup.Config, log log.Logger, l1Blocks []eth.L1Blo
 		}
 		if !isIsthmus && txBytes[0] == types.SetCodeTxType {
 			log.Warn("sequencers may not embed any SetCode transactions before Isthmus", "tx_index", i)
+			return BatchDrop
+		}
+		if !isL2Blob && txBytes[0] == types.BlobTxType {
+			log.Warn("sequencers may not embed any Blob transactions before L2Blob", "tx_index", i)
 			return BatchDrop
 		}
 	}

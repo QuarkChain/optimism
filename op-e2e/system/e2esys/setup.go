@@ -116,6 +116,7 @@ func DefaultSystemConfig(t testing.TB, opts ...SystemConfigOpt) SystemConfig {
 	deployConfig := config.DeployConfig(sco.AllocType)
 	require.Nil(t, deployConfig.L2GenesisJovianTimeOffset, "jovian not supported yet")
 	deployConfig.L1GenesisBlockTimestamp = hexutil.Uint64(time.Now().Unix())
+	deployConfig.L2GenesisBlobTimeOffset = nil
 	e2eutils.ApplyDeployConfigForks(deployConfig)
 	require.NoError(t, deployConfig.Check(testlog.Logger(t, log.LevelInfo)),
 		"Deploy config is invalid, do you need to run make devnet-allocs?")
@@ -679,6 +680,18 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 		}
 	}
 
+	var l2BlobConfig *rollup.L2BlobConfig
+	if cfg.DeployConfig.L2GenesisBlobTimeOffset != nil {
+		l2BlobConfig = &rollup.L2BlobConfig{
+			L2BlobTime: cfg.DeployConfig.L2BlobTime(l1Block.Time()),
+		}
+	}
+
+	var inboxContractConfig *rollup.InboxContractConfig
+	if cfg.DeployConfig.UseInboxContract {
+		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
+	}
+
 	makeRollupConfig := func() rollup.Config {
 		return rollup.Config{
 			Genesis: rollup.Genesis{
@@ -715,6 +728,8 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 			InteropTime:             cfg.DeployConfig.InteropTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
 			ProtocolVersionsAddress: cfg.L1Deployments.ProtocolVersionsProxy,
 			AltDAConfig:             rollupAltDAConfig,
+			L2BlobConfig:            l2BlobConfig,
+			InboxContractConfig:     inboxContractConfig,
 			ChainOpConfig: &params.OptimismConfig{
 				EIP1559Elasticity:        cfg.DeployConfig.EIP1559Elasticity,
 				EIP1559Denominator:       cfg.DeployConfig.EIP1559Denominator,
@@ -804,6 +819,11 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 	_, err = geth.WaitForBlock(big.NewInt(2), l1Client)
 	if err != nil {
 		return nil, fmt.Errorf("waiting for blocks: %w", err)
+	}
+
+	// exec func which needs to run after L1 node starts and before L2 nodes start.
+	if action, ok := parsedStartOpts.Get("afterL1Start", ""); ok {
+		action(&cfg, sys)
 	}
 
 	sys.Mocknet = mocknet.New()

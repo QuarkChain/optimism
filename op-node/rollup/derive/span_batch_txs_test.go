@@ -334,6 +334,7 @@ func TestSpanBatchTxsRecoverV(t *testing.T) {
 
 	chainID := big.NewInt(rng.Int63n(1000))
 	isthmusSigner := types.NewIsthmusSigner(chainID)
+	cancunSigner := types.NewCancunSigner(chainID)
 	totalblockTxCount := 20 + rng.Intn(100)
 
 	cases := []txTypeTest{
@@ -342,6 +343,7 @@ func TestSpanBatchTxsRecoverV(t *testing.T) {
 		{"access list tx", testutils.RandomAccessListTx, isthmusSigner},
 		{"dynamic fee tx", testutils.RandomDynamicFeeTx, isthmusSigner},
 		{"setcode tx", testutils.RandomSetCodeTx, isthmusSigner},
+		{"blob tx", testutils.RandomBlobTx, cancunSigner},
 	}
 
 	for _, testCase := range cases {

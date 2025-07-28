@@ -14,7 +14,7 @@ ARG UBUNTU_TARGET_BASE_IMAGE=ubuntu:22.04
 
 # The version of kona to use.
 # The only build that uses this is `op-challenger-target`.
-ARG KONA_VERSION=none
+ARG KONA_VERSION=kona-client-v0.1.0-beta.5
 
 # The version of asterisc to use.
 # The only build that uses this is `op-challenger-target`.
@@ -149,6 +149,15 @@ ARG OP_DEPLOYER_VERSION=v0.0.0
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd op-chain-ops && make op-deployer  \
   GOOS=$TARGETOS GOARCH=$TARGETARCH GITCOMMIT=$GIT_COMMIT GITDATE=$GIT_DATE VERSION="$OP_DEPLOYER_VERSION"
 
+
+FROM --platform=$BUILDPLATFORM builder AS dac-server-builder
+ARG OP_NODE_VERSION=v0.0.0
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd da-server && go build -o da-server main.go
+
+FROM --platform=$BUILDPLATFORM builder AS op-geth-builder
+ARG OP_NODE_VERSION=v0.0.0
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd op-geth && CGO_ENABLED=0 make geth
+
 FROM --platform=$BUILDPLATFORM builder AS op-dripper-builder
 ARG OP_DRIPPER_VERSION=v0.0.0
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build cd op-dripper && make op-dripper  \
@@ -181,6 +190,9 @@ CMD ["op-wheel"]
 
 FROM $TARGET_BASE_IMAGE AS op-node-target
 COPY --from=op-node-builder /app/op-node/bin/op-node /usr/local/bin/
+COPY --from=dac-server-builder /app/da-server/da-server /usr/local/bin/
+COPY --from=dac-server-builder /app/da-server/default.json /usr/local/bin/
+COPY --from=op-geth-builder /app/op-geth/build/bin/geth /usr/local/bin/
 CMD ["op-node"]
 
 # Make the kona docker image published by upstream available as a source to copy kona from.

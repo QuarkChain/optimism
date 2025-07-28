@@ -322,6 +322,12 @@ rules:
         - packages/contracts-bedrock/src/L2/FeeVault.sol
         - packages/contracts-bedrock/src/L2/OptimismMintableERC721.sol
         - packages/contracts-bedrock/src/L2/OptimismMintableERC721Factory.sol
+<<<<<<< HEAD
+=======
+        - packages/contracts-bedrock/src/L2/SoulGasToken.sol
+        - packages/contracts-bedrock/src/cannon/MIPS.sol
+        - packages/contracts-bedrock/src/cannon/MIPS2.sol
+>>>>>>> qkc/op-es
         - packages/contracts-bedrock/src/cannon/MIPS64.sol
         - packages/contracts-bedrock/src/cannon/PreimageOracle.sol
         - packages/contracts-bedrock/src/dispute/AnchorStateRegistry.sol

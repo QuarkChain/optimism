@@ -20,8 +20,14 @@ require (
 	github.com/docker/docker v27.5.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3
+<<<<<<< HEAD
 	github.com/ethereum-optimism/superchain-registry/validation v0.0.0-20250603144016-9c45ca7d4508
 	github.com/ethereum/go-ethereum v1.15.11
+=======
+	github.com/ethereum-optimism/superchain-registry/validation v0.0.0-20250314162817-2c60e5723c64
+	github.com/ethereum/go-ethereum v1.15.3
+	github.com/ethstorage/da-server v0.0.0-20241224013916-2bd2256b6a70
+>>>>>>> qkc/op-es
 	github.com/fatih/color v1.18.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-task/slim-sprig/v3 v3.0.0
@@ -304,9 +310,13 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
+<<<<<<< HEAD
 replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101511.1-dev.1.0.20250710181308-c6e05723600e
+=======
+replace github.com/ethereum/go-ethereum => github.com/Quarkchain/op-geth v0.0.0-20250724035801-1bb12cd77237
+>>>>>>> qkc/op-es
 
-//replace github.com/ethereum/go-ethereum => ../op-geth
+// replace github.com/ethereum/go-ethereum => ../op-geth
 
 // replace github.com/ethereum-optimism/superchain-registry/superchain => ../superchain-registry/superchain
 

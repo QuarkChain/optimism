@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -103,7 +104,8 @@ func NewBlockProcessorFromHeader(provider BlockDataProvider, h *types.Header) (*
 			// Blob tx not supported on optimism chains but fields must be set when Cancun is active.
 			zero := uint64(0)
 			header.BlobGasUsed = &zero
-			header.ExcessBlobGas = &zero
+			excessBlobGas := eip4844.CalcExcessBlobGas(provider.Config(), parentHeader, header.Time)
+			header.ExcessBlobGas = &excessBlobGas
 		}
 		// core.NewEVMBlockContext need to be called after the blob gas fields are set
 		vmenv = mkEVM()
@@ -151,6 +153,9 @@ func (b *BlockProcessor) AddTx(tx *types.Transaction) (*types.Receipt, error) {
 	}
 	b.receipts = append(b.receipts, receipt)
 	b.transactions = append(b.transactions, tx)
+	if b.header.BlobGasUsed != nil {
+		*b.header.BlobGasUsed += receipt.BlobGasUsed
+	}
 	return receipt, nil
 }
 

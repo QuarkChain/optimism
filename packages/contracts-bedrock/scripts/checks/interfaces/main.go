@@ -31,8 +31,10 @@ var excludeContracts = []string{
 	"IOPContractsManagerLegacyUpgrade",
 
 	// TODO: Interfaces that need to be fixed
+
 	"IInitializable", "IOptimismMintableERC20", "ILegacyMintableERC20",
 	"KontrolCheatsBase", "IResolvedDelegateProxy",
+	"IERC20Upgradeable", "ISoulGasToken", "IStorageSetter",
 }
 
 // excludeSourceContracts is a list of contracts that are allowed to not have interfaces

@@ -231,8 +231,9 @@ type PayloadInfo struct {
 }
 
 type ExecutionPayloadEnvelope struct {
-	ParentBeaconBlockRoot *common.Hash      `json:"parentBeaconBlockRoot,omitempty"`
-	ExecutionPayload      *ExecutionPayload `json:"executionPayload"`
+	ParentBeaconBlockRoot *common.Hash          `json:"parentBeaconBlockRoot,omitempty"`
+	ExecutionPayload      *ExecutionPayload     `json:"executionPayload"`
+	BlobsBundle           *engine.BlobsBundleV1 `json:"blobsBundle"`
 }
 
 func (env *ExecutionPayloadEnvelope) ID() BlockID {

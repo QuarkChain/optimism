@@ -64,7 +64,7 @@ contract GasBenchMark_L1Block_SetValuesEcotone is GasBenchMark_L1Block {
         SafeCall.call({ _target: address(l1Block), _calldata: setValuesCalldata });
 
         // Assert
-        assertLt(vm.lastCallGas().gasTotalUsed, 160_000);
+        assertLt(vm.lastCallGas().gasTotalUsed, 161_000);
     }
 }
 

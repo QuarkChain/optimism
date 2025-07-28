@@ -361,6 +361,12 @@ var (
 		Value:    time.Second * 1,
 		Category: SequencerCategory,
 	}
+	DACUrlsFlag = &cli.StringFlag{
+		Name:     "dac.urls",
+		Usage:    "dac urls for sequencer when l2 blob is enabled",
+		EnvVars:  prefixEnvVars("DAC_URLS"),
+		Category: SequencerCategory,
+	}
 	/* Interop flags, experimental. */
 	InteropRPCAddr = &cli.StringFlag{
 		Name: "interop.rpc.addr",
@@ -457,6 +463,7 @@ var optionalFlags = []cli.Flag{
 	ConductorRpcTimeoutFlag,
 	SafeDBPath,
 	L2EngineKind,
+	DACUrlsFlag,
 	L2EngineRpcTimeout,
 	InteropRPCAddr,
 	InteropRPCPort,

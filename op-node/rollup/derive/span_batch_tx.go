@@ -46,6 +46,18 @@ type spanBatchDynamicFeeTxData struct {
 
 func (txData *spanBatchDynamicFeeTxData) txType() byte { return types.DynamicFeeTxType }
 
+type spanBatchBlobTxData struct {
+	Value      *uint256.Int
+	GasTipCap  *uint256.Int // a.k.a. maxPriorityFeePerGas
+	GasFeeCap  *uint256.Int // a.k.a. maxFeePerGas
+	Data       []byte
+	AccessList types.AccessList
+	BlobFeeCap *uint256.Int // a.k.a. maxFeePerBlobGas
+	BlobHashes []common.Hash
+}
+
+func (txData *spanBatchBlobTxData) txType() byte { return types.BlobTxType }
+
 type spanBatchSetCodeTxData struct {
 	Value             *uint256.Int
 	GasTipCap         *uint256.Int // a.k.a. maxPriorityFeePerGas
@@ -103,6 +115,13 @@ func (tx *spanBatchTx) decodeTyped(b []byte) (spanBatchTxData, error) {
 		err := rlp.DecodeBytes(b[1:], &inner)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode spanBatchDynamicFeeTxData: %w", err)
+		}
+		return &inner, nil
+	case types.BlobTxType:
+		var inner spanBatchBlobTxData
+		err := rlp.DecodeBytes(b[1:], &inner)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode spanBatchBlobTxData: %w", err)
 		}
 		return &inner, nil
 	case types.SetCodeTxType:
@@ -187,6 +206,39 @@ func (tx *spanBatchTx) convertToFullTx(nonce, gas uint64, to *common.Address, ch
 			R:          R,
 			S:          S,
 		}
+	case types.BlobTxType:
+		if to == nil {
+			return nil, fmt.Errorf("invalid blob tx: to can't be nil")
+		}
+		VU256, overflow := uint256.FromBig(V)
+		if overflow {
+			return nil, fmt.Errorf("invalid blob tx: V overflow:%v", V)
+		}
+		RU256, overflow := uint256.FromBig(R)
+		if overflow {
+			return nil, fmt.Errorf("invalid blob tx: R overflow:%v", R)
+		}
+		SU256, overflow := uint256.FromBig(S)
+		if overflow {
+			return nil, fmt.Errorf("invalid blob tx: S overflow:%v", R)
+		}
+		batchTxInner := tx.inner.(*spanBatchBlobTxData)
+		inner = &types.BlobTx{
+			ChainID:    uint256.MustFromBig(chainID),
+			Nonce:      nonce,
+			GasTipCap:  batchTxInner.GasTipCap,
+			GasFeeCap:  batchTxInner.GasFeeCap,
+			Gas:        gas,
+			To:         *to,
+			Value:      batchTxInner.Value,
+			Data:       batchTxInner.Data,
+			AccessList: batchTxInner.AccessList,
+			BlobFeeCap: batchTxInner.BlobFeeCap,
+			BlobHashes: batchTxInner.BlobHashes,
+			V:          VU256,
+			R:          RU256,
+			S:          SU256,
+		}
 	case types.SetCodeTxType:
 		if to == nil {
 			return nil, fmt.Errorf("to address is required for SetCodeTx")
@@ -238,6 +290,32 @@ func newSpanBatchTx(tx *types.Transaction) (*spanBatchTx, error) {
 			Value:      tx.Value(),
 			Data:       tx.Data(),
 			AccessList: tx.AccessList(),
+		}
+	case types.BlobTxType:
+		gasTipCap, overflow := uint256.FromBig(tx.GasTipCap())
+		if overflow {
+			return nil, fmt.Errorf("tx.GasTipCap() overflow: %v", tx.GasTipCap())
+		}
+		gasFeeCap, overflow := uint256.FromBig(tx.GasFeeCap())
+		if overflow {
+			return nil, fmt.Errorf("tx.GasFeeCap() overflow: %v", tx.GasFeeCap())
+		}
+		value, overflow := uint256.FromBig(tx.Value())
+		if overflow {
+			return nil, fmt.Errorf("tx.Value() overflow: %v", tx.Value())
+		}
+		blobFeeCap, overflow := uint256.FromBig(tx.BlobGasFeeCap())
+		if overflow {
+			return nil, fmt.Errorf("tx.BlobGasFeeCap() overflow: %v", tx.BlobGasFeeCap())
+		}
+		inner = &spanBatchBlobTxData{
+			Value:      value,
+			GasTipCap:  gasTipCap,
+			GasFeeCap:  gasFeeCap,
+			Data:       tx.Data(),
+			AccessList: tx.AccessList(),
+			BlobFeeCap: blobFeeCap,
+			BlobHashes: tx.BlobHashes(),
 		}
 	case types.SetCodeTxType:
 		inner = &spanBatchSetCodeTxData{

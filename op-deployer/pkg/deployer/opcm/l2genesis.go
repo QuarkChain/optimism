@@ -28,6 +28,8 @@ type L2GenesisInput struct {
 	DeployCrossL2Inbox                       bool
 	EnableGovernance                         bool
 	FundDevAccounts                          bool
+	DeploySoulGasToken                       bool
+	IsSoulBackedByNative                     bool
 }
 
 type L2GenesisScript script.DeployScriptWithoutOutput[L2GenesisInput]

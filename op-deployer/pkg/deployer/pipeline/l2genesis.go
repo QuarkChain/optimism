@@ -31,6 +31,8 @@ type l2GenesisOverrides struct {
 	SequencerFeeVaultWithdrawalNetwork       genesis.WithdrawalNetwork `json:"sequencerFeeVaultWithdrawalNetwork"`
 	EnableGovernance                         bool                      `json:"enableGovernance"`
 	GovernanceTokenOwner                     common.Address            `json:"governanceTokenOwner"`
+	DeploySoulGasToken                       bool                      `json:"deploySoulGasToken"`
+	IsSoulBackedByNative                     bool                      `json:"isSoulBackedByNative"`
 }
 
 func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, st *state.State, chainID common.Hash) error {
@@ -94,6 +96,8 @@ func GenerateL2Genesis(pEnv *Env, intent *state.Intent, bundle ArtifactsBundle, 
 		DeployCrossL2Inbox:                       len(intent.Chains) > 1,
 		EnableGovernance:                         overrides.EnableGovernance,
 		FundDevAccounts:                          overrides.FundDevAccounts,
+		DeploySoulGasToken:                       overrides.DeploySoulGasToken,
+		IsSoulBackedByNative:                     overrides.IsSoulBackedByNative,
 	}); err != nil {
 		return fmt.Errorf("failed to call L2Genesis script: %w", err)
 	}

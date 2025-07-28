@@ -73,7 +73,7 @@ func TestValidBatch(t *testing.T) {
 	rng := rand.New(rand.NewSource(1234))
 
 	chainId := new(big.Int).SetUint64(rng.Uint64())
-	signer := types.NewIsthmusSigner(chainId)
+	signer := types.NewIsthmusSigner(chainId, false)
 	randTx := testutils.RandomTx(rng, new(big.Int).SetUint64(rng.Uint64()), signer)
 	randTxData, _ := randTx.MarshalBinary()
 

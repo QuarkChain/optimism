@@ -330,16 +330,9 @@ func BuildBlocksValidator(log log.Logger, cfg *rollup.Config, runCfg GossipRunti
 		// rounding down to seconds is fine here.
 		now := uint64(time.Now().Unix())
 
-<<<<<<< HEAD
-		// [REJECT] if the `payload.timestamp` is older than the configured threshold
-		threshold := uint64(gossipConf.GetGossipTimestampThreshold().Seconds())
-		if uint64(payload.Timestamp) < now-threshold {
-			log.Warn("payload is too old", "timestamp", uint64(payload.Timestamp), "threshold_seconds", threshold)
-=======
 		// [REJECT] if the `payload.timestamp` is older than 60 seconds in the past
 		if uint64(payload.Timestamp) < now-60 || uint64(payload.Timestamp) < cfg.BlockTime /* ensure timestamp>=BlockTime since we'll do subtraction below */ {
 			log.Warn("payload is too old", "timestamp", uint64(payload.Timestamp))
->>>>>>> qkc/op-es
 			return pubsub.ValidationReject
 		}
 

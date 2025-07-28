@@ -31,7 +31,7 @@ func TestSpanBatchTxConvert(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			rng := rand.New(rand.NewSource(int64(0x1331 + i)))
 			chainID := big.NewInt(rng.Int63n(1000))
-			signer := types.NewIsthmusSigner(chainID)
+			signer := types.NewIsthmusSigner(chainID, false)
 			if !testCase.protected {
 				signer = types.HomesteadSigner{}
 			}
@@ -71,7 +71,7 @@ func TestSpanBatchTxRoundTrip(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			rng := rand.New(rand.NewSource(int64(0x1332 + i)))
 			chainID := big.NewInt(rng.Int63n(1000))
-			signer := types.NewIsthmusSigner(chainID)
+			signer := types.NewIsthmusSigner(chainID, false)
 			if !testCase.protected {
 				signer = types.HomesteadSigner{}
 			}

@@ -52,6 +52,9 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @notice The L2 gas limit set when eth is deposited using the receive() function.
     uint64 internal constant RECEIVE_DEFAULT_GAS_LIMIT = 100_000;
 
+    /// @notice The L2 gas limit for system deposit transactions that are initiated from L1.
+    uint32 internal constant SYSTEM_DEPOSIT_GAS_LIMIT = 200_000;
+
     /// @notice Address of the L2 account which initiated a withdrawal in this transaction.
     ///         If the value of this variable is the default L2 sender address, then we are NOT
     ///         inside of a call to finalizeWithdrawalTransaction.
@@ -757,13 +760,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         }
     }
 
-<<<<<<< HEAD
-=======
-    /// @notice Migrates the total ETH balance to the ETHLockbox.
-    function migrateLiquidity() public {
-        if (msg.sender != proxyAdminOwner()) revert OptimismPortal_Unauthorized();
-        _migrateLiquidity();
-    }
 
     /// @notice Add a minter to the OptimismPortal contract. To disable, set an empty value.
     function setMinter(address _minter) external {
@@ -821,7 +817,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         );
     }
 
->>>>>>> qkc/op-es
+
     /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its
     ///         address will be aliased when retrieved using `tx.origin` or `msg.sender`. Consider

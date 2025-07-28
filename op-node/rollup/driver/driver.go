@@ -174,12 +174,8 @@ func NewDriver(
 	syncCfg *sync.Config,
 	sequencerConductor conductor.SequencerConductor,
 	altDA AltDAIface,
-<<<<<<< HEAD
 	indexingMode bool,
-=======
-	managedMode bool,
 	dacClient engine.DACClient,
->>>>>>> qkc/op-es
 ) *Driver {
 	driverCtx, driverCancel := context.WithCancel(context.Background())
 
@@ -245,13 +241,8 @@ func NewDriver(
 		findL1Origin := sequencing.NewL1OriginSelector(driverCtx, log, cfg, sequencerConfDepth)
 		sys.Register("origin-selector", findL1Origin)
 		sequencer = sequencing.NewSequencer(driverCtx, log, cfg, attrBuilder, findL1Origin,
-<<<<<<< HEAD
-			sequencerStateListener, sequencerConductor, asyncGossiper, metrics)
-		sys.Register("sequencer", sequencer)
-=======
 			sequencerStateListener, sequencerConductor, asyncGossiper, metrics, dacClient)
-		sys.Register("sequencer", sequencer, opts)
->>>>>>> qkc/op-es
+		sys.Register("sequencer", sequencer)
 	} else {
 		sequencer = sequencing.DisabledSequencer{}
 	}

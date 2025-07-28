@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-<<<<<<< HEAD:op-node/config/config.go
-=======
-	"math"
+
 	"strings"
->>>>>>> qkc/op-es:op-node/node/config.go
+
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -24,13 +22,10 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
 	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
-<<<<<<< HEAD:op-node/config/config.go
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
-=======
 	"github.com/ethstorage/da-server/pkg/da/client"
 	"github.com/urfave/cli/v2"
->>>>>>> qkc/op-es:op-node/node/config.go
 )
 
 type Config struct {

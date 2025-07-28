@@ -348,14 +348,10 @@ func initAllocType(root string, allocType AllocType) {
 				// Speed up the in memory tests
 				dc.L1BlockTime = 2
 				dc.L2BlockTime = 1
-<<<<<<< HEAD
 				dc.SetContracts(l1Contracts)
-=======
-				dc.SetDeployments(l1Deployments)
 				// SWC changes
 				dc.DeploySoulGasToken = true
 				dc.IsSoulBackedByNative = true
->>>>>>> qkc/op-es
 				mtx.Lock()
 				deployConfigsByType[allocType] = dc
 				l1AllocsByType[allocType] = st.L1StateDump.Data

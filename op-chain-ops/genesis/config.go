@@ -377,16 +377,10 @@ type UpgradeScheduleDeployConfig struct {
 	L1CancunTimeOffset *hexutil.Uint64 `json:"l1CancunTimeOffset,omitempty"`
 	// When Prague activates. Relative to L1 genesis.
 	L1PragueTimeOffset *hexutil.Uint64 `json:"l1PragueTimeOffset,omitempty"`
-<<<<<<< HEAD
-=======
-
-	// UseInterop is a flag that indicates if the system is using interop
-	UseInterop bool `json:"useInterop,omitempty"`
 
 	// L2GenesisBlobTimeOffset is the number of seconds after genesis block that the L2Blob hard fork activates.
 	// Set it to 0 to activate at genesis. Nil to disable L2Blob.
 	L2GenesisBlobTimeOffset *hexutil.Uint64 `json:"l2GenesisBlobTimeOffset,omitempty"`
->>>>>>> qkc/op-es
 }
 
 var _ ConfigChecker = (*UpgradeScheduleDeployConfig)(nil)

@@ -144,7 +144,7 @@ func RandomTo(rng *rand.Rand) *common.Address {
 }
 
 func isIsthmusSigner(signer types.Signer) bool {
-	isthusSigner := types.NewIsthmusSigner(signer.ChainID())
+	isthusSigner := types.NewIsthmusSigner(signer.ChainID(), false)
 	return signer.Equal(isthusSigner)
 }
 
@@ -380,7 +380,7 @@ func RandomBlock(rng *rand.Rand, txCount uint64) (*types.Block, []*types.Receipt
 func RandomBlockPrependTxsWithTime(rng *rand.Rand, txCount int, t uint64, ptxs ...*types.Transaction) (*types.Block, []*types.Receipt) {
 	header := RandomHeaderWithTime(rng, t)
 	chainID := big.NewInt(rng.Int63n(1000))
-	signer := types.NewIsthmusSigner(chainID)
+	signer := types.NewIsthmusSigner(chainID, false)
 	txs := make([]*types.Transaction, 0, txCount+len(ptxs))
 	txs = append(txs, ptxs...)
 	for i := 0; i < txCount; i++ {

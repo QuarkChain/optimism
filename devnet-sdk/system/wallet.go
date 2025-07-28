@@ -284,7 +284,7 @@ func (w *wallet) Sign(tx Transaction) (Transaction, error) {
 	var signer coreTypes.Signer
 	switch tx.Type() {
 	case coreTypes.SetCodeTxType:
-		signer = coreTypes.NewIsthmusSigner(w.chain.ID())
+		signer = coreTypes.NewIsthmusSigner(w.chain.ID(), false)
 	case coreTypes.DynamicFeeTxType:
 		signer = coreTypes.NewLondonSigner(w.chain.ID())
 	case coreTypes.AccessListTxType:

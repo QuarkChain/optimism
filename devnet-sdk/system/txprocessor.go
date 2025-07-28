@@ -45,7 +45,7 @@ func (p *transactionProcessor) Sign(tx Transaction) (Transaction, error) {
 	var signer types.Signer
 	switch tx.Type() {
 	case types.SetCodeTxType:
-		signer = types.NewIsthmusSigner(p.chainID)
+		signer = types.NewIsthmusSigner(p.chainID, false)
 	case types.DynamicFeeTxType:
 		signer = types.NewLondonSigner(p.chainID)
 	case types.AccessListTxType:

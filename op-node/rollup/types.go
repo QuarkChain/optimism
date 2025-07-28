@@ -807,19 +807,13 @@ func (c *Config) LogDescription(log log.Logger, l2Chains map[string]string) {
 	if c.AltDAConfig != nil {
 		ctx = append(ctx, "alt_da", *c.AltDAConfig)
 	}
-<<<<<<< HEAD
-=======
+
 	var l2BlobTime *uint64
 	if c.ChainOpConfig != nil {
 		l2BlobTime = c.ChainOpConfig.L2BlobTime
 	}
 	ctx = append(ctx, "l2_blob_config", fmtForkTimeOrUnset(l2BlobTime))
 	ctx = append(ctx, "use_inbox_contract", c.UseInboxContract())
-	if c.PectraBlobScheduleTime != nil {
-		// only print in config if set at all
-		ctx = append(ctx, "pectra_blob_schedule_time", fmtForkTimeOrUnset(c.PectraBlobScheduleTime))
-	}
->>>>>>> qkc/op-es
 	log.Info("Rollup Config", ctx...)
 }
 

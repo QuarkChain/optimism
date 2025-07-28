@@ -31,17 +31,9 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
-<<<<<<< HEAD
-=======
+
 import { SoulGasToken } from "src/L2/SoulGasToken.sol";
 
-struct L1Dependencies {
-    address payable l1CrossDomainMessengerProxy;
-    address payable l1StandardBridgeProxy;
-    address payable l1ERC721BridgeProxy;
-}
-
->>>>>>> qkc/op-es
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
 ///         The following safety invariants are used when setting state:
@@ -240,18 +232,12 @@ contract L2Genesis is Script {
         // 1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
-<<<<<<< HEAD
+        if (cfg.deploySoulGasToken()) setSoulGasToken(); // 800
         setGovernanceToken(_input); // 42: OP (not behind a proxy)
         if (_input.fork >= uint256(Fork.INTEROP)) {
             if (_input.deployCrossL2Inbox) {
                 setCrossL2Inbox(); // 22
             }
-=======
-        if (cfg.deploySoulGasToken()) setSoulGasToken(); // 800
-        setGovernanceToken(); // 42: OP (not behind a proxy)
-        if (cfg.useInterop()) {
-            setCrossL2Inbox(); // 22
->>>>>>> qkc/op-es
             setL2ToL2CrossDomainMessenger(); // 23
         }
     }

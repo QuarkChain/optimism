@@ -128,7 +128,9 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             fork: uint256(LATEST_FORK),
             deployCrossL2Inbox: true,
             enableGovernance: true,
-            fundDevAccounts: true
+            fundDevAccounts: true,
+            deploySoulGasToken: false,
+            isSoulBackedByNative: false
         });
         genesis.run(input);
 

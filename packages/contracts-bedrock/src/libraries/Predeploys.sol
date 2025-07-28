@@ -175,8 +175,7 @@ library Predeploys {
             || _addr == L1_FEE_VAULT || _addr == OPERATOR_FEE_VAULT || _addr == SCHEMA_REGISTRY || _addr == EAS
             || _addr == GOVERNANCE_TOKEN
             || (_fork >= uint256(Fork.INTEROP) && _enableCrossL2Inbox && _addr == CROSS_L2_INBOX)
-            || (_fork >= uint256(Fork.INTEROP) && _addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER)
-            || _addr == SOUL_GAS_TOKEN;
+            || (_fork >= uint256(Fork.INTEROP) && _addr == L2_TO_L2_CROSS_DOMAIN_MESSENGER) || _addr == SOUL_GAS_TOKEN;
     }
 
     function isPredeployNamespace(address _addr) internal pure returns (bool) {

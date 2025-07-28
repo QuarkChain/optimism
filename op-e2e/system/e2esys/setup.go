@@ -680,13 +680,6 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 		}
 	}
 
-	var l2BlobConfig *rollup.L2BlobConfig
-	if cfg.DeployConfig.L2GenesisBlobTimeOffset != nil {
-		l2BlobConfig = &rollup.L2BlobConfig{
-			L2BlobTime: cfg.DeployConfig.L2BlobTime(l1Block.Time()),
-		}
-	}
-
 	var inboxContractConfig *rollup.InboxContractConfig
 	if cfg.DeployConfig.UseInboxContract {
 		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
@@ -728,12 +721,16 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 			InteropTime:             cfg.DeployConfig.InteropTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
 			ProtocolVersionsAddress: cfg.L1Deployments.ProtocolVersionsProxy,
 			AltDAConfig:             rollupAltDAConfig,
-			L2BlobConfig:            l2BlobConfig,
 			InboxContractConfig:     inboxContractConfig,
 			ChainOpConfig: &params.OptimismConfig{
-				EIP1559Elasticity:        cfg.DeployConfig.EIP1559Elasticity,
-				EIP1559Denominator:       cfg.DeployConfig.EIP1559Denominator,
-				EIP1559DenominatorCanyon: &cfg.DeployConfig.EIP1559DenominatorCanyon,
+				EIP1559Elasticity:             cfg.DeployConfig.EIP1559Elasticity,
+				EIP1559Denominator:            cfg.DeployConfig.EIP1559Denominator,
+				EIP1559DenominatorCanyon:      &cfg.DeployConfig.EIP1559DenominatorCanyon,
+				L2BlobTime:                    cfg.DeployConfig.L2BlobTime(l1Block.Time()),
+				SoulGasTokenTime:              cfg.DeployConfig.SoulGasTokenTime(l1Block.Time()),
+				IsSoulBackedByNative:          cfg.DeployConfig.IsSoulBackedByNative,
+				L1BaseFeeScalarMultiplier:     cfg.DeployConfig.L1BaseFeeScalarMultiplier,
+				L1BlobBaseFeeScalarMultiplier: cfg.DeployConfig.L1BlobBaseFeeScalarMultiplier,
 			},
 		}
 	}

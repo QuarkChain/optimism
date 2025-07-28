@@ -320,7 +320,9 @@ contract Setup {
                 fork: uint256(l2Fork),
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
                 enableGovernance: deploy.cfg().enableGovernance(),
-                fundDevAccounts: deploy.cfg().fundDevAccounts()
+                fundDevAccounts: deploy.cfg().fundDevAccounts(),
+                deploySoulGasToken: deploy.cfg().deploySoulGasToken(),
+                isSoulBackedByNative: deploy.cfg().isSoulBackedByNative()
             })
         );
 

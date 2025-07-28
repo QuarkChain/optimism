@@ -760,7 +760,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         }
     }
 
-
     /// @notice Add a minter to the OptimismPortal contract. To disable, set an empty value.
     function setMinter(address _minter) external {
         if (msg.sender != proxyAdminOwner()) {
@@ -808,7 +807,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
         bytes memory opaqueData = abi.encodePacked(
-            uint256(0), uint256(0), uint64(SYSTEM_DEPOSIT_GAS_LIMIT), false, abi.encodeCall(IL2ToL1MessagePasser.setNativeDeposit, (_disable))
+            uint256(0),
+            uint256(0),
+            uint64(SYSTEM_DEPOSIT_GAS_LIMIT),
+            false,
+            abi.encodeCall(IL2ToL1MessagePasser.setNativeDeposit, (_disable))
         );
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
@@ -816,7 +819,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
             Constants.QKC_DEPOSITOR_ACCOUNT, Predeploys.L2_TO_L1_MESSAGE_PASSER, DEPOSIT_VERSION, opaqueData
         );
     }
-
 
     /// @notice Accepts deposits of ETH and data, and emits a TransactionDeposited event for use in
     ///         deriving deposit transactions. Note that if a deposit is made by a contract, its

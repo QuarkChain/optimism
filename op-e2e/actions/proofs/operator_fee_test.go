@@ -388,7 +388,10 @@ func fjordL1Cost(l1BlockInfo *derive.L1BlockInfo, rollupCostData types.RollupCos
 		l1BlockInfo.BaseFee,
 		l1BlockInfo.BlobBaseFee,
 		new(big.Int).SetUint64(uint64(l1BlockInfo.BaseFeeScalar)),
-		new(big.Int).SetUint64(uint64(l1BlockInfo.BlobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(l1BlockInfo.BlobBaseFeeScalar)),
+		new(big.Int).SetUint64(1),
+		new(big.Int).SetUint64(1),
+	)
 
 	fee, _ := costFunc(rollupCostData)
 	return fee

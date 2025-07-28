@@ -31,7 +31,6 @@ import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.s
 import { IGasPriceOracle } from "interfaces/L2/IGasPriceOracle.sol";
 import { IL1Block } from "interfaces/L2/IL1Block.sol";
 
-
 import { SoulGasToken } from "src/L2/SoulGasToken.sol";
 
 /// @title L2Genesis

@@ -76,7 +76,7 @@ func TestSubmitTXWithBlobsFunctionSuccess(t *testing.T) {
 }
 
 func startSystemWithDAC(t *testing.T) (*e2esys.System, *ethclient.Client) {
-	cfg := e2esys.DefaultSystemConfig(t)
+	cfg := e2esys.IsthmusSystemConfig(t, new(hexutil.Uint64))
 	delete(cfg.Nodes, "verifier")
 	c, ok := cfg.Nodes["sequencer"]
 	require.True(t, ok, "sequencer is required")

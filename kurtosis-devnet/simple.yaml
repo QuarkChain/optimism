@@ -22,6 +22,7 @@ optimism_package:
           cl:
             type: op-node
             image: {{ localDockerImage "op-node" }}
+            is_qkc: true
             log_level: ""
             extra_env_vars: {}
             extra_labels: {}

@@ -86,7 +86,7 @@ func (i *IsthmusCostOracle) SetParams(ctx context.Context) error {
 func (i *IsthmusCostOracle) OPCost(tx *types.Transaction) *big.Int {
 	params := i.costParams.Load()
 
-	l1CostFunc := types.NewL1CostFuncFjord(params.L1BaseFee, params.L1BlobBaseFee, params.L1BaseFeeScalar, params.L1BlobBaseFeeScalar)
+	l1CostFunc := types.NewL1CostFuncFjord(params.L1BaseFee, params.L1BlobBaseFee, params.L1BaseFeeScalar, params.L1BlobBaseFeeScalar, big.NewInt(1), big.NewInt(1))
 	l1Cost, _ := l1CostFunc(tx.RollupCostData())
 
 	operatorCost := new(big.Int).SetUint64(tx.Gas())

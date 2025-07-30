@@ -100,7 +100,7 @@ func TestIsthmusCostOracleOPCost(t *testing.T) {
 		require.NoError(t, oracle.SetParams(context.Background()))
 		tx := types.NewTx(&types.DynamicFeeTx{})
 		got := oracle.OPCost(tx)
-		want, _ := types.NewL1CostFuncFjord(big.NewInt(102), big.NewInt(104), big.NewInt(103), big.NewInt(105))(tx.RollupCostData())
+		want, _ := types.NewL1CostFuncFjord(big.NewInt(102), big.NewInt(104), big.NewInt(103), big.NewInt(105), big.NewInt(1), big.NewInt(1))(tx.RollupCostData())
 		require.Equal(t, want, got)
 	})
 }

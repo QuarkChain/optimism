@@ -91,7 +91,7 @@ func TestTxBudgetIncluded(t *testing.T) {
 		BlobHashes: []common.Hash{{}},
 	})
 
-	l1Cost, _ := types.NewL1CostFuncFjord(big.NewInt(1), big.NewInt(1), big.NewInt(1), big.NewInt(1))(tx.RollupCostData())
+	l1Cost, _ := types.NewL1CostFuncFjord(big.NewInt(1), big.NewInt(1), big.NewInt(1), big.NewInt(1), big.NewInt(1), big.NewInt(1))(tx.RollupCostData())
 	l1Cost.Add(l1Cost, big.NewInt(1)) // operator fee
 	oracle := mockOPCostOracle{
 		cost: l1Cost,

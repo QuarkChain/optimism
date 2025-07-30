@@ -88,7 +88,7 @@ func (b *TxBudget) AfterIncluded(budgetedCost eth.ETH, tx *IncludedTx) {
 	if receipt.L1BaseFeeScalar != nil {
 		l1BaseFeeScalar := new(big.Int).SetUint64(*receipt.L1BaseFeeScalar)
 		l1BlobBaseFeeScalar := new(big.Int).SetUint64(*receipt.L1BlobBaseFeeScalar)
-		costFunc := types.NewL1CostFuncFjord(receipt.L1GasPrice, receipt.L1BlobBaseFee, l1BaseFeeScalar, l1BlobBaseFeeScalar)
+		costFunc := types.NewL1CostFuncFjord(receipt.L1GasPrice, receipt.L1BlobBaseFee, l1BaseFeeScalar, l1BlobBaseFeeScalar, big.NewInt(1), big.NewInt(1))
 		l1Cost, _ := costFunc(tx.Transaction.RollupCostData())
 		actualCost.Add(actualCost, l1Cost)
 	}

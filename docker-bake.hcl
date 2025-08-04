@@ -7,11 +7,11 @@ variable "REPOSITORY" {
 }
 
 variable "KONA_VERSION" {
-  default = "0.1.0-beta.15"
+  default = "1.0.1"
 }
 
 variable "ASTERISC_VERSION" {
-  default = "v1.2.0"
+  default = "v1.3.0"
 }
 
 variable "GIT_COMMIT" {
@@ -66,6 +66,10 @@ variable "OP_PROGRAM_VERSION" {
 }
 
 variable "OP_SUPERVISOR_VERSION" {
+  default = "${GIT_VERSION}"
+}
+
+variable "OP_TEST_SEQUENCER_VERSION" {
   default = "${GIT_VERSION}"
 }
 
@@ -202,6 +206,19 @@ target "op-supervisor" {
   target = "op-supervisor-target"
   platforms = split(",", PLATFORMS)
   tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/op-supervisor:${tag}"]
+}
+
+target "op-test-sequencer" {
+  dockerfile = "ops/docker/op-stack-go/Dockerfile"
+  context = "."
+  args = {
+    GIT_COMMIT = "${GIT_COMMIT}"
+    GIT_DATE = "${GIT_DATE}"
+    OP_TEST_SEQUENCER_VERSION = "${OP_TEST_SEQUENCER_VERSION}"
+  }
+  target = "op-test-sequencer-target"
+  platforms = split(",", PLATFORMS)
+  tags = [for tag in split(",", IMAGE_TAGS) : "${REGISTRY}/${REPOSITORY}/op-test-sequencer:${tag}"]
 }
 
 target "cannon" {

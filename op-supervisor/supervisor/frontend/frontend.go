@@ -43,12 +43,6 @@ func (q *QueryFrontend) FinalizedL1(ctx context.Context) (eth.BlockRef, error) {
 	return q.Supervisor.FinalizedL1(ctx)
 }
 
-// CrossDerivedFrom is deprecated, but remains for backwards compatibility to callers
-// it is equivalent to CrossDerivedToSource
-func (q *QueryFrontend) CrossDerivedFrom(ctx context.Context, chainID eth.ChainID, derived eth.BlockID) (derivedFrom eth.BlockRef, err error) {
-	return q.Supervisor.CrossDerivedToSource(ctx, chainID, derived)
-}
-
 func (q *QueryFrontend) CrossDerivedToSource(ctx context.Context, chainID eth.ChainID, derived eth.BlockID) (derivedFrom eth.BlockRef, err error) {
 	return q.Supervisor.CrossDerivedToSource(ctx, chainID, derived)
 }
@@ -84,4 +78,10 @@ func (a *AdminFrontend) Stop(ctx context.Context) error {
 // AddL2RPC adds a new L2 chain to the supervisor backend
 func (a *AdminFrontend) AddL2RPC(ctx context.Context, rpc string, jwtSecret eth.Bytes32) error {
 	return a.Supervisor.AddL2RPC(ctx, rpc, jwtSecret)
+}
+
+// Rewind removes some L2 chain data from the supervisor backend, starting from the given block.
+func (a *AdminFrontend) Rewind(ctx context.Context, chain eth.ChainID, block eth.BlockID) error {
+	// TODO(#15665) add logging here to track when rewinds are requested
+	return a.Supervisor.Rewind(ctx, chain, block)
 }

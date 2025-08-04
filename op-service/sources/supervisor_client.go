@@ -52,6 +52,10 @@ func (cl *SupervisorClient) AddL2RPC(ctx context.Context, rpc string, auth eth.B
 	return nil
 }
 
+func (cl *SupervisorClient) Rewind(ctx context.Context, chain eth.ChainID, block eth.BlockID) error {
+	return cl.client.CallContext(ctx, nil, "admin_rewind", chain, block)
+}
+
 func (cl *SupervisorClient) CheckAccessList(ctx context.Context, inboxEntries []common.Hash,
 	minSafety types.SafetyLevel, executingDescriptor types.ExecutingDescriptor) error {
 	return cl.client.CallContext(ctx, nil, "supervisor_checkAccessList", inboxEntries, minSafety, executingDescriptor)
@@ -79,11 +83,6 @@ func (cl *SupervisorClient) Finalized(ctx context.Context, chainID eth.ChainID) 
 
 func (cl *SupervisorClient) FinalizedL1(ctx context.Context) (result eth.BlockRef, err error) {
 	err = cl.client.CallContext(ctx, &result, "supervisor_finalizedL1")
-	return result, err
-}
-
-func (cl *SupervisorClient) CrossDerivedFrom(ctx context.Context, chainID eth.ChainID, derived eth.BlockID) (result eth.BlockRef, err error) {
-	err = cl.client.CallContext(ctx, &result, "supervisor_crossDerivedFrom", chainID, derived)
 	return result, err
 }
 

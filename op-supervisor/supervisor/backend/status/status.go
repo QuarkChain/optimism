@@ -1,6 +1,7 @@
 package status
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -10,7 +11,10 @@ import (
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 )
 
-var ErrStatusTrackerNotReady = fmt.Errorf("supervisor status tracker not ready")
+var (
+	ErrStatusTrackerNotReady = errors.New("supervisor status tracker not ready")
+	ErrMinSyncedL1Mismatch   = errors.New("min synced L1 mismatch")
+)
 
 type StatusTracker struct {
 	statuses map[eth.ChainID]*NodeSyncStatus
@@ -20,6 +24,8 @@ type StatusTracker struct {
 type NodeSyncStatus struct {
 	CurrentL1   eth.L1BlockRef
 	LocalUnsafe eth.BlockRef
+	LocalSafe   types.BlockSeal
+	CrossUnsafe types.BlockSeal
 	CrossSafe   types.BlockSeal
 	Finalized   types.BlockSeal
 }
@@ -53,6 +59,12 @@ func (su *StatusTracker) OnEvent(ev event.Event) bool {
 	case superevents.LocalUnsafeUpdateEvent:
 		status := loadStatusRef(x.ChainID)
 		status.LocalUnsafe = x.NewLocalUnsafe
+	case superevents.LocalSafeUpdateEvent:
+		status := loadStatusRef(x.ChainID)
+		status.LocalSafe = x.NewLocalSafe.Derived
+	case superevents.CrossUnsafeUpdateEvent:
+		status := loadStatusRef(x.ChainID)
+		status.CrossUnsafe = x.NewCrossUnsafe
 	case superevents.CrossSafeUpdateEvent:
 		status := loadStatusRef(x.ChainID)
 		status.CrossSafe = x.NewCrossSafe.Derived
@@ -102,7 +114,7 @@ func (su *StatusTracker) SyncStatus() (eth.SupervisorSyncStatus, error) {
 		if supervisorStatus.MinSyncedL1.Number == nodeStatus.CurrentL1.Number &&
 			supervisorStatus.MinSyncedL1.Hash != nodeStatus.CurrentL1.Hash {
 			// if the hashes are not equal, return an empty status
-			return eth.SupervisorSyncStatus{}, fmt.Errorf("min synced L1 hash mismatch: %v != %v", supervisorStatus.MinSyncedL1.Hash, nodeStatus.CurrentL1.Hash)
+			return eth.SupervisorSyncStatus{}, fmt.Errorf("%w: %v != %v", ErrMinSyncedL1Mismatch, supervisorStatus.MinSyncedL1.Hash, nodeStatus.CurrentL1.Hash)
 		}
 		// if the node's current L1 is higher than the min synced L1, we can skip it,
 		// because we already know a different node isn't synced to it yet
@@ -116,7 +128,9 @@ func (su *StatusTracker) SyncStatus() (eth.SupervisorSyncStatus, error) {
 
 		supervisorStatus.Chains[chainID] = &eth.SupervisorChainSyncStatus{
 			LocalUnsafe: nodeStatus.LocalUnsafe,
-			Safe:        nodeStatus.CrossSafe.ID(),
+			LocalSafe:   nodeStatus.LocalSafe.ID(),
+			CrossUnsafe: nodeStatus.CrossUnsafe.ID(),
+			CrossSafe:   nodeStatus.CrossSafe.ID(),
 			Finalized:   nodeStatus.Finalized.ID(),
 		}
 		firstChain = false

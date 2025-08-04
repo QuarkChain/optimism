@@ -116,18 +116,16 @@ func NewL2Verifier(t Testing, log log.Logger, l1 derive.L1Fetcher,
 	executor := event.NewGlobalSynchronous(ctx)
 	sys := event.NewSystem(log, executor)
 	t.Cleanup(sys.Stop)
-	opts := event.DefaultRegisterOpts()
-	opts.Emitter = event.EmitterOpts{
-		Limiting: true,
+	opts := event.WithEmitLimiter(
 		// TestSyncBatchType/DerivationWithFlakyL1RPC does *a lot* of quick retries
 		// TestL2BatcherBatchType/ExtendedTimeWithoutL1Batches as well.
-		Rate:  rate.Limit(100_000),
-		Burst: 100_000,
-		OnLimited: func() {
+		rate.Limit(100_000),
+		100_000,
+		func() {
 			log.Warn("Hitting events rate-limit. An events code-path may be hot-looping.")
 			t.Fatal("Tests must not hot-loop events")
 		},
-	}
+	)
 
 	var interopSys interop.SubSystem
 	if cfg.InteropTime != nil {
@@ -180,7 +178,6 @@ func NewL2Verifier(t Testing, log log.Logger, l1 derive.L1Fetcher,
 		L2:             eng,
 		Log:            log,
 		Ctx:            ctx,
-		Drain:          executor.Drain,
 		ManagedMode:    managedMode,
 	}, opts)
 
@@ -225,6 +222,10 @@ func NewL2Verifier(t Testing, log log.Logger, l1 derive.L1Fetcher,
 			Public:        true, // TODO: this field is deprecated. Do we even need this anymore?
 			Authenticated: false,
 		},
+		{
+			Namespace: "opstack",
+			Service:   node.NewOpstackAPI(ec, &testutils.FakePublishAPI{Log: log}),
+		},
 	}
 	require.NoError(t, gnode.RegisterApis(apis, nil, rollupNode.rpc), "failed to set up APIs")
 	return rollupNode
@@ -234,11 +235,14 @@ func (v *L2Verifier) InteropSyncNode(t Testing) syncnode.SyncNode {
 	require.NotNil(t, v.interopSys, "interop sub-system must be running")
 	m, ok := v.interopSys.(*managed.ManagedMode)
 	require.True(t, ok, "Interop sub-system must be in managed-mode if used as sync-node")
-	cl, err := client.CheckAndDial(t.Ctx(), v.log, m.WSEndpoint(), rpc.WithHTTPAuth(gnode.NewJWTAuth(m.JWTSecret())))
+	auth := rpc.WithHTTPAuth(gnode.NewJWTAuth(m.JWTSecret()))
+	opts := []client.RPCOption{client.WithGethRPCOptions(auth)}
+	cl, err := client.CheckAndDial(t.Ctx(), v.log, m.WSEndpoint(), auth)
 	require.NoError(t, err)
 	t.Cleanup(cl.Close)
 	bCl := client.NewBaseRPCClient(cl)
-	return syncnode.NewRPCSyncNode("action-tests-l2-verifier", bCl)
+	dialSetup := &syncnode.RPCDialSetup{JWTSecret: m.JWTSecret(), Endpoint: m.WSEndpoint()}
+	return syncnode.NewRPCSyncNode("action-tests-l2-verifier", bCl, opts, v.log, dialSetup)
 }
 
 type l2VerifierBackend struct {

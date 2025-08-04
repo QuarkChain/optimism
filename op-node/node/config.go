@@ -85,6 +85,9 @@ type Config struct {
 
 	IgnoreMissingPectraBlobSchedule bool
 	FetchWithdrawalRootFromState    bool
+
+	// Experimental. Enables new opstack RPC namespace. Used by op-test-sequencer.
+	ExperimentalOPStackAPI bool
 }
 
 func ReadDACConfigFromCLI(c *cli.Context) *DACConfig {

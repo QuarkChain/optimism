@@ -18,10 +18,12 @@
 !/op-proposer
 !/op-service
 !/op-supervisor
+!/op-test-sequencer
 !/op-wheel
 !/op-alt-da
 !/da-server
 !/op-geth
+!/op-faucet
 !/go.mod
 !/go.sum
 !/justfiles

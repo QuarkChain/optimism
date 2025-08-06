@@ -25,6 +25,8 @@ import (
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/frontend"
 )
 
+var errInvalidMetricer = errors.New("invalid metricer")
+
 type Backend interface {
 	frontend.Backend
 }
@@ -134,7 +136,7 @@ func (su *SupervisorService) initMetricsServer(cfg *config.Config) error {
 	}
 	m, ok := su.metrics.(opmetrics.RegistryMetricer)
 	if !ok {
-		return fmt.Errorf("metrics were enabled, but metricer %T does not expose registry for metrics-server", su.metrics)
+		return fmt.Errorf("metrics were enabled, but metricer %T does not expose registry for metrics-server: %w", su.metrics, errInvalidMetricer)
 	}
 	su.log.Debug("Starting metrics server", "addr", cfg.MetricsConfig.ListenAddr, "port", cfg.MetricsConfig.ListenPort)
 	metricsSrv, err := opmetrics.StartServer(m.Registry(), cfg.MetricsConfig.ListenAddr, cfg.MetricsConfig.ListenPort)
@@ -184,11 +186,11 @@ func (su *SupervisorService) initDBSync(ctx context.Context, cfg *config.Config)
 		DataDir: cfg.Datadir,
 		Logger:  su.log,
 	}
-	depSet, err := cfg.DependencySetSource.LoadDependencySet(ctx)
+	cfgSet, err := cfg.FullConfigSetSource.LoadFullConfigSet(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to load dependency set: %w", err)
+		return fmt.Errorf("failed to load full config set: %w", err)
 	}
-	handler, err := sync.NewServer(syncCfg, depSet.Chains())
+	handler, err := sync.NewServer(syncCfg, cfgSet.Chains())
 	if err != nil {
 		return fmt.Errorf("failed to create db sync handler: %w", err)
 	}

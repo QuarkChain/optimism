@@ -109,11 +109,18 @@ type TransactionSender interface {
 type EthNonce interface {
 	// PendingNonceAt returns the account nonce of the given account in the pending state.
 	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+	// NonceAt returns the account nonce of the given account in the state at the given block number.
+	// A nil block number may be used to get the latest state.
+	NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error)
 }
 
 type EthBalance interface {
 	// BalanceAt returns the wei balance of the given account.
 	BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error)
+}
+
+type EthCode interface {
+	CodeAtHash(ctx context.Context, account common.Address, blockHash common.Hash) ([]byte, error)
 }
 
 type EthClient interface {
@@ -129,6 +136,7 @@ type EthClient interface {
 	TransactionSender
 	EthNonce
 	EthBalance
+	EthCode
 }
 
 type EthExtendedClient interface {

@@ -485,7 +485,7 @@ func TestSpanBatchReadTxData(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			rng := rand.New(rand.NewSource(int64(0x109550 + i)))
 			chainID := new(big.Int).SetUint64(rng.Uint64())
-			signer := types.NewIsthmusSigner(chainID)
+			signer := types.NewIsthmusSigner(chainID, false)
 			if !testCase.protected {
 				signer = types.HomesteadSigner{}
 			}

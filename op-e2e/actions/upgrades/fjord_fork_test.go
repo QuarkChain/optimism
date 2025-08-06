@@ -142,7 +142,10 @@ func fjordL1Cost(t require.TestingT, gasPriceOracle *bindings.GasPriceOracleCall
 		l1BaseFee,
 		blobBaseFee,
 		new(big.Int).SetUint64(uint64(baseFeeScalar)),
-		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)),
+		new(big.Int).SetUint64(1),
+		new(big.Int).SetUint64(1),
+	)
 
 	fee, _ := costFunc(rollupCostData)
 	return fee

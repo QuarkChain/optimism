@@ -283,7 +283,8 @@ func fjordL1Cost(gasPriceOracle *bindings.GasPriceOracleCaller, block common.Has
 		l1BaseFee,
 		blobBaseFee,
 		new(big.Int).SetUint64(uint64(baseFeeScalar)),
-		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)),
+		big.NewInt(1), big.NewInt(1))
 
 	fee, _ := costFunc(types.RollupCostData{FastLzSize: fastLzSize})
 	return fee, nil

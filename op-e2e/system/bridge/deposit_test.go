@@ -143,7 +143,7 @@ func TestMintCallToDelegatedAccount(t *testing.T) {
 	// Simple constructor that is prefixed to the actual contract code
 	// Results in the contract code being returned as the code for the new contract
 	deployData := append(deployPrefix, sstoreContract...)
-	signer := types.NewIsthmusSigner(cfg.L2ChainIDBig())
+	signer := types.NewIsthmusSigner(cfg.L2ChainIDBig(), false)
 
 	tx := types.MustSignNewTx(cfg.Secrets.Alice, signer, &types.DynamicFeeTx{
 		ChainID:   cfg.L2ChainIDBig(),

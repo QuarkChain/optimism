@@ -14,7 +14,7 @@ import (
 	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-e2e/system/e2esys"
-	"github.com/ethereum-optimism/optimism/op-node/node"
+	"github.com/ethereum-optimism/optimism/op-node/config"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testutils"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
@@ -76,11 +76,11 @@ func TestSubmitTXWithBlobsFunctionSuccess(t *testing.T) {
 }
 
 func startSystemWithDAC(t *testing.T) (*e2esys.System, *ethclient.Client) {
-	cfg := e2esys.DefaultSystemConfig(t)
+	cfg := e2esys.IsthmusSystemConfig(t, new(hexutil.Uint64))
 	delete(cfg.Nodes, "verifier")
 	c, ok := cfg.Nodes["sequencer"]
 	require.True(t, ok, "sequencer is required")
-	c.DACConfig = &node.DACConfig{URLS: []string{dacUrl}}
+	c.DACConfig = &config.DACConfig{URLS: []string{dacUrl}}
 	c.Driver.SequencerEnabled = true
 	cfg.DeployConfig.L2GenesisBlobTimeOffset = new(hexutil.Uint64)
 	// Disable proposer creating fast games automatically - required games are manually created

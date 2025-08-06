@@ -16,10 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/challenger"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
-	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
-
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/maps"
 
@@ -46,8 +42,10 @@ import (
 
 	altda "github.com/ethereum-optimism/optimism/op-alt-da"
 	bss "github.com/ethereum-optimism/optimism/op-batcher/batcher"
+	batcherCfg "github.com/ethereum-optimism/optimism/op-batcher/config"
 	batcherFlags "github.com/ethereum-optimism/optimism/op-batcher/flags"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
+	shared "github.com/ethereum-optimism/optimism/op-devstack/shared/challenger"
 	"github.com/ethereum-optimism/optimism/op-e2e/config"
 	"github.com/ethereum-optimism/optimism/op-e2e/config/secrets"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
@@ -57,13 +55,16 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/opnode"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/services"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/setuputils"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-node/chaincfg"
+	config2 "github.com/ethereum-optimism/optimism/op-node/config"
 	rollupNode "github.com/ethereum-optimism/optimism/op-node/node"
 	"github.com/ethereum-optimism/optimism/op-node/p2p"
 	"github.com/ethereum-optimism/optimism/op-node/p2p/store"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/driver"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/interop"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
 	l2os "github.com/ethereum-optimism/optimism/op-proposer/proposer"
 	"github.com/ethereum-optimism/optimism/op-service/client"
@@ -73,9 +74,11 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
+	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	opsigner "github.com/ethereum-optimism/optimism/op-service/signer"
 	"github.com/ethereum-optimism/optimism/op-service/sources"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
 )
 
 const (
@@ -141,7 +144,7 @@ func DefaultSystemConfig(t testing.TB, opts ...SystemConfigOpt) SystemConfig {
 		L1FinalizedDistance:    8, // Short, for faster tests.
 		BlobsPath:              t.TempDir(),
 		AllocType:              sco.AllocType,
-		Nodes: map[string]*rollupNode.Config{
+		Nodes: map[string]*config2.Config{
 			RoleSeq: {
 				Driver: driver.Config{
 					VerifierConfDepth:  0,
@@ -149,14 +152,15 @@ func DefaultSystemConfig(t testing.TB, opts ...SystemConfigOpt) SystemConfig {
 					SequencerEnabled:   true,
 				},
 				// Submitter PrivKey is set in system start for rollup nodes where sequencer = true
-				RPC: rollupNode.RPCConfig{
+				RPC: oprpc.CLIConfig{
 					ListenAddr:  "127.0.0.1",
 					ListenPort:  0,
 					EnableAdmin: true,
 				},
+				InteropConfig:               &interop.Config{},
 				L1EpochPollInterval:         time.Second * 2,
 				RuntimeConfigReloadInterval: time.Minute * 10,
-				ConfigPersistence:           &rollupNode.DisabledConfigPersistence{},
+				ConfigPersistence:           &config2.DisabledConfigPersistence{},
 				Sync:                        sync.Config{SyncMode: sync.CLSync},
 			},
 			RoleVerif: {
@@ -165,14 +169,15 @@ func DefaultSystemConfig(t testing.TB, opts ...SystemConfigOpt) SystemConfig {
 					SequencerConfDepth: 0,
 					SequencerEnabled:   false,
 				},
-				RPC: rollupNode.RPCConfig{
+				RPC: oprpc.CLIConfig{
 					ListenAddr:  "127.0.0.1",
 					ListenPort:  0,
 					EnableAdmin: true,
 				},
+				InteropConfig:               &interop.Config{},
 				L1EpochPollInterval:         time.Second * 4,
 				RuntimeConfigReloadInterval: time.Minute * 10,
-				ConfigPersistence:           &rollupNode.DisabledConfigPersistence{},
+				ConfigPersistence:           &config2.DisabledConfigPersistence{},
 				Sync:                        sync.Config{SyncMode: sync.CLSync},
 			},
 		},
@@ -288,7 +293,7 @@ type SystemConfig struct {
 	L1FinalizedDistance uint64
 
 	Premine        map[common.Address]*big.Int
-	Nodes          map[string]*rollupNode.Config // Per node config. Don't use populate rollup.Config
+	Nodes          map[string]*config2.Config // Per node config. Don't use populate rollup.Config
 	Loggers        map[string]log.Logger
 	GethOptions    map[string][]geth.GethOption
 	ProposerLogger log.Logger
@@ -327,7 +332,7 @@ type SystemConfig struct {
 	// Default is 1 if unset.
 	BatcherTargetNumFrames int
 
-	// whether to actually use BatcherMaxL1TxSizeBytes for blobs, insteaf of max blob size
+	// whether to actually use BatcherMaxL1TxSizeBytes for blobs, instead of max blob size
 	BatcherUseMaxTxSizeForBlobs bool
 
 	// Singular (0) or span batches (1)
@@ -386,12 +391,12 @@ type System struct {
 	clients map[string]*ethclient.Client
 }
 
-func (sys *System) PrestateVariant() challenger.PrestateVariant {
+func (sys *System) PrestateVariant() shared.PrestateVariant {
 	switch sys.AllocType() {
-	case config.AllocTypeMTCannon:
-		return challenger.MTCannonVariant
+	case config.AllocTypeMTCannonNext:
+		return shared.MTCannonNextVariant
 	default:
-		return challenger.STCannonVariant
+		return shared.MTCannonVariant
 	}
 }
 
@@ -572,6 +577,7 @@ func WithBatcherThrottling(interval time.Duration, threshold, txSize, blockSize 
 	return StartOption{
 		BatcherMod: func(cfg *bss.CLIConfig) {
 			cfg.ThrottleThreshold = threshold
+			cfg.ThrottleControllerType = batcherCfg.StepControllerType
 			cfg.ThrottleTxSize = txSize
 			cfg.ThrottleBlockSize = blockSize
 		},
@@ -674,13 +680,6 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 		}
 	}
 
-	var l2BlobConfig *rollup.L2BlobConfig
-	if cfg.DeployConfig.L2GenesisBlobTimeOffset != nil {
-		l2BlobConfig = &rollup.L2BlobConfig{
-			L2BlobTime: cfg.DeployConfig.L2BlobTime(l1Block.Time()),
-		}
-	}
-
 	var inboxContractConfig *rollup.InboxContractConfig
 	if cfg.DeployConfig.UseInboxContract {
 		inboxContractConfig = &rollup.InboxContractConfig{UseInboxContract: true}
@@ -722,12 +721,16 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 			InteropTime:             cfg.DeployConfig.InteropTime(uint64(cfg.DeployConfig.L1GenesisBlockTimestamp)),
 			ProtocolVersionsAddress: cfg.L1Deployments.ProtocolVersionsProxy,
 			AltDAConfig:             rollupAltDAConfig,
-			L2BlobConfig:            l2BlobConfig,
 			InboxContractConfig:     inboxContractConfig,
 			ChainOpConfig: &params.OptimismConfig{
-				EIP1559Elasticity:        cfg.DeployConfig.EIP1559Elasticity,
-				EIP1559Denominator:       cfg.DeployConfig.EIP1559Denominator,
-				EIP1559DenominatorCanyon: &cfg.DeployConfig.EIP1559DenominatorCanyon,
+				EIP1559Elasticity:             cfg.DeployConfig.EIP1559Elasticity,
+				EIP1559Denominator:            cfg.DeployConfig.EIP1559Denominator,
+				EIP1559DenominatorCanyon:      &cfg.DeployConfig.EIP1559DenominatorCanyon,
+				L2BlobTime:                    cfg.DeployConfig.L2BlobTime(l1Block.Time()),
+				SoulGasTokenTime:              cfg.DeployConfig.SoulGasTokenTime(l1Block.Time()),
+				IsSoulBackedByNative:          cfg.DeployConfig.IsSoulBackedByNative,
+				L1BaseFeeScalarMultiplier:     cfg.DeployConfig.L1BaseFeeScalarMultiplier,
+				L1BlobBaseFeeScalarMultiplier: cfg.DeployConfig.L1BlobBaseFeeScalarMultiplier,
 			},
 		}
 	}
@@ -749,7 +752,7 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 	sys.L1BeaconAPIAddr = endpoint.RestHTTPURL(beaconApiAddr)
 
 	// Initialize nodes
-	l1Geth, err := geth.InitL1(
+	l1Geth, _, err := geth.InitL1(
 		cfg.DeployConfig.L1BlockTime, cfg.L1FinalizedDistance, l1Genesis, c,
 		path.Join(cfg.BlobsPath, "l1_el"), bcn, cfg.GethOptions[RoleL1]...)
 	if err != nil {
@@ -1002,8 +1005,8 @@ func (cfg SystemConfig) Start(t *testing.T, startOpts ...StartOption) (*System, 
 	}
 	batcherCLIConfig := &bss.CLIConfig{
 		L1EthRpc:                 sys.EthInstances[RoleL1].UserRPC().RPC(),
-		L2EthRpc:                 sys.EthInstances[RoleSeq].UserRPC().RPC(),
-		RollupRpc:                sys.RollupNodes[RoleSeq].UserRPC().RPC(),
+		L2EthRpc:                 []string{sys.EthInstances[RoleSeq].UserRPC().RPC()},
+		RollupRpc:                []string{sys.RollupNodes[RoleSeq].UserRPC().RPC()},
 		MaxPendingTransactions:   cfg.BatcherMaxPendingTransactions,
 		MaxChannelDuration:       1,
 		MaxL1TxSize:              batcherMaxL1TxSizeBytes,
@@ -1109,8 +1112,8 @@ func (sys *System) TestAccount(idx int) *ecdsa.PrivateKey {
 	}
 }
 
-func ConfigureL1(rollupNodeCfg *rollupNode.Config, l1Node services.EthInstance, beaconEndpoint endpoint.RestHTTP) {
-	rollupNodeCfg.L1 = &rollupNode.L1EndpointConfig{
+func ConfigureL1(rollupNodeCfg *config2.Config, l1Node services.EthInstance, beaconEndpoint endpoint.RestHTTP) {
+	rollupNodeCfg.L1 = &config2.L1EndpointConfig{
 		L1NodeAddr:       endpoint.SelectRPC(EnvRPCPreference(), l1Node.UserRPC()),
 		L1TrustRPC:       false,
 		L1RPCKind:        sources.RPCKindStandard,
@@ -1119,13 +1122,13 @@ func ConfigureL1(rollupNodeCfg *rollupNode.Config, l1Node services.EthInstance, 
 		HttpPollInterval: time.Millisecond * 100,
 		MaxConcurrency:   10,
 	}
-	rollupNodeCfg.Beacon = &rollupNode.L1BeaconEndpointConfig{
+	rollupNodeCfg.Beacon = &config2.L1BeaconEndpointConfig{
 		BeaconAddr: beaconEndpoint.RestHTTP(),
 	}
 }
 
-func ConfigureL2(rollupNodeCfg *rollupNode.Config, l2Node services.EthInstance, jwtSecret [32]byte) {
-	rollupNodeCfg.L2 = &rollupNode.L2EndpointConfig{
+func ConfigureL2(rollupNodeCfg *config2.Config, l2Node services.EthInstance, jwtSecret [32]byte) {
+	rollupNodeCfg.L2 = &config2.L2EndpointConfig{
 		L2EngineAddr:      endpoint.SelectRPC(EnvRPCPreference(), l2Node.AuthRPC()),
 		L2EngineJWTSecret: jwtSecret,
 	}

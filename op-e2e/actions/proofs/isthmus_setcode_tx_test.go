@@ -98,7 +98,7 @@ func runSetCodeTxTypeTest(gt *testing.T, testCfg *helpers.TestCfg[any]) {
 		GasTipCap: uint256.NewInt(2),
 		AuthList:  []types.SetCodeAuthorization{auth1, auth2},
 	}
-	signer := types.NewIsthmusSigner(chainID)
+	signer := types.NewIsthmusSigner(chainID, false)
 	tx := types.MustSignNewTx(aliceSecret, signer, txdata)
 
 	err = cl.SendTransaction(t.Ctx(), tx)
@@ -244,7 +244,7 @@ func runSetCodeTxTypeWithContractCreationBitSetTest(gt *testing.T, testCfg *help
 
 	sequencer.ActL2EmptyBlock(t) // we'll inject the setcode tx in this block's batch
 
-	signer := types.NewIsthmusSigner(chainID)
+	signer := types.NewIsthmusSigner(chainID, false)
 
 	rng := rand.New(rand.NewSource(0))
 	tx := testutils.RandomSetCodeTx(rng, signer)

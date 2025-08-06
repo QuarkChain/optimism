@@ -302,7 +302,7 @@ func getRandomSignedTransaction(ctx context.Context, ethClient *ethclient.Client
 
 	tx := types.NewTx(txData)
 
-	signer := types.NewIsthmusSigner(chainId)
+	signer := types.NewIsthmusSigner(chainId, false)
 	if !protected {
 		if txType == types.LegacyTxType {
 			signer = types.HomesteadSigner{}

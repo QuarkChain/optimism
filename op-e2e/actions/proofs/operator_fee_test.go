@@ -234,9 +234,6 @@ func Test_ProgramAction_OperatorFeeConsistency(gt *testing.T) {
 			env.Batcher.ActL2BatchBuffer(t)
 
 			aliceInitialBalance, l1FeeVaultInitialBalance, baseFeeVaultInitialBalance, sequencerFeeVaultInitialBalance, operatorFeeVaultInitialBalance = getCurrentBalances()
-			if testCfg.Custom != NotEnoughFundsInBatchMissingOpFee {
-				require.Equal(t, operatorFeeVaultInitialBalance.Sign(), 0)
-			}
 
 			// Craft a transaction from Alice -> Bob
 			env.Alice.L2.ActResetTxOpts(t)
@@ -391,7 +388,10 @@ func fjordL1Cost(l1BlockInfo *derive.L1BlockInfo, rollupCostData types.RollupCos
 		l1BlockInfo.BaseFee,
 		l1BlockInfo.BlobBaseFee,
 		new(big.Int).SetUint64(uint64(l1BlockInfo.BaseFeeScalar)),
-		new(big.Int).SetUint64(uint64(l1BlockInfo.BlobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(l1BlockInfo.BlobBaseFeeScalar)),
+		new(big.Int).SetUint64(1),
+		new(big.Int).SetUint64(1),
+	)
 
 	fee, _ := costFunc(rollupCostData)
 	return fee

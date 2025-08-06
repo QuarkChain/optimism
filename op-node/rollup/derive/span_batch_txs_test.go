@@ -333,7 +333,7 @@ func TestSpanBatchTxsRecoverV(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x123))
 
 	chainID := big.NewInt(rng.Int63n(1000))
-	isthmusSigner := types.NewIsthmusSigner(chainID)
+	isthmusSigner := types.NewIsthmusSigner(chainID, false)
 	cancunSigner := types.NewCancunSigner(chainID)
 	totalblockTxCount := 20 + rng.Intn(100)
 
@@ -427,7 +427,7 @@ func TestSpanBatchTxsRoundTrip(t *testing.T) {
 func TestSpanBatchTxsRoundTripFullTxs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x13377331))
 	chainID := big.NewInt(rng.Int63n(1000))
-	isthmusSigner := types.NewIsthmusSigner(chainID)
+	isthmusSigner := types.NewIsthmusSigner(chainID, false)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},
@@ -478,7 +478,7 @@ func TestSpanBatchTxsRecoverVInvalidTxType(t *testing.T) {
 func TestSpanBatchTxsFullTxNotEnoughTxTos(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x13572468))
 	chainID := big.NewInt(rng.Int63n(1000))
-	isthmusSigner := types.NewIsthmusSigner(chainID)
+	isthmusSigner := types.NewIsthmusSigner(chainID, false)
 
 	cases := []txTypeTest{
 		{"unprotected legacy tx", testutils.RandomLegacyTx, types.HomesteadSigner{}},

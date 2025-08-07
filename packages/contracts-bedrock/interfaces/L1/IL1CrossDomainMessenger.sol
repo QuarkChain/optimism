@@ -23,6 +23,14 @@ interface IL1CrossDomainMessenger is ICrossDomainMessenger, IProxyAdminOwnedBase
     function version() external view returns (string memory);
     function superchainConfig() external view returns (ISuperchainConfig);
     function upgrade(ISystemConfig _systemConfig) external;
+    function wrapForRelayMessage(
+        address _target,
+        bytes calldata _message,
+        uint32 _minGasLimit,
+        uint256 _value
+    )
+        external
+        returns (address otherMessenger, uint64 gasLimit, bytes memory data);
 
     function __constructor__() external;
 }

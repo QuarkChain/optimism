@@ -22,6 +22,7 @@ import { GameStatus, GameType } from "src/dispute/lib/Types.sol";
 import { ISemver } from "interfaces/universal/ISemver.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
+import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
@@ -771,7 +772,10 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     }
 
     /// @notice Mint a specific amount of L2 native token to an address.
-    function mintTransaction(address _to, uint256 _value) external metered(RECEIVE_DEFAULT_GAS_LIMIT) {
+    function mintTransaction(address _to, uint256 _value, uint32 _minGasLimit) external {
+        // Record initial gas amount so we can refund for it later.
+        uint256 initialGas = gasleft();
+
         QKCConfigStorage storage $ = _getQKCConfigStorage();
         if (msg.sender != $.minter) {
             revert OptimismPortal_Unauthorized();
@@ -780,14 +784,30 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         if (_to == address(0)) {
             revert OptimismPortal_BadTarget();
         }
+
+        address l1CrossDomainMessenger = systemConfig.l1CrossDomainMessenger();
+        (address otherMessenger, uint64 gasLimit, bytes memory data) =
+            IL1CrossDomainMessenger(l1CrossDomainMessenger).wrapForRelayMessage(_to, bytes(""), _minGasLimit, _value);
+
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(_value, _value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
+        bytes memory opaqueData = abi.encodePacked(_value, _value, gasLimit, false, data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
-        emit TransactionDeposited(Constants.QKC_DEPOSITOR_ACCOUNT, _to, DEPOSIT_VERSION, opaqueData);
+        emit TransactionDeposited(
+            /**
+             * alias is needed to satisfy _isOtherMessenger() on L2 *
+             */
+            AddressAliasHelper.applyL1ToL2Alias(l1CrossDomainMessenger),
+            otherMessenger,
+            DEPOSIT_VERSION,
+            opaqueData
+        );
+
+        // Run the metering function.
+        _metered(gasLimit, initialGas);
     }
 
     /// @notice set native deposit flag. Pass true to disable.

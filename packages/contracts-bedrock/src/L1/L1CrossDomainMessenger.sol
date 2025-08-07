@@ -89,6 +89,30 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, Re
         return portal;
     }
 
+    /// @notice Returns the required parameters for wrapping a call with the relayMessage function on L2.
+    /// @param _target      Target contract or wallet address.
+    /// @param _message     Message to trigger the target address with.
+    /// @param _minGasLimit Minimum gas limit that the message can be executed with.
+    /// @param _value       Value to send with the message.
+    function wrapForRelayMessage(
+        address _target,
+        bytes calldata _message,
+        uint32 _minGasLimit,
+        uint256 _value
+    )
+        external
+        returns (address otherMessenger_, uint64 gasLimit, bytes memory data)
+    {
+        otherMessenger_ = otherMessenger;
+        gasLimit = baseGas(_message, _minGasLimit);
+        data = abi.encodeWithSelector(
+            this.relayMessage.selector, messageNonce(), msg.sender, _target, _value, _minGasLimit, _message
+        );
+        unchecked {
+            ++msgNonce;
+        }
+    }
+
     /// @inheritdoc CrossDomainMessenger
     function _sendMessage(address _to, uint64 _gasLimit, uint256 _value, bytes memory _data) internal override {
         portal.depositTransaction{ value: _value }({

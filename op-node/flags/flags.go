@@ -406,19 +406,13 @@ var (
 		Category: SequencerCategory,
 	}
 	/* Interop flags, experimental. */
-	InteropSupervisor = &cli.StringFlag{
-		Name: "interop.supervisor",
-		Usage: "Interop standard-mode: RPC address of interop supervisor to use for cross-chain safety verification." +
-			"Applies only to Interop-enabled networks.",
-		EnvVars:  prefixEnvVars("INTEROP_SUPERVISOR"),
-		Category: InteropCategory,
-	}
 	InteropRPCAddr = &cli.StringFlag{
 		Name: "interop.rpc.addr",
-		Usage: "Interop Websocket-only RPC listening address, to serve supervisor syncing." +
-			"Applies only to Interop-enabled networks. Optional, alternative to follow-mode.",
+		Usage: "Interop Websocket-only RPC listening address, for supervisor service to manage syncing of the op-node." +
+			"Applies only to Interop-enabled networks. Optional, disabled if left empty. " +
+			"Do not enable if you do not run a supervisor service.",
 		EnvVars:  prefixEnvVars("INTEROP_RPC_ADDR"),
-		Value:    "127.0.0.1",
+		Value:    "",
 		Category: InteropCategory,
 	}
 	InteropRPCPort = &cli.IntFlag{
@@ -439,6 +433,13 @@ var (
 		Destination: new(string),
 		Category:    InteropCategory,
 	}
+	InteropDependencySet = &cli.PathFlag{
+		Name:      "interop.dependency-set",
+		Usage:     "Dependency-set configuration, point at JSON file.",
+		EnvVars:   prefixEnvVars("INTEROP_DEPENDENCY_SET"),
+		TakesFile: true,
+		Category:  InteropCategory,
+	}
 
 	IgnoreMissingPectraBlobSchedule = &cli.BoolFlag{
 		Name: "ignore-missing-pectra-blob-schedule",
@@ -448,6 +449,14 @@ var (
 		EnvVars:  prefixEnvVars("IGNORE_MISSING_PECTRA_BLOB_SCHEDULE"),
 		Category: RollupCategory,
 		Hidden:   true,
+	}
+
+	ExperimentalOPStackAPI = &cli.BoolFlag{
+		Name:     "experimental.sequencer-api",
+		Usage:    "Enables experimental test sequencer RPC functionality",
+		Required: false,
+		EnvVars:  prefixEnvVars("EXPERIMENTAL_SEQUENCER_API"),
+		Category: MiscCategory,
 	}
 )
 
@@ -500,11 +509,12 @@ var optionalFlags = []cli.Flag{
 	L2EngineKind,
 	DACUrlsFlag,
 	L2EngineRpcTimeout,
-	InteropSupervisor,
 	InteropRPCAddr,
 	InteropRPCPort,
 	InteropJWTSecret,
+	InteropDependencySet,
 	IgnoreMissingPectraBlobSchedule,
+	ExperimentalOPStackAPI,
 }
 
 var DeprecatedFlags = []cli.Flag{

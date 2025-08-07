@@ -548,6 +548,14 @@ func (s *EthClient) PendingNonceAt(ctx context.Context, account common.Address) 
 	return uint64(result), err
 }
 
+// NonceAt returns the account nonce of the given account in the state at the given block number.
+// A nil block number may be used to get the latest state.
+func (s *EthClient) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
+	var result hexutil.Uint64
+	err := s.client.CallContext(ctx, &result, "eth_getTransactionCount", account, toBlockNumArg(blockNumber))
+	return uint64(result), err
+}
+
 func toBlockNumArg(number *big.Int) string {
 	if number == nil {
 		return "latest"
@@ -568,4 +576,11 @@ func (s *EthClient) BalanceAt(ctx context.Context, account common.Address, block
 	var result hexutil.Big
 	err := s.client.CallContext(ctx, &result, "eth_getBalance", account, toBlockNumArg(blockNumber))
 	return (*big.Int)(&result), err
+}
+
+// CodeAtHash returns the contract code of the given account.
+func (s *EthClient) CodeAtHash(ctx context.Context, account common.Address, blockHash common.Hash) ([]byte, error) {
+	var result hexutil.Bytes
+	err := s.client.CallContext(ctx, &result, "eth_getCode", account, blockHash)
+	return result, err
 }

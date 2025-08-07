@@ -101,7 +101,7 @@ func Deploy(logger log.Logger, fa *foundry.ArtifactsFS, srcFS *foundry.SourceMap
 		if err := l2Host.EnableCheats(); err != nil {
 			return nil, nil, fmt.Errorf("failed to enable cheats in L2 state %s: %w", l2ChainID, err)
 		}
-		if err := GenesisL2(l2Host, l2Cfg, deployments.L2s[l2ChainID]); err != nil {
+		if err := GenesisL2(l2Host, l2Cfg, deployments.L2s[l2ChainID], len(cfg.L2s) > 1); err != nil {
 			return nil, nil, fmt.Errorf("failed to apply genesis data to L2 %s: %w", l2ChainID, err)
 		}
 		l2Out, err := CompleteL2(l2Host, l2Cfg, l1GenesisBlock, deployments.L2s[l2ChainID])
@@ -185,7 +185,6 @@ func DeploySuperchainToL1(l1Host *script.Host, superCfg *SuperchainConfig) (*Sup
 		SuperchainConfigProxy:           superDeployment.SuperchainConfigProxy,
 		ProtocolVersionsProxy:           superDeployment.ProtocolVersionsProxy,
 		UpgradeController:               superCfg.ProxyAdminOwner,
-		UseInterop:                      superCfg.Implementations.UseInterop,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to deploy Implementations contracts: %w", err)
@@ -284,14 +283,33 @@ func MigrateInterop(
 	}, nil
 }
 
-func GenesisL2(l2Host *script.Host, cfg *L2Config, deployment *L2Deployment) error {
-	if err := opcm.L2Genesis(l2Host, &opcm.L2GenesisInput{
-		L1Deployments: opcm.L1Deployments{
-			L1CrossDomainMessengerProxy: deployment.L1CrossDomainMessengerProxy,
-			L1StandardBridgeProxy:       deployment.L1StandardBridgeProxy,
-			L1ERC721BridgeProxy:         deployment.L1ERC721BridgeProxy,
-		},
-		L2Config: cfg.L2InitializationConfig,
+func GenesisL2(l2Host *script.Host, cfg *L2Config, deployment *L2Deployment, multichainDepSet bool) error {
+	genesisScript, err := opcm.NewL2GenesisScript(l2Host)
+	if err != nil {
+		return fmt.Errorf("failed to create L2 genesis script: %w", err)
+	}
+
+	if err := genesisScript.Run(opcm.L2GenesisInput{
+		L1ChainID:                                new(big.Int).SetUint64(cfg.L1ChainID),
+		L2ChainID:                                new(big.Int).SetUint64(cfg.L2ChainID),
+		L1CrossDomainMessengerProxy:              deployment.L1CrossDomainMessengerProxy,
+		L1StandardBridgeProxy:                    deployment.L1StandardBridgeProxy,
+		L1ERC721BridgeProxy:                      deployment.L1ERC721BridgeProxy,
+		OpChainProxyAdminOwner:                   cfg.ProxyAdminOwner,
+		SequencerFeeVaultRecipient:               cfg.SequencerFeeVaultRecipient,
+		SequencerFeeVaultMinimumWithdrawalAmount: cfg.SequencerFeeVaultMinimumWithdrawalAmount.ToInt(),
+		SequencerFeeVaultWithdrawalNetwork:       big.NewInt(int64(cfg.SequencerFeeVaultWithdrawalNetwork.ToUint8())),
+		BaseFeeVaultRecipient:                    cfg.BaseFeeVaultRecipient,
+		BaseFeeVaultMinimumWithdrawalAmount:      cfg.BaseFeeVaultMinimumWithdrawalAmount.ToInt(),
+		BaseFeeVaultWithdrawalNetwork:            big.NewInt(int64(cfg.BaseFeeVaultWithdrawalNetwork.ToUint8())),
+		L1FeeVaultRecipient:                      cfg.L1FeeVaultRecipient,
+		L1FeeVaultMinimumWithdrawalAmount:        cfg.L1FeeVaultMinimumWithdrawalAmount.ToInt(),
+		L1FeeVaultWithdrawalNetwork:              big.NewInt(int64(cfg.L1FeeVaultWithdrawalNetwork.ToUint8())),
+		GovernanceTokenOwner:                     cfg.GovernanceTokenOwner,
+		Fork:                                     big.NewInt(cfg.SolidityForkNumber(1)),
+		DeployCrossL2Inbox:                       multichainDepSet,
+		EnableGovernance:                         cfg.EnableGovernance,
+		FundDevAccounts:                          cfg.FundDevAccounts,
 	}); err != nil {
 		return fmt.Errorf("failed L2 genesis: %w", err)
 	}

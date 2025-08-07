@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/ethereum-optimism/optimism/devnet-sdk/descriptors"
-	"github.com/kurtosis-tech/kurtosis/api/golang/engine/lib/kurtosis_context"
+	"github.com/ethereum-optimism/optimism/kurtosis-devnet/pkg/kurtosis/api/wrappers"
 )
 
-type PortMap map[string]descriptors.PortInfo
+type PortMap map[string]*descriptors.PortInfo
 
 type ServiceMap map[string]PortMap
 
@@ -28,12 +28,12 @@ func NewInspector(enclaveID string) *Inspector {
 }
 
 func (e *Inspector) ExtractData(ctx context.Context) (*InspectData, error) {
-	kurtosisCtx, err := kurtosis_context.NewKurtosisContextFromLocalEngine()
+	kurtosisCtx, err := wrappers.GetDefaultKurtosisContext()
 	if err != nil {
 		return nil, err
 	}
 
-	enclaveCtx, err := kurtosisCtx.GetEnclaveContext(ctx, e.enclaveID)
+	enclaveCtx, err := kurtosisCtx.GetEnclave(ctx, e.enclaveID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (e *Inspector) ExtractData(ctx context.Context) (*InspectData, error) {
 
 	for svc := range services {
 		svc := string(svc)
-		svcCtx, err := enclaveCtx.GetServiceContext(svc)
+		svcCtx, err := enclaveCtx.GetService(svc)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +70,7 @@ func (e *Inspector) ExtractData(ctx context.Context) (*InspectData, error) {
 		portMap := make(PortMap)
 
 		for port, portSpec := range svcCtx.GetPublicPorts() {
-			portMap[port] = descriptors.PortInfo{
+			portMap[port] = &descriptors.PortInfo{
 				Host: svcCtx.GetMaybePublicIPAddress(),
 				Port: int(portSpec.GetNumber()),
 			}

@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/addresses"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/standard"
@@ -92,6 +93,7 @@ type Builder interface {
 	WithSuperchain() (Builder, SuperchainConfigurator)
 	WithL1(l1ChainID eth.ChainID) (Builder, L1Configurator)
 	WithL2(l2ChainID eth.ChainID) (Builder, L2Configurator)
+	L2s() (out []L2Configurator)
 	Build() (*state.Intent, error)
 }
 
@@ -147,7 +149,7 @@ func New() Builder {
 	return &intentBuilder{
 		intent: &state.Intent{
 			ConfigType:      state.IntentTypeCustom,
-			SuperchainRoles: new(state.SuperchainRoles),
+			SuperchainRoles: new(addresses.SuperchainRoles),
 		},
 	}
 }
@@ -183,6 +185,13 @@ func (b *intentBuilder) WithL2(l2ChainID eth.ChainID) (Builder, L2Configurator) 
 	return b, &l2Configurator{builder: b, chainIndex: len(b.intent.Chains) - 1}
 }
 
+func (b *intentBuilder) L2s() (out []L2Configurator) {
+	for i := range b.intent.Chains {
+		out = append(out, &l2Configurator{builder: b, chainIndex: i})
+	}
+	return out
+}
+
 func (b *intentBuilder) Build() (*state.Intent, error) {
 	require.NoError(b.t, b.intent.Check(), "invalid intent")
 	return b.intent, nil
@@ -202,12 +211,12 @@ func (c *superchainConfigurator) WithSuperchainConfigProxy(address common.Addres
 }
 
 func (c *superchainConfigurator) WithProxyAdminOwner(address common.Address) SuperchainConfigurator {
-	c.builder.intent.SuperchainRoles.ProxyAdminOwner = address
+	c.builder.intent.SuperchainRoles.SuperchainProxyAdminOwner = address
 	return c
 }
 
 func (c *superchainConfigurator) WithGuardian(address common.Address) SuperchainConfigurator {
-	c.builder.intent.SuperchainRoles.Guardian = address
+	c.builder.intent.SuperchainRoles.SuperchainGuardian = address
 	return c
 }
 
@@ -379,7 +388,8 @@ func (c *l2Configurator) WithForkAtOffset(fork rollup.ForkName, offset *uint64) 
 	if offset == nil {
 		delete(c.builder.intent.Chains[c.chainIndex].DeployOverrides, key)
 	} else {
-		c.builder.intent.Chains[c.chainIndex].DeployOverrides[key] = offset
+		// The typing is important, or op-deployer merge-JSON tricks will fail
+		c.builder.intent.Chains[c.chainIndex].DeployOverrides[key] = (*hexutil.Uint64)(offset)
 	}
 }
 

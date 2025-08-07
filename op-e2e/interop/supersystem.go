@@ -31,10 +31,10 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/interopgen"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/contracts/bindings/emit"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/contracts/bindings/inbox"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/fakebeacon"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/geth"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/interop/contracts/bindings/emit"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/interop/contracts/bindings/inbox"
 	"github.com/ethereum-optimism/optimism/op-e2e/system/helpers"
 	l2os "github.com/ethereum-optimism/optimism/op-proposer/proposer"
 	"github.com/ethereum-optimism/optimism/op-service/client"
@@ -294,9 +294,10 @@ func (s *interopE2ESystem) prepareSupervisor() *supervisor.SupervisorService {
 			ListenPort:  0,
 			EnableAdmin: true,
 		},
-		SyncSources: &syncnode.CLISyncNodes{}, // no sync-sources
-		L1RPC:       s.l1.UserRPC().RPC(),
-		Datadir:     path.Join(s.t.TempDir(), "supervisor"),
+		SyncSources:             &syncnode.CLISyncNodes{}, // no sync-sources
+		L1RPC:                   s.l1.UserRPC().RPC(),
+		Datadir:                 path.Join(s.t.TempDir(), "supervisor"),
+		RPCVerificationWarnings: true,
 	}
 
 	stDepSet, err := worldToDepset(s.worldOutput)

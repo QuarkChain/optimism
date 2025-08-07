@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/devnet-sdk/controller/kt"
@@ -13,7 +14,7 @@ import (
 )
 
 type surfaceGetter func() (surface.ControlSurface, error)
-type controllerFactory func(string) surfaceGetter
+type controllerFactory func(*descriptors.DevnetEnvironment) surfaceGetter
 
 type DevnetEnv struct {
 	Env *descriptors.DevnetEnvironment
@@ -30,9 +31,9 @@ type schemeBackend struct {
 	ctrlFactory controllerFactory
 }
 
-func getKurtosisController(enclave string) surfaceGetter {
+func getKurtosisController(env *descriptors.DevnetEnvironment) surfaceGetter {
 	return func() (surface.ControlSurface, error) {
-		return kt.NewKurtosisControllerSurface(enclave)
+		return kt.NewKurtosisControllerSurface(env)
 	}
 }
 
@@ -77,10 +78,17 @@ func LoadDevnetFromURL(devnetURL string) (*DevnetEnv, error) {
 	}
 
 	var ctrl surfaceGetter
-	// we're safe here as fetchDevnetData above ensures the scheme is supported
-	ctrlFactory := schemeToBackend[parsedURL.Scheme].ctrlFactory
-	if ctrlFactory != nil {
-		ctrl = ctrlFactory(parsedURL.Host)
+	scheme := parsedURL.Scheme
+	if val, ok := os.LookupEnv(EnvCtrlVar); ok {
+		scheme = val
+	}
+	backend, ok := schemeToBackend[scheme]
+	if !ok {
+		return nil, fmt.Errorf("invalid scheme to lookup control interface: %s", scheme)
+	}
+
+	if backend.ctrlFactory != nil {
+		ctrl = backend.ctrlFactory(env)
 	}
 
 	return &DevnetEnv{
@@ -97,7 +105,7 @@ func (d *DevnetEnv) GetChain(chainName string) (*ChainConfig, error) {
 	} else {
 		for _, l2Chain := range d.Env.L2 {
 			if l2Chain.Name == chainName {
-				chain = &l2Chain.Chain
+				chain = l2Chain.Chain
 				break
 			}
 		}

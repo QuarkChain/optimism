@@ -2,7 +2,6 @@ package kurtosis
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -119,11 +118,11 @@ func (f *fakeJWTExtractor) ExtractData(ctx context.Context, enclave string) (*jw
 }
 
 type fakeDepsetExtractor struct {
-	data json.RawMessage
+	data map[string]descriptors.DepSet
 	err  error
 }
 
-func (f *fakeDepsetExtractor) ExtractData(ctx context.Context, enclave string) (json.RawMessage, error) {
+func (f *fakeDepsetExtractor) ExtractData(ctx context.Context, enclave string) (map[string]descriptors.DepSet, error) {
 	return f.data, f.err
 }
 
@@ -132,6 +131,8 @@ type mockKurtosisContext struct {
 	enclaveCtx interfaces.EnclaveContext
 	getErr     error
 	createErr  error
+	cleanErr   error
+	destroyErr error
 }
 
 func (m *mockKurtosisContext) GetEnclave(ctx context.Context, name string) (interfaces.EnclaveContext, error) {
@@ -141,6 +142,13 @@ func (m *mockKurtosisContext) GetEnclave(ctx context.Context, name string) (inte
 	return m.enclaveCtx, nil
 }
 
+func (m *mockKurtosisContext) GetEnclaveStatus(ctx context.Context, name string) (interfaces.EnclaveStatus, error) {
+	if m.getErr != nil {
+		return "", m.getErr
+	}
+	return interfaces.EnclaveStatusRunning, nil
+}
+
 func (m *mockKurtosisContext) CreateEnclave(ctx context.Context, name string) (interfaces.EnclaveContext, error) {
 	if m.createErr != nil {
 		return nil, m.createErr
@@ -148,9 +156,23 @@ func (m *mockKurtosisContext) CreateEnclave(ctx context.Context, name string) (i
 	return m.enclaveCtx, nil
 }
 
+func (m *mockKurtosisContext) Clean(ctx context.Context, destroyAll bool) ([]interfaces.EnclaveNameAndUuid, error) {
+	if m.cleanErr != nil {
+		return nil, m.cleanErr
+	}
+	return []interfaces.EnclaveNameAndUuid{}, nil
+}
+
+func (m *mockKurtosisContext) DestroyEnclave(ctx context.Context, name string) error {
+	if m.destroyErr != nil {
+		return m.destroyErr
+	}
+	return nil
+}
+
 func TestDeploy(t *testing.T) {
 	testSpec := &spec.EnclaveSpec{
-		Chains: []spec.ChainSpec{
+		Chains: []*spec.ChainSpec{
 			{
 				Name:      "op-kurtosis",
 				NetworkID: "1234",
@@ -253,7 +275,7 @@ func TestDeploy(t *testing.T) {
 
 func TestGetEnvironmentInfo(t *testing.T) {
 	testSpec := &spec.EnclaveSpec{
-		Chains: []spec.ChainSpec{
+		Chains: []*spec.ChainSpec{
 			{
 				Name:      "op-kurtosis",
 				NetworkID: "1234",
@@ -264,7 +286,7 @@ func TestGetEnvironmentInfo(t *testing.T) {
 	// Create test services map with the expected structure
 	testServices := make(inspect.ServiceMap)
 	testServices["el-1-geth-lighthouse"] = inspect.PortMap{
-		"rpc": descriptors.PortInfo{Port: 52645},
+		"rpc": &descriptors.PortInfo{Port: 52645},
 	}
 
 	testWallet := &deployer.Wallet{
@@ -281,10 +303,10 @@ func TestGetEnvironmentInfo(t *testing.T) {
 
 	// Create expected L1 services
 	l1Services := make(descriptors.ServiceMap)
-	l1Services["el"] = descriptors.Service{
+	l1Services["el"] = &descriptors.Service{
 		Name: "el-1-geth-lighthouse",
 		Endpoints: descriptors.EndpointMap{
-			"rpc": descriptors.PortInfo{Port: 52645},
+			"rpc": &descriptors.PortInfo{Port: 52645},
 		},
 	}
 
@@ -319,7 +341,7 @@ func TestGetEnvironmentInfo(t *testing.T) {
 					L1: &descriptors.Chain{
 						ID:       "1234",
 						Name:     "Ethereum",
-						Services: make(descriptors.ServiceMap),
+						Services: make(descriptors.RedundantServiceMap),
 						Nodes: []descriptors.Node{
 							{
 								Services: l1Services,
@@ -338,15 +360,15 @@ func TestGetEnvironmentInfo(t *testing.T) {
 					},
 					L2: []*descriptors.L2Chain{
 						{
-							Chain: descriptors.Chain{
+							Chain: &descriptors.Chain{
 								Name:     "op-kurtosis",
 								ID:       "1234",
-								Services: make(descriptors.ServiceMap),
+								Services: make(descriptors.RedundantServiceMap),
 								JWT:      testJWTs.L2JWT,
 							},
 						},
 					},
-					DepSet: nil,
+					DepSets: nil,
 				},
 			},
 		},
@@ -374,7 +396,7 @@ func TestGetEnvironmentInfo(t *testing.T) {
 		{
 			name: "with interop feature - depset fetched",
 			spec: &spec.EnclaveSpec{
-				Chains: []spec.ChainSpec{
+				Chains: []*spec.ChainSpec{
 					{
 						Name:      "op-kurtosis",
 						NetworkID: "1234",
@@ -400,7 +422,7 @@ func TestGetEnvironmentInfo(t *testing.T) {
 					L1: &descriptors.Chain{
 						ID:       "1234",
 						Name:     "Ethereum",
-						Services: make(descriptors.ServiceMap),
+						Services: make(descriptors.RedundantServiceMap),
 						Nodes: []descriptors.Node{
 							{
 								Services: l1Services,
@@ -419,23 +441,23 @@ func TestGetEnvironmentInfo(t *testing.T) {
 					},
 					L2: []*descriptors.L2Chain{
 						{
-							Chain: descriptors.Chain{
+							Chain: &descriptors.Chain{
 								Name:     "op-kurtosis",
 								ID:       "1234",
-								Services: make(descriptors.ServiceMap),
+								Services: make(descriptors.RedundantServiceMap),
 								JWT:      testJWTs.L2JWT,
 							},
 						},
 					},
 					Features: spec.FeatureList{spec.FeatureInterop},
-					DepSet:   json.RawMessage(`{}`),
+					DepSets:  map[string]descriptors.DepSet{"test-dep-set": descriptors.DepSet(`{}`)},
 				},
 			},
 		},
 		{
 			name: "without interop feature - depset not fetched",
 			spec: &spec.EnclaveSpec{
-				Chains: []spec.ChainSpec{
+				Chains: []*spec.ChainSpec{
 					{
 						Name:      "op-kurtosis",
 						NetworkID: "1234",
@@ -461,7 +483,7 @@ func TestGetEnvironmentInfo(t *testing.T) {
 					L1: &descriptors.Chain{
 						ID:       "1234",
 						Name:     "Ethereum",
-						Services: make(descriptors.ServiceMap),
+						Services: make(descriptors.RedundantServiceMap),
 						Nodes: []descriptors.Node{
 							{
 								Services: l1Services,
@@ -480,16 +502,16 @@ func TestGetEnvironmentInfo(t *testing.T) {
 					},
 					L2: []*descriptors.L2Chain{
 						{
-							Chain: descriptors.Chain{
+							Chain: &descriptors.Chain{
 								Name:     "op-kurtosis",
 								ID:       "1234",
-								Services: make(descriptors.ServiceMap),
+								Services: make(descriptors.RedundantServiceMap),
 								JWT:      testJWTs.L2JWT,
 							},
 						},
 					},
 					Features: spec.FeatureList{},
-					DepSet:   nil,
+					DepSets:  nil,
 				},
 			},
 		},
@@ -503,9 +525,9 @@ func TestGetEnvironmentInfo(t *testing.T) {
 			}
 
 			// Create depset data based on whether interop is enabled
-			var depsetData json.RawMessage
+			var depsets map[string]descriptors.DepSet
 			if tt.spec != nil && tt.spec.Features.Contains(spec.FeatureInterop) {
-				depsetData = json.RawMessage(`{}`)
+				depsets = map[string]descriptors.DepSet{"test-dep-set": descriptors.DepSet(`{}`)}
 			}
 
 			deployer, err := NewKurtosisDeployer(
@@ -523,7 +545,7 @@ func TestGetEnvironmentInfo(t *testing.T) {
 					err:  tt.err,
 				}),
 				WithKurtosisDepsetExtractor(&fakeDepsetExtractor{
-					data: depsetData,
+					data: depsets,
 					err:  tt.err,
 				}),
 			)

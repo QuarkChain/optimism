@@ -59,7 +59,7 @@ contract L2Genesis is Script {
         uint256 l1FeeVaultWithdrawalNetwork;
         address governanceTokenOwner;
         uint256 fork;
-        bool deployCrossL2Inbox;
+        bool useInterop;
         bool enableGovernance;
         bool fundDevAccounts;
         bool deploySoulGasToken;
@@ -158,10 +158,6 @@ contract L2Genesis is Script {
             return;
         }
 
-        if (forkEquals(_fork, Fork.INTEROP)) {
-            return;
-        }
-
         if (forkEquals(_fork, Fork.JOVIAN)) {
             return;
         }
@@ -199,7 +195,7 @@ contract L2Genesis is Script {
             vm.etch(addr, code);
             EIP1967Helper.setAdmin(addr, Predeploys.PROXY_ADMIN);
 
-            if (Predeploys.isSupportedPredeploy(addr, _input.fork, _input.deployCrossL2Inbox)) {
+            if (Predeploys.isSupportedPredeploy(addr, _input.useInterop)) {
                 address implementation = Predeploys.predeployToCodeNamespace(addr);
                 EIP1967Helper.setImplementation(addr, implementation);
             }
@@ -235,15 +231,11 @@ contract L2Genesis is Script {
         setEAS(); // 21
         if (_input.deploySoulGasToken) setSoulGasToken(_input); // 800
         setGovernanceToken(_input); // 42: OP (not behind a proxy)
-        if (_input.fork >= uint256(Fork.INTEROP)) {
-            if (_input.deployCrossL2Inbox) {
-                setCrossL2Inbox(); // 22
-            }
+        if (_input.useInterop) {
+            setCrossL2Inbox(); // 22
             setL2ToL2CrossDomainMessenger(); // 23
         }
     }
-
-    function setInteropPredeployProxies() internal { }
 
     function setProxyAdmin(Input memory _input) internal {
         // Note the ProxyAdmin implementation itself is behind a proxy that owns itself.

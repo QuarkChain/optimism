@@ -21,6 +21,9 @@ import { IOptimismPortal2 as IOptimismPortal } from "interfaces/L1/IOptimismPort
 ///         for sending and receiving data on the L1 side. Users are encouraged to use this
 ///         interface instead of interacting with lower-level contracts directly.
 contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, ReinitializableBase, ISemver {
+    /// @notice Thrown when the caller is not the minter.
+    error L1CrossDomainMessenger_NotMinter();
+
     /// @custom:legacy
     /// @custom:spacer superchainConfig
     /// @notice Spacer taking up the legacy `superchainConfig` slot.
@@ -41,6 +44,9 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, Re
 
     /// @notice Contract of the SystemConfig.
     ISystemConfig public systemConfig;
+
+    /// @notice Emitted when a minter is set.
+    event MinterSet(address indexed minter);
 
     /// @notice Constructs the L1CrossDomainMessenger contract.
     constructor() ReinitializableBase(2) {
@@ -89,25 +95,59 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, Re
         return portal;
     }
 
-    /// @notice Returns the required parameters for wrapping a call with the relayMessage function on L2.
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.L1CrossDomainMessenger.QKCConfigStorage")) - 1)) &
+    // ~bytes32(uint256(0xff))
+    bytes32 private constant _QKC_CONFIG_STORAGE_LOCATION =
+        0x21f30a216d738aeb55799dae7148f127e3b8f70b0224a5edb846c108cd573c00;
+    /// @custom:storage-location erc7201:openzeppelin.storage.L1CrossDomainMessenger.QKCConfigStorage
+
+    struct QKCConfigStorage {
+        /// @notice The minter for migrating existing L1 token to L2 native token.
+        address minter;
+    }
+
+    function _getQKCConfigStorage() private pure returns (QKCConfigStorage storage $) {
+        assembly {
+            $.slot := _QKC_CONFIG_STORAGE_LOCATION
+        }
+    }
+
+    /// @notice Add a minter to the L1CrossDomainMessenger contract. To disable, set an empty value.
+    function setMinter(address _minter) external {
+        _assertOnlyProxyAdminOrProxyAdminOwner();
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        $.minter = _minter;
+        emit MinterSet(_minter);
+    }
+
+    /// @notice Triggers a QKC mint message via the relayMessage function on L2. Can only be called by the minter.
+    /// @dev    This function can only be called by the minter.
     /// @param _target      Target contract or wallet address.
     /// @param _message     Message to trigger the target address with.
+    /// @param _mintValue   Value to mint.
     /// @param _minGasLimit Minimum gas limit that the message can be executed with.
-    /// @param _value       Value to send with the message.
-    function wrapForRelayMessage(
+    function sendMintMessage(
         address _target,
         bytes calldata _message,
-        uint32 _minGasLimit,
-        uint256 _value
+        uint256 _mintValue,
+        uint32 _minGasLimit
     )
         external
-        returns (address otherMessenger_, uint64 gasLimit, bytes memory data)
     {
-        otherMessenger_ = otherMessenger;
-        gasLimit = baseGas(_message, _minGasLimit);
-        data = abi.encodeWithSelector(
-            this.relayMessage.selector, messageNonce(), msg.sender, _target, _value, _minGasLimit, _message
-        );
+        QKCConfigStorage storage $ = _getQKCConfigStorage();
+        if (msg.sender != $.minter) {
+            revert L1CrossDomainMessenger_NotMinter();
+        }
+
+        portal.mintTransaction({
+            _to: address(otherMessenger),
+            _value: _mintValue,
+            _gasLimit: baseGas(_message, _minGasLimit),
+            _data: abi.encodeWithSelector(
+                this.relayMessage.selector, messageNonce(), msg.sender, _target, _mintValue, _minGasLimit, _message
+            )
+        });
+
         unchecked {
             ++msgNonce;
         }

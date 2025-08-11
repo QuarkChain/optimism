@@ -446,9 +446,8 @@ jobs:
       - notify-failures-on-develop
 
   check-kontrol-build:
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    machine: true
+    resource_class: qkc/ax101
     steps:
       - checkout-with-mise
       - attach_workspace: { at: "." }
@@ -927,9 +926,8 @@ jobs:
       fork_base_rpc:
         description: Fork Base RPC
         type: string
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: xlarge
+    machine: true
+    resource_class: qkc/ax101
     steps:
       - checkout-with-mise
       - attach_workspace: { at: "." }

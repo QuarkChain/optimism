@@ -39,6 +39,7 @@ import (
 )
 
 var ErrAlreadyClosed = errors.New("node is already closed")
+var ErrIsClosing = errors.New("node is closing")
 
 type closableSafeDB interface {
 	rollup.SafeHeadListener
@@ -89,7 +90,8 @@ type OpNode struct {
 	// Indicates when it's safe to close data sources used by the runtimeConfig bg loader
 	runtimeConfigReloaderDone chan struct{}
 
-	closed atomic.Bool
+	closed  atomic.Bool
+	closing atomic.Bool
 
 	// cancels execution prematurely, e.g. to halt. This may be nil.
 	cancel context.CancelCauseFunc
@@ -569,6 +571,9 @@ func (n *OpNode) onEvent(ev event.Event) bool {
 }
 
 func (n *OpNode) OnNewL1Head(ctx context.Context, sig eth.L1BlockRef) {
+	if n.closing.Load() {
+		return
+	}
 	n.tracer.OnNewL1Head(ctx, sig)
 
 	if n.l2Driver == nil {
@@ -583,6 +588,9 @@ func (n *OpNode) OnNewL1Head(ctx context.Context, sig eth.L1BlockRef) {
 }
 
 func (n *OpNode) OnNewL1Safe(ctx context.Context, sig eth.L1BlockRef) {
+	if n.closing.Load() {
+		return
+	}
 	if n.l2Driver == nil {
 		return
 	}
@@ -595,6 +603,9 @@ func (n *OpNode) OnNewL1Safe(ctx context.Context, sig eth.L1BlockRef) {
 }
 
 func (n *OpNode) OnNewL1Finalized(ctx context.Context, sig eth.L1BlockRef) {
+	if n.closing.Load() {
+		return
+	}
 	if n.l2Driver == nil {
 		return
 	}
@@ -607,6 +618,9 @@ func (n *OpNode) OnNewL1Finalized(ctx context.Context, sig eth.L1BlockRef) {
 }
 
 func (n *OpNode) PublishL2Payload(ctx context.Context, envelope *eth.ExecutionPayloadEnvelope) error {
+	if n.closing.Load() {
+		return ErrIsClosing
+	}
 	n.tracer.OnPublishL2Payload(ctx, envelope)
 
 	// publish to p2p, if we are running p2p at all
@@ -622,6 +636,9 @@ func (n *OpNode) PublishL2Payload(ctx context.Context, envelope *eth.ExecutionPa
 }
 
 func (n *OpNode) OnUnsafeL2Payload(ctx context.Context, from peer.ID, envelope *eth.ExecutionPayloadEnvelope) error {
+	if n.closing.Load() {
+		return ErrIsClosing
+	}
 	// ignore if it's from ourselves
 	if p2pNode := n.getP2PNodeIfEnabled(); p2pNode != nil && from == p2pNode.Host().ID() {
 		return nil
@@ -678,6 +695,7 @@ func (n *OpNode) Stop(ctx context.Context) error {
 	if n.closed.Load() {
 		return ErrAlreadyClosed
 	}
+	n.closing.Store(true)
 
 	var result *multierror.Error
 

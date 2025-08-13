@@ -141,7 +141,7 @@ contract L1CrossDomainMessenger is CrossDomainMessenger, ProxyAdminOwnedBase, Re
 
         portal.mintTransaction({
             _to: address(otherMessenger),
-            _value: _mintValue,
+            _mintValue: _mintValue,
             _gasLimit: baseGas(_message, _minGasLimit),
             _data: abi.encodeWithSelector(
                 this.relayMessage.selector, messageNonce(), msg.sender, _target, _mintValue, _minGasLimit, _message

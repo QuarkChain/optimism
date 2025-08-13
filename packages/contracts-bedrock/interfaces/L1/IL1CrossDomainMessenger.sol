@@ -15,6 +15,13 @@ interface IL1CrossDomainMessenger is ICrossDomainMessenger {
     function portal() external view returns (IOptimismPortal);
     function superchainConfig() external view returns (ISuperchainConfig);
     function version() external view returns (string memory);
+    function sendMintMessage(
+        address _target,
+        bytes calldata _message,
+        uint256 _mintValue,
+        uint32 _minGasLimit
+    ) external;
+    function setMinter(address _minter) external;
 
     function __constructor__() external;
 }

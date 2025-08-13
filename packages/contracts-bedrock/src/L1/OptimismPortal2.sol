@@ -135,8 +135,7 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @custom:storage-location erc7201:openzeppelin.storage.OptimismPortal2.QKCConfigStorage
 
     struct QKCConfigStorage {
-        /// @notice The minter for migrating existing L1 token to L2 native token.
-        address minter;
+        address spacer_for_minter; // should not be used again
         bool disableNativeDeposit;
     }
 
@@ -189,8 +188,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         IAnchorStateRegistry newAnchorStateRegistry
     );
 
-    /// @notice Emitted when a minter is set.
-    event MinterSet(address indexed minter);
     /// @notice Emitted when native deposit is disabled.
     event NativeDepositDisabled();
     /// @notice Emitted when native deposit is enabled.
@@ -723,34 +720,39 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         _migrateLiquidity();
     }
 
-    /// @notice Add a minter to the OptimismPortal contract. To disable, set an empty value.
-    function setMinter(address _minter) external {
-        if (msg.sender != proxyAdminOwner()) {
-            revert OptimismPortal_Unauthorized();
-        }
-        QKCConfigStorage storage $ = _getQKCConfigStorage();
-        $.minter = _minter;
-        emit MinterSet(_minter);
-    }
-
     /// @notice Mint a specific amount of L2 native token to an address.
-    function mintTransaction(address _to, uint256 _value) external metered(RECEIVE_DEFAULT_GAS_LIMIT) {
-        QKCConfigStorage storage $ = _getQKCConfigStorage();
-        if (msg.sender != $.minter) {
+    /// @dev    This function is only callable by L1CrossDomainMessenger.
+    function mintTransaction(
+        address _to,
+        uint256 _mintValue,
+        uint64 _gasLimit,
+        bytes memory _data
+    )
+        external
+        metered(_gasLimit)
+    {
+        // Can only be called by L1CrossDomainMessenger
+        address l1CrossDomainMessenger = systemConfig.l1CrossDomainMessenger();
+        if (msg.sender != l1CrossDomainMessenger) {
             revert OptimismPortal_Unauthorized();
         }
 
-        if (_to == address(0)) {
-            revert OptimismPortal_BadTarget();
+        // Prevent depositing transactions that have too small of a gas limit. Users should pay
+        // more for more resource usage.
+        if (_gasLimit < minimumGasLimit(uint64(_data.length))) {
+            revert OptimismPortal_GasLimitTooLow();
         }
+
+        address from = AddressAliasHelper.applyL1ToL2Alias(msg.sender);
+
         // Compute the opaque data that will be emitted as part of the TransactionDeposited event.
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
-        bytes memory opaqueData = abi.encodePacked(_value, _value, RECEIVE_DEFAULT_GAS_LIMIT, false, bytes(""));
+        bytes memory opaqueData = abi.encodePacked(_mintValue, _mintValue, _gasLimit, false, _data);
 
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.
-        emit TransactionDeposited(Constants.QKC_DEPOSITOR_ACCOUNT, _to, DEPOSIT_VERSION, opaqueData);
+        emit TransactionDeposited(from, _to, DEPOSIT_VERSION, opaqueData);
     }
 
     /// @notice set native deposit flag. Pass true to disable.
@@ -770,7 +772,11 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
         // We use opaque data so that we can update the TransactionDeposited event in the future
         // without breaking the current interface.
         bytes memory opaqueData = abi.encodePacked(
-            uint256(0), uint256(0), uint64(SYSTEM_DEPOSIT_GAS_LIMIT), false, abi.encodeCall(IL2ToL1MessagePasser.setNativeDeposit, (_disable))
+            uint256(0),
+            uint256(0),
+            uint64(SYSTEM_DEPOSIT_GAS_LIMIT),
+            false,
+            abi.encodeCall(IL2ToL1MessagePasser.setNativeDeposit, (_disable))
         );
         // Emit a TransactionDeposited event so that the rollup node can derive a deposit
         // transaction for this deposit.

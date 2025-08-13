@@ -62,6 +62,7 @@ func NewNodeP2P(
 	runCfg GossipRuntimeConfig,
 	metrics metrics.Metricer,
 	elSyncEnabled bool,
+	sequencerEnabled bool,
 ) (*NodeP2P, error) {
 	if setup == nil {
 		return nil, errors.New("p2p node cannot be created without setup")
@@ -70,7 +71,7 @@ func NewNodeP2P(
 		return nil, errors.New("SetupP2P.Disabled is true")
 	}
 	var n NodeP2P
-	if err := n.init(resourcesCtx, rollupCfg, log, setup, gossipIn, l2Chain, runCfg, metrics, elSyncEnabled); err != nil {
+	if err := n.init(resourcesCtx, rollupCfg, log, setup, gossipIn, l2Chain, runCfg, metrics, elSyncEnabled, sequencerEnabled); err != nil {
 		closeErr := n.Close()
 		if closeErr != nil {
 			log.Error("failed to close p2p after starting with err", "closeErr", closeErr, "err", err)
@@ -95,6 +96,7 @@ func (n *NodeP2P) init(
 	runCfg GossipRuntimeConfig,
 	metrics metrics.Metricer,
 	elSyncEnabled bool,
+	sequencerEnabled bool,
 ) error {
 	bwc := p2pmetrics.NewBandwidthCounter()
 
@@ -150,7 +152,7 @@ func (n *NodeP2P) init(
 			n.syncCl.AddPeer(peerID)
 		}
 		if l2Chain != nil { // Only enable serving side of req-resp sync if we have a data-source, to make minimal P2P testing easy
-			n.syncSrv = NewReqRespServer(rollupCfg, l2Chain, metrics)
+			n.syncSrv = NewReqRespServer(rollupCfg, l2Chain, metrics, sequencerEnabled)
 			// register the sync protocol with libp2p host
 			payloadByNumber := MakeStreamHandler(resourcesCtx, log.New("serve", "payloads_by_number"), n.syncSrv.HandleSyncRequest)
 			n.host.SetStreamHandler(PayloadByNumberProtocolID(rollupCfg.L2ChainID), payloadByNumber)

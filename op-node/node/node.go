@@ -537,7 +537,7 @@ func (n *OpNode) initP2P(cfg *config.Config) (err error) {
 	if n.p2pEnabled() {
 		em := n.eventSys.Register("p2p-block-receiver", nil)
 		rec := p2p.NewBlockReceiver(n.log, em, n.metrics)
-		n.p2pNode, err = p2p.NewNodeP2P(n.resourcesCtx, &cfg.Rollup, n.log, cfg.P2P, rec, n.l2Source, n.runCfg, n.metrics, false)
+		n.p2pNode, err = p2p.NewNodeP2P(n.resourcesCtx, &cfg.Rollup, n.log, cfg.P2P, rec, n.l2Source, n.runCfg, n.metrics, false, cfg.Driver.SequencerEnabled)
 		if err != nil {
 			return
 		}

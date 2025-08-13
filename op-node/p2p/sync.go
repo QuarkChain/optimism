@@ -59,6 +59,7 @@ const (
 	// and eventually kick the peer based on degraded scoring if it's really not serving us well.
 	// TODO: Use a backoff rather than this mechanism.
 	clientErrRateCost = peerServerBlocksBurst
+	qkcRateLimitBoost = 30
 )
 
 const (
@@ -279,6 +280,7 @@ type SyncClient struct {
 
 	extra               ExtraHostFeatures
 	syncOnlyReqToStatic bool
+	sequencerEnabled    bool
 }
 
 func NewSyncClient(log log.Logger, cfg *rollup.Config, host HostNewStream, rcv receivePayloadFn, metrics SyncClientMetrics, appScorer SyncPeerScorer) *SyncClient {
@@ -307,6 +309,7 @@ func NewSyncClient(log log.Logger, cfg *rollup.Config, host HostNewStream, rcv r
 	if extra, ok := host.(ExtraHostFeatures); ok && extra.SyncOnlyReqToStatic() {
 		c.extra = extra
 		c.syncOnlyReqToStatic = true
+		c.globalRL = rate.NewLimiter(globalServerBlocksRateLimit*qkcRateLimitBoost, globalServerBlocksBurst*qkcRateLimitBoost)
 	}
 
 	// never errors with positive LRU cache size
@@ -565,6 +568,9 @@ func (s *SyncClient) peerLoop(ctx context.Context, id peer.ID) {
 	// Implement the same rate limits as the server does per-peer,
 	// so we don't be too aggressive to the server.
 	rl := rate.NewLimiter(peerServerBlocksRateLimit, peerServerBlocksBurst)
+	if s.syncOnlyReqToStatic {
+		rl = rate.NewLimiter(peerServerBlocksRateLimit*qkcRateLimitBoost, peerServerBlocksBurst*qkcRateLimitBoost)
+	}
 
 	// if onlyReqToStatic is on, ensure that only static peers are dealing with the request
 	peerRequests := s.peerRequests
@@ -802,14 +808,19 @@ type ReqRespServer struct {
 	peerStatsLock  sync.Mutex
 
 	globalRequestsRL *rate.Limiter
+
+	sequencerEnabled bool
 }
 
-func NewReqRespServer(cfg *rollup.Config, l2 L2Chain, metrics ReqRespServerMetrics) *ReqRespServer {
+func NewReqRespServer(cfg *rollup.Config, l2 L2Chain, metrics ReqRespServerMetrics, sequencerEnabled bool) *ReqRespServer {
 	// We should never allow over 1000 different peers to churn through quickly,
 	// so it's fine to prune rate-limit details past this.
 
 	peerRateLimits, _ := simplelru.NewLRU[peer.ID, *peerStat](1000, nil)
 	globalRequestsRL := rate.NewLimiter(globalServerBlocksRateLimit, globalServerBlocksBurst)
+	if sequencerEnabled {
+		globalRequestsRL = rate.NewLimiter(globalServerBlocksRateLimit*qkcRateLimitBoost, globalServerBlocksBurst*qkcRateLimitBoost)
+	}
 
 	return &ReqRespServer{
 		cfg:              cfg,
@@ -817,6 +828,7 @@ func NewReqRespServer(cfg *rollup.Config, l2 L2Chain, metrics ReqRespServerMetri
 		metrics:          metrics,
 		peerRateLimits:   peerRateLimits,
 		globalRequestsRL: globalRequestsRL,
+		sequencerEnabled: sequencerEnabled,
 	}
 }
 
@@ -871,6 +883,9 @@ func (srv *ReqRespServer) handleSyncRequest(ctx context.Context, stream network.
 	if ps == nil {
 		ps = &peerStat{
 			Requests: rate.NewLimiter(peerServerBlocksRateLimit, peerServerBlocksBurst),
+		}
+		if srv.sequencerEnabled {
+			ps.Requests = rate.NewLimiter(peerServerBlocksRateLimit*qkcRateLimitBoost, peerServerBlocksBurst*qkcRateLimitBoost)
 		}
 		srv.peerRateLimits.Add(peerId, ps)
 		ps.Requests.Reserve() // count the hit, but make it delay the next request rather than immediately waiting

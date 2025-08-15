@@ -1632,7 +1632,7 @@ jobs:
           patterns: op-node
       - run:
           name: check-generated-mocks
-          command: make generate-mocks-op-node && git diff --ignore-submodules--exit-code
+          command: make generate-mocks-op-node && git diff --ignore-submodules --exit-code
 
   check-generated-mocks-op-service:
     machine: true

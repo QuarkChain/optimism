@@ -8,7 +8,7 @@ import { Fork } from "scripts/libraries/Config.sol";
 //          This excludes the preinstalls (non-protocol contracts).
 library Predeploys {
     /// @notice Number of predeploy-namespace addresses reserved for protocol usage.
-    uint256 internal constant PREDEPLOY_COUNT = 2048;
+    uint256 internal constant PREDEPLOY_COUNT = 4096;
 
     /// @custom:legacy
     /// @notice Address of the LegacyMessagePasser predeploy. Deprecate. Use the updated

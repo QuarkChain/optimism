@@ -129,7 +129,7 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             deployCrossL2Inbox: true,
             enableGovernance: true,
             fundDevAccounts: true,
-            deploySoulGasToken: false,
+            deploySoulGasToken: true,
             isSoulBackedByNative: false
         });
         genesis.run(input);

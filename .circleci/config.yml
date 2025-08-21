@@ -927,8 +927,9 @@ jobs:
       fork_base_rpc:
         description: Fork Base RPC
         type: string
-    machine: true
-    resource_class: qkc/ax101
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    resource_class: xlarge
     steps:
       - checkout-with-mise
       - attach_workspace: { at: "." }

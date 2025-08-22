@@ -290,8 +290,9 @@ func initAllocType(root string, allocType AllocType) {
 				"l2GenesisHoloceneTimeOffset": nil,
 				"l2GenesisIsthmusTimeOffset":  nil,
 				// SWC changes
-				"deploySoulGasToken":   true,
-				"isSoulBackedByNative": true,
+				"deploySoulGasToken":     true,
+				"isSoulBackedByNative":   true,
+				"soulGasTokenTimeOffset": "0x0",
 			}
 
 			upgradeSchedule := new(genesis.UpgradeScheduleDeployConfig)
@@ -349,9 +350,6 @@ func initAllocType(root string, allocType AllocType) {
 				dc.L1BlockTime = 2
 				dc.L2BlockTime = 1
 				dc.SetContracts(l1Contracts)
-				// SWC changes
-				dc.DeploySoulGasToken = true
-				dc.IsSoulBackedByNative = true
 				mtx.Lock()
 				deployConfigsByType[allocType] = dc
 				l1AllocsByType[allocType] = st.L1StateDump.Data

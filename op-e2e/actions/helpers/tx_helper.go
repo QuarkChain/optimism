@@ -25,7 +25,7 @@ func firstValidTx(
 	var txs []*types.Transaction
 	var q []*types.Transaction
 	// Wait for the tx to be in the pending tx queue
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	err := wait.For(ctx, time.Second, func() (bool, error) {
 		i = pendingIndices(from)

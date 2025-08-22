@@ -2243,40 +2243,42 @@ workflows:
   #         context:
   #           - circleci-repo-readonly-authenticated-github-token
 
-  develop-fault-proofs:
-    when:
-      and:
-        - or:
-            - equal: ["dl-fixcc-1", <<pipeline.git.branch>>]
-            - equal: [true, <<pipeline.parameters.fault_proofs_dispatch>>]
-        - not:
-            equal: [scheduled_pipeline, << pipeline.trigger_source >>]
-    jobs:
-      - cannon-prestate:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - cannon-stf-verify:
-          context:
-            - slack
-            - circleci-repo-readonly-authenticated-github-token
-      - contracts-bedrock-build:
-          build_args: --deny-warnings --skip test
-          context:
-            - slack
-            - circleci-repo-readonly-authenticated-github-token
-      - go-tests-with-fault-proof-deps:
-          name: op-e2e-cannon-tests
-          notify: true
-          mentions: "@proofs-team"
-          no_output_timeout: 3h
-          test_timeout: 3h
-          resource_class: qkc/ax101
-          context:
-            - slack
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate
+# Stop running on dl-fixcc-1 for now to save credits
+# Do NOT mert to op-es
+  # develop-fault-proofs:
+  #   when:
+  #     and:
+  #       - or:
+  #           - equal: ["dl-fixcc-1", <<pipeline.git.branch>>]
+  #           - equal: [true, <<pipeline.parameters.fault_proofs_dispatch>>]
+  #       - not:
+  #           equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+  #   jobs:
+  #     - cannon-prestate:
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #     - cannon-stf-verify:
+  #         context:
+  #           - slack
+  #           - circleci-repo-readonly-authenticated-github-token
+  #     - contracts-bedrock-build:
+  #         build_args: --deny-warnings --skip test
+  #         context:
+  #           - slack
+  #           - circleci-repo-readonly-authenticated-github-token
+  #     - go-tests-with-fault-proof-deps:
+  #         name: op-e2e-cannon-tests
+  #         notify: true
+  #         mentions: "@proofs-team"
+  #         no_output_timeout: 3h
+  #         test_timeout: 3h
+  #         resource_class: qkc/ax101
+  #         context:
+  #           - slack
+  #           - circleci-repo-readonly-authenticated-github-token
+  #         requires:
+  #           - contracts-bedrock-build
+  #           - cannon-prestate
   #     - publish-cannon-prestates:
   #         context:
   #           - slack
@@ -2464,11 +2466,11 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
             - discord
       # Generate flaky test report
-      - generate-flaky-report:
-          name: generate-flaky-tests-report
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - circleci-api-token
+      # - generate-flaky-report:
+      #     name: generate-flaky-tests-report
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #       - circleci-api-token
 
   # Acceptance tests (pre-merge to develop)
   acceptance-tests-pr:
@@ -2529,11 +2531,11 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
             - discord
       # Generate flaky test report
-      - generate-flaky-report:
-          name: generate-flaky-tests-report
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - circleci-api-token
+      # - generate-flaky-report:
+      #     name: generate-flaky-tests-report
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #       - circleci-api-token
 
   close-issue-workflow:
     when:

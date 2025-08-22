@@ -349,6 +349,9 @@ func initAllocType(root string, allocType AllocType) {
 				// Speed up the in memory tests
 				dc.L1BlockTime = 2
 				dc.L2BlockTime = 1
+				if !(dc.DeploySoulGasToken && dc.IsSoulBackedByNative) {
+					panic("Soul gas token must be deployed and backed by native")
+				}
 				dc.SetContracts(l1Contracts)
 				mtx.Lock()
 				deployConfigsByType[allocType] = dc

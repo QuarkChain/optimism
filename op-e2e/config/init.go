@@ -290,8 +290,9 @@ func initAllocType(root string, allocType AllocType) {
 				"l2GenesisHoloceneTimeOffset": nil,
 				"l2GenesisIsthmusTimeOffset":  nil,
 				// SWC changes
-				"deploySoulGasToken":   true,
-				"isSoulBackedByNative": true,
+				"deploySoulGasToken":     true,
+				"isSoulBackedByNative":   true,
+				"soulGasTokenTimeOffset": "0x0",
 			}
 
 			upgradeSchedule := new(genesis.UpgradeScheduleDeployConfig)
@@ -348,10 +349,10 @@ func initAllocType(root string, allocType AllocType) {
 				// Speed up the in memory tests
 				dc.L1BlockTime = 2
 				dc.L2BlockTime = 1
+				if !(dc.DeploySoulGasToken && dc.IsSoulBackedByNative) {
+					panic("Soul gas token must be deployed and backed by native")
+				}
 				dc.SetContracts(l1Contracts)
-				// SWC changes
-				dc.DeploySoulGasToken = true
-				dc.IsSoulBackedByNative = true
 				mtx.Lock()
 				deployConfigsByType[allocType] = dc
 				l1AllocsByType[allocType] = st.L1StateDump.Data

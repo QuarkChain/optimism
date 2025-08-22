@@ -241,7 +241,7 @@ commands:
           channel: << parameters.channel >>
           event: fail
           template: basic_fail_1
-          branch_pattern: op-es
+          branch_pattern: dl-fixcc-1
           mentions: "<< parameters.mentions >>"
 
   # Notifies us on Discord when a build fails on develop
@@ -639,7 +639,7 @@ jobs:
                   - "<<parameters.release>>"
               - and:
                   - "<<parameters.publish>>"
-                  - equal: [op-es, << pipeline.git.branch >>]
+                  - equal: [dl-fixcc-1, << pipeline.git.branch >>]
           steps:
             - gcp-oidc-authenticate:
                 service_account_email: GCP_SERVICE_ATTESTOR_ACCOUNT_EMAIL
@@ -1554,7 +1554,7 @@ jobs:
     parameters:
       diff_branch:
         type: string
-        default: op-es
+        default: dl-fixcc-1
       scan_command:
         type: string
         default: semgrep ci --timeout=100
@@ -1570,7 +1570,7 @@ jobs:
       - checkout # no need to use mise here since the docker image contains the only dependency
       - unless:
           condition:
-            equal: [ "op-es", << pipeline.git.branch >> ]
+            equal: [ "dl-fixcc-1", << pipeline.git.branch >> ]
           steps:
             - run:
                 # Scan changed files in PRs, block on new issues only (existing issues ignored)
@@ -1891,7 +1891,7 @@ workflows:
       - contracts-bedrock-tests:
           # Heavily fuzz any fuzz tests within added or modified test files.
           name: contracts-bedrock-tests-heavy-fuzz-modified
-          test_list: git diff origin/op-es...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+          test_list: git diff origin/dl-fixcc-1...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
           test_timeout: 3h
           test_profile: ciheavy
           context:
@@ -1940,7 +1940,7 @@ workflows:
           context:
             - circleci-repo-readonly-authenticated-github-token
             - discord
-      # Skip frozen check for op-es
+      # Skip frozen check for dl-fixcc-1
       # - contracts-bedrock-frozen-code:
       #     requires:
       #       - contracts-bedrock-build
@@ -2004,7 +2004,7 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           filters:
             branches:
-              ignore: op-es  # Run on all branches EXCEPT develop (PR branches only)
+              ignore: dl-fixcc-1  # Run on all branches EXCEPT develop (PR branches only)
       - go-tests:
           name: go-tests-full
           rule: "go-tests-ci"  # Run full test suite instead of short
@@ -2013,7 +2013,7 @@ workflows:
           notify: true
           filters:
             branches:
-              only: op-es  # Only runs on develop branch (post-merge)
+              only: dl-fixcc-1  # Only runs on develop branch (post-merge)
           requires:
             - contracts-bedrock-build
             - cannon-prestate-quick
@@ -2247,7 +2247,7 @@ workflows:
     when:
       and:
         - or:
-            - equal: ["op-es", <<pipeline.git.branch>>]
+            - equal: ["dl-fixcc-1", <<pipeline.git.branch>>]
             - equal: [true, <<pipeline.parameters.fault_proofs_dispatch>>]
         - not:
             equal: [scheduled_pipeline, << pipeline.trigger_source >>]

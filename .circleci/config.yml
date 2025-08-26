@@ -3,7 +3,7 @@ version: 2.1
 parameters:
   default_docker_image:
     type: string
-    default: cimg/base:2025.08
+    default: cimg/base:2024.01
   base_image:
     type: string
     default: default
@@ -105,10 +105,19 @@ commands:
               chown -R "$user:$user" ~/.cache
               echo "Created Mise cache dir."
             fi
+      - run:
+          name: Detect glibc version
+          command: |
+            if ldd --version >/dev/null 2>&1; then
+              ldd --version | head -n1 | awk '{print $NF}' > .glibc-version
+            else
+              echo "musl" > .glibc-version
+            fi
+            echo "Detected glibc/musl version: $(cat .glibc-version)"
       - restore_cache:
           name: "Restore mise cache"
           keys:
-            - "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+            - "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}-{{ checksum \".glibc-version\" }}"
       - run:
           name: "Install mise"
           command: |
@@ -127,13 +136,13 @@ commands:
             mise install -v -y
       - save_cache:
           name: "Save mise cache"
-          key: "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}"
+          key: "mise-v5-cache-{{ .Environment.CACHE_VERSION }}-{{ checksum \".executor-user\" }}-{{ checksum \"mise.toml\" }}-{{ checksum \".glibc-version\" }}"
           paths:
             - << parameters.mise_data_dir >>
       - run:
-          name: "Delete executor file"
+          name: "Clean up temp files"
           command: |
-            rm -f .executor-user
+            rm -f .executor-user .glibc-version
 
   gcp-oidc-authenticate:
     description: "Authenticate with GCP using a CircleCI OIDC token."

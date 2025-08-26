@@ -2253,7 +2253,7 @@ workflows:
   #           - circleci-repo-readonly-authenticated-github-token
 
 # Stop running on dl-fixcc-1 for now to save credits
-# Do NOT mert to op-es
+# Do NOT merge to op-es
   # develop-fault-proofs:
   #   when:
   #     and:
@@ -2481,70 +2481,72 @@ workflows:
       #       - circleci-repo-readonly-authenticated-github-token
       #       - circleci-api-token
 
-  # Acceptance tests (pre-merge to develop)
-  acceptance-tests-pr:
-    when:
-      not:
-        equal: [<< pipeline.git.branch >>, "develop"]
-    jobs:
-      - contracts-bedrock-build:  # needed for sysgo tests
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - cannon-prestate-quick:  # needed for sysgo tests
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      # IN-PROCESS (base)
-      - op-acceptance-tests:
-          # Acceptance Testing params
-          name: memory-base
-          gate: base
-          # CircleCI params
-          no_output_timeout: 10m
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate-quick
-      # KURTOSIS (Simple)
-      - op-acceptance-tests:
-          # Acceptance Testing params
-          name: kurtosis-simple
-          devnet: simple
-          gate: base
-          # CircleCI params
-          no_output_timeout: 30m
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-      # KURTOSIS (Isthmus)
-      - op-acceptance-tests:
-          # Acceptance Testing params
-          name: kurtosis-isthmus
-          devnet: isthmus
-          gate: isthmus
-          # CircleCI params
-          no_output_timeout: 30m
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-      # KURTOSIS (Interop)
-      - op-acceptance-tests:
-          # Acceptance Testing params
-          name: kurtosis-interop
-          devnet: interop
-          gate: interop
-          # CircleCI params
-          no_output_timeout: 30m
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-      # Generate flaky test report
-      # - generate-flaky-report:
-      #     name: generate-flaky-tests-report
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
-      #       - circleci-api-token
+# Stop running on dl-fixcc-1 for now to save credits
+# Do NOT merge to op-es
+# # Acceptance tests (pre-merge to develop)
+  # acceptance-tests-pr:
+  #   when:
+  #     not:
+  #       equal: [<< pipeline.git.branch >>, "develop"]
+  #   jobs:
+  #     - contracts-bedrock-build:  # needed for sysgo tests
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #     - cannon-prestate-quick:  # needed for sysgo tests
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #     # IN-PROCESS (base)
+  #     - op-acceptance-tests:
+  #         # Acceptance Testing params
+  #         name: memory-base
+  #         gate: base
+  #         # CircleCI params
+  #         no_output_timeout: 10m
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - discord
+  #         requires:
+  #           - contracts-bedrock-build
+  #           - cannon-prestate-quick
+  #     # KURTOSIS (Simple)
+  #     - op-acceptance-tests:
+  #         # Acceptance Testing params
+  #         name: kurtosis-simple
+  #         devnet: simple
+  #         gate: base
+  #         # CircleCI params
+  #         no_output_timeout: 30m
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - discord
+  #     # KURTOSIS (Isthmus)
+  #     - op-acceptance-tests:
+  #         # Acceptance Testing params
+  #         name: kurtosis-isthmus
+  #         devnet: isthmus
+  #         gate: isthmus
+  #         # CircleCI params
+  #         no_output_timeout: 30m
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - discord
+  #     # KURTOSIS (Interop)
+  #     - op-acceptance-tests:
+  #         # Acceptance Testing params
+  #         name: kurtosis-interop
+  #         devnet: interop
+  #         gate: interop
+  #         # CircleCI params
+  #         no_output_timeout: 30m
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - discord
+  #     # Generate flaky test report
+  #     # - generate-flaky-report:
+  #     #     name: generate-flaky-tests-report
+  #     #     context:
+  #     #       - circleci-repo-readonly-authenticated-github-token
+  #     #       - circleci-api-token
 
   close-issue-workflow:
     when:

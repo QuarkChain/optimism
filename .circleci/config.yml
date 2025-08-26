@@ -2411,12 +2411,12 @@ workflows:
   #         context:
   #           - circleci-repo-optimism
 
-  # Acceptance tests (post-merge to develop)
+  # Acceptance tests (post-merge to op-es)
   acceptance-tests:
     when:
       or:
         - and:
-          - equal: ["develop", <<pipeline.git.branch>>]
+          - equal: ["op-es", <<pipeline.git.branch>>]
           - equal: ["webhook",<< pipeline.trigger_source >>]
         - and:
           - equal: [true, <<pipeline.parameters.acceptance_tests_dispatch>>]
@@ -2481,8 +2481,7 @@ workflows:
       #       - circleci-repo-readonly-authenticated-github-token
       #       - circleci-api-token
 
-# Stop running on dl-fixcc-1 for now to save credits
-# Do NOT merge to op-es
+# Commented by Quarkchain since we do not run acceptance tests on PRs
 # # Acceptance tests (pre-merge to develop)
   # acceptance-tests-pr:
   #   when:
@@ -2542,11 +2541,11 @@ workflows:
   #           - circleci-repo-readonly-authenticated-github-token
   #           - discord
   #     # Generate flaky test report
-  #     # - generate-flaky-report:
-  #     #     name: generate-flaky-tests-report
-  #     #     context:
-  #     #       - circleci-repo-readonly-authenticated-github-token
-  #     #       - circleci-api-token
+  #     - generate-flaky-report:
+  #         name: generate-flaky-tests-report
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - circleci-api-token
 
   close-issue-workflow:
     when:

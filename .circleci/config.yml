@@ -108,8 +108,9 @@ commands:
       - run:
           name: Detect glibc version
           command: |
-            if ldd --version >/dev/null 2>&1; then
-              ldd --version | head -n1 | awk '{print $NF}' > .glibc-version
+            if command -v ldd >/dev/null 2>&1; then
+              # Use process substitution to avoid SIGPIPE in pipefail
+              awk 'NR==1 {print $NF}' <(ldd --version) > .glibc-version
             else
               echo "musl" > .glibc-version
             fi

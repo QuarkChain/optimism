@@ -391,7 +391,6 @@ jobs:
             # Clone asterisc @ the pinned version to fetch remote `RISCV.sol`
             ASTERISC_REV="v$(yq '.tools.asterisc' ../../mise.toml)"
             REMOTE_ASTERISC_PATH="./src/vendor/asterisc/RISCV_Remote.sol"
-            rm -rf asterisc
             git clone https://github.com/ethereum-optimism/asterisc \
               -b $ASTERISC_REV && \
               cp ./asterisc/rvsol/src/RISCV.sol $REMOTE_ASTERISC_PATH

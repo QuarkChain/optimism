@@ -84,5 +84,7 @@ func GetRollupConfig(name string) (*rollup.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load rollup config: %w", err)
 	}
+	// log the SoulGasTokenTime of rollup config's ChainOpConfig
+	fmt.Printf("SoulGasTokenTime for rollup config %q: %d\n", name, *rollupCfg.ChainOpConfig.SoulGasTokenTime)
 	return rollupCfg, nil
 }

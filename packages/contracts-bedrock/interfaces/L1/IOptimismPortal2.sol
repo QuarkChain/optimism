@@ -125,8 +125,7 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     function version() external pure returns (string memory);
     function migrateLiquidity() external;
 
-    function setMinter(address _minter) external;
-    function mintTransaction(address _to, uint256 _value) external;
+    function mintTransaction(address _to, uint256 _mintValue, uint64 _gasLimit, bytes memory _data) external;
     function setNativeDeposit(bool _disable) external;
 
     function __constructor__(uint256 _proofMaturityDelaySeconds) external;

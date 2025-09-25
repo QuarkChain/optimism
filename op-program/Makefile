@@ -76,6 +76,9 @@ test:
 verify-beta-testnet: op-program-host op-program-client
 	env GO111MODULE=on go run ./verify/beta-testnet/cmd/beta-testnet.go --l1 $$SEPOLIA_L1URL --l1.beacon $$SEPOLIA_BEACON_URL --l2 $$SEPOLIA_L2URL --datadir /tmp/test-beta-testnet
 
+verify-gamma-testnet: op-program-host op-program-client
+	env GO111MODULE=on go run ./verify/gamma-testnet/cmd/gamma-testnet.go --l1 $$SEPOLIA_L1URL --l1.beacon $$SEPOLIA_BEACON_URL --l2 $$SEPOLIA_L2URL --datadir /tmp/test-gamma-testnet
+
 capture-mainnet-genesis: op-program-host op-program-client
 	rm -rf "$(COMPAT_DIR)/mainnet-genesis" "$(COMPAT_DIR)/mainnet-genesis.tar.bz"
 	env GO111MODULE=on go run ./verify/mainnet/cmd/mainnet.go --l1 $$MAINNET_L1URL --l1.beacon $$MAINNET_BEACON_URL --l2 $$MAINNET_L2URL --datadir "$(COMPAT_DIR)/mainnet-genesis" --l1.head "0x4903424f6cc2cfba7c2bf8c8f48ca46721c963fa64b411cfee3697b781e3e5f1" --l2.start "105235063" --l2.end "105235064"

@@ -282,9 +282,11 @@ func (d *Sequencer) onBuildSealed(x engine.BuildSealedEvent) {
 	{
 		envelope := x.Envelope
 		if envelope.BlobsBundle != nil && len(envelope.BlobsBundle.Blobs) > 0 {
+			ctx, cancel := context.WithTimeout(d.ctx, time.Second*5)
+			defer cancel()
 			// Deriving is based on onchain-data which doesn't contain L2 blob.
 			if x.DerivedFrom != (eth.L1BlockRef{}) {
-				d.emitter.Emit(rollup.EngineTemporaryErrorEvent{
+				d.emitter.Emit(ctx, rollup.EngineTemporaryErrorEvent{
 					Err: fmt.Errorf("got blobs when deriving")})
 				return
 			}
@@ -293,7 +295,7 @@ func (d *Sequencer) onBuildSealed(x engine.BuildSealedEvent) {
 				defer cancel()
 				err := d.dacClient.UploadBlobs(ctx, envelope)
 				if err != nil {
-					d.emitter.Emit(rollup.EngineTemporaryErrorEvent{
+					d.emitter.Emit(ctx, rollup.EngineTemporaryErrorEvent{
 						Err: fmt.Errorf("UploadBlobs failed: %w", err)})
 					return
 				}

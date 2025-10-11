@@ -18,6 +18,7 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 
 /// @title UpgradeAnchorStateRegistry
 contract UpgradeAnchorStateRegistry is Script {
@@ -107,7 +108,7 @@ contract UpgradeAnchorStateRegistry is Script {
         returns (bytes memory)
     {
         return abi.encodeCall(
-            IAnchorStateRegistry.initialize, (_superchainConfig, _disputeGameFactory, _startingAnchorRoot, _type)
+            IAnchorStateRegistry.initialize, (ISystemConfig(address(_superchainConfig))/* this is just for making it pass, the beta contract are not upgraded so it's still _superchainConfig */, _disputeGameFactory, _startingAnchorRoot, _type)
         );
     }
 

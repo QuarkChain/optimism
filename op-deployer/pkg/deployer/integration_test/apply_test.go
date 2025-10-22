@@ -100,22 +100,17 @@ func TestEndToEndBootstrapApply(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		var release string
-		if !loc.IsTag() {
-			release = "dev"
-		}
-
 		impls, err := bootstrap.Implementations(ctx, bootstrap.ImplementationsConfig{
 			L1RPCUrl:                        l1RPC,
 			PrivateKey:                      pkHex,
 			ArtifactsLocator:                loc,
-			L1ContractsRelease:              release,
 			MIPSVersion:                     int(standard.MIPSVersion),
 			WithdrawalDelaySeconds:          standard.WithdrawalDelaySeconds,
 			MinProposalSizeBytes:            standard.MinProposalSizeBytes,
 			ChallengePeriodSeconds:          standard.ChallengePeriodSeconds,
 			ProofMaturityDelaySeconds:       standard.ProofMaturityDelaySeconds,
 			DisputeGameFinalityDelaySeconds: standard.DisputeGameFinalityDelaySeconds,
+			DevFeatureBitmap:                common.Hash{},
 			SuperchainConfigProxy:           bstrap.SuperchainConfigProxy,
 			ProtocolVersionsProxy:           bstrap.ProtocolVersionsProxy,
 			UpgradeController:               superchainPAO,
@@ -777,6 +772,7 @@ func validateOPChainDeployment(t *testing.T, cg codeGetter, st *state.State, int
 	implAddrs := []addrTuple{
 		{"DelayedWethImpl", st.ImplementationsDeployment.DelayedWethImpl},
 		{"OptimismPortalImpl", st.ImplementationsDeployment.OptimismPortalImpl},
+		{"OptimismPortalInteropImpl", st.ImplementationsDeployment.OptimismPortalInteropImpl},
 		{"SystemConfigImpl", st.ImplementationsDeployment.SystemConfigImpl},
 		{"L1CrossDomainMessengerImpl", st.ImplementationsDeployment.L1CrossDomainMessengerImpl},
 		{"L1ERC721BridgeImpl", st.ImplementationsDeployment.L1Erc721BridgeImpl},
@@ -785,10 +781,6 @@ func validateOPChainDeployment(t *testing.T, cg codeGetter, st *state.State, int
 		{"DisputeGameFactoryImpl", st.ImplementationsDeployment.DisputeGameFactoryImpl},
 		{"MipsImpl", st.ImplementationsDeployment.MipsImpl},
 		{"PreimageOracleImpl", st.ImplementationsDeployment.PreimageOracleImpl},
-	}
-
-	if !intent.L1ContractsLocator.IsTag() {
-		implAddrs = append(implAddrs, addrTuple{"EthLockboxImpl", st.ImplementationsDeployment.EthLockboxImpl})
 	}
 
 	for _, addr := range implAddrs {

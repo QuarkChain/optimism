@@ -59,6 +59,13 @@ func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
 
 	addrs := chConfig.Addresses
 
+	var inboxContractConfig *InboxContractConfig
+	if chConfig.InboxContractConfig != nil {
+		inboxContractConfig = &InboxContractConfig{
+			UseInboxContract: chConfig.InboxContractConfig.UseInboxContract,
+		}
+	}
+
 	var altDA *AltDAConfig
 	if chConfig.AltDA != nil {
 		altDA = &AltDAConfig{
@@ -93,6 +100,7 @@ func LoadOPStackRollupConfig(chainID uint64) (*Config, error) {
 		L1ChainID:              new(big.Int).SetUint64(superConfig.L1.ChainID),
 		L2ChainID:              new(big.Int).SetUint64(chConfig.ChainID),
 		BatchInboxAddress:      chConfig.BatchInboxAddr,
+		InboxContractConfig:    inboxContractConfig,
 		DepositContractAddress: *addrs.OptimismPortalProxy,
 		L1SystemConfigAddress:  *addrs.SystemConfigProxy,
 		AltDAConfig:            altDA,

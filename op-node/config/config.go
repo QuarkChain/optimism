@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethstorage/da-server/pkg/da/client"
 	"github.com/urfave/cli/v2"
 )
@@ -39,6 +40,8 @@ type Config struct {
 	Driver driver.Config
 
 	Rollup rollup.Config
+
+	L1ChainConfig *params.ChainConfig
 
 	DependencySet depset.DependencySet
 
@@ -148,6 +151,9 @@ func (cfg *Config) Check() error {
 	}
 	if err := cfg.L2.Check(); err != nil {
 		return fmt.Errorf("l2 endpoint config error: %w", err)
+	}
+	if cfg.L1ChainConfig == nil {
+		return fmt.Errorf("missing L1ChainConfig")
 	}
 	if cfg.Rollup.EcotoneTime != nil {
 		if cfg.Beacon == nil {

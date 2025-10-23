@@ -9,7 +9,6 @@ import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 
 // Scripts
 import { Deployer } from "scripts/deploy/Deployer.sol";
-import { DeployOPChainInput } from "scripts/deploy/DeployOPChain.s.sol";
 import { Chains } from "scripts/libraries/Chains.sol";
 import { Config } from "scripts/libraries/Config.sol";
 import { StateDiff } from "scripts/libraries/StateDiff.sol";
@@ -33,7 +32,7 @@ import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IMIPS } from "interfaces/cannon/IMIPS.sol";
+import { IMIPS64 } from "interfaces/cannon/IMIPS64.sol";
 import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
 import { IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
 import { IL1CrossDomainMessenger } from "interfaces/L1/IL1CrossDomainMessenger.sol";
@@ -274,11 +273,15 @@ contract Deploy is Deployer {
                 proofMaturityDelaySeconds: cfg.proofMaturityDelaySeconds(),
                 disputeGameFinalityDelaySeconds: cfg.disputeGameFinalityDelaySeconds(),
                 mipsVersion: StandardConstants.MIPS_VERSION,
-                l1ContractsRelease: "dev",
+                devFeatureBitmap: cfg.devFeatureBitmap(),
+                faultGameV2MaxGameDepth: cfg.faultGameV2MaxGameDepth(),
+                faultGameV2SplitDepth: cfg.faultGameV2SplitDepth(),
+                faultGameV2ClockExtension: cfg.faultGameV2ClockExtension(),
+                faultGameV2MaxClockDuration: cfg.faultGameV2MaxClockDuration(),
                 protocolVersionsProxy: IProtocolVersions(artifacts.mustGetAddress("ProtocolVersionsProxy")),
                 superchainConfigProxy: superchainConfigProxy,
                 superchainProxyAdmin: superchainProxyAdmin,
-                upgradeController: superchainProxyAdmin.owner(),
+                l1ProxyAdminOwner: superchainProxyAdmin.owner(),
                 challenger: cfg.l2OutputOracleChallenger()
             })
         );
@@ -313,17 +316,17 @@ contract Deploy is Deployer {
         );
         ChainAssertions.checkDelayedWETHImpl(IDelayedWETH(payable(impls.DelayedWETH)), cfg.faultGameWithdrawalDelay());
         ChainAssertions.checkMIPS({
-            _mips: IMIPS(address(dio.mipsSingleton)),
+            _mips: IMIPS64(address(dio.mipsSingleton)),
             _oracle: IPreimageOracle(address(dio.preimageOracleSingleton))
         });
         ChainAssertions.checkOPContractsManager({
             _impls: impls,
             _proxies: _proxies(),
             _opcm: IOPContractsManager(address(dio.opcm)),
-            _mips: IMIPS(address(dio.mipsSingleton)),
+            _mips: IMIPS64(address(dio.mipsSingleton)),
             _superchainProxyAdmin: superchainProxyAdmin
         });
-        ChainAssertions.checkSystemConfig({ _doi: DeployOPChainInput(address(0)), _contracts: impls, _isProxy: false });
+        ChainAssertions.checkSystemConfigImpls(impls);
         ChainAssertions.checkAnchorStateRegistryProxy(IAnchorStateRegistry(impls.AnchorStateRegistry), false);
     }
 

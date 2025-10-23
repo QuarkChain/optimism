@@ -2463,20 +2463,19 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - contracts-bedrock-build
-      # Always run full tests on qkc
-      # - go-tests:
-      #     name: go-tests-short
-      #     parallelism: 4
-      #     no_output_timeout: 19m
-      #     test_timeout: 20m
-      #     requires:
-      #       - contracts-bedrock-build
-      #       - cannon-prestate-quick
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
-      #     filters:
-      #       branches:
-      #         ignore: develop # Run on all branches EXCEPT develop (PR branches only)
+      - go-tests:
+          name: go-tests-short
+          parallelism: 4
+          no_output_timeout: 19m
+          test_timeout: 20m
+          requires:
+            - contracts-bedrock-build
+            - cannon-prestate-quick
+          context:
+            - circleci-repo-readonly-authenticated-github-token
+          filters:
+            branches:
+              ignore: develop # Run on all branches EXCEPT develop (PR branches only)
       - go-tests:
           name: go-tests-full
           rule: "go-tests-ci" # Run full test suite instead of short
@@ -2484,6 +2483,7 @@ workflows:
           no_output_timeout: 89m # Longer timeout for full tests
           test_timeout: 90m
           notify: true
+          # Always run full tests on qkc
           # filters:
           #   branches:
           #     only: develop # Only runs on develop branch (post-merge)
@@ -2516,7 +2516,7 @@ workflows:
             - op-program-docker-build
             - op-supervisor-docker-build
             - op-test-sequencer-docker-build
-            - go-tests-full
+            - go-tests-short
             - sanitize-op-program
           context:
             - circleci-repo-readonly-authenticated-github-tokens

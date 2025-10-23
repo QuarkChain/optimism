@@ -1021,7 +1021,7 @@ jobs:
     circleci_ip_ranges: true
     docker:
       - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: 2xlarge
+    resource_class: xlarge
     parameters:
       test_flags:
         description: Additional flags to pass to the test command
@@ -2315,15 +2315,13 @@ workflows:
             - cannon-prestate-quick
   main:
     when:
-      or:
-        - equal: ["webhook", << pipeline.trigger_source >>]
-        - and:
-            - equal: [true, <<pipeline.parameters.main_dispatch>>]
-            - equal: ["api", << pipeline.trigger_source >>]
-            - equal: [
-                  << pipeline.parameters.github-event-type >>,
-                  "__not_set__",
-                ] #this is to prevent triggering this workflow as the default value is always set for main_dispatch
+      and:
+          - equal: [true, <<pipeline.parameters.main_dispatch>>]
+          - equal: ["api", << pipeline.trigger_source >>]
+          - equal: [
+                << pipeline.parameters.github-event-type >>,
+                "__not_set__",
+              ] #this is to prevent triggering this workflow as the default value is always set for main_dispatch
     jobs:
       - initialize:
           context:
@@ -2463,20 +2461,19 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - contracts-bedrock-build
-      # Always run full tests on qkc
-      # - go-tests:
-      #     name: go-tests-short
-      #     parallelism: 4
-      #     no_output_timeout: 19m
-      #     test_timeout: 20m
-      #     requires:
-      #       - contracts-bedrock-build
-      #       - cannon-prestate-quick
-      #     context:
-      #       - circleci-repo-readonly-authenticated-github-token
-      #     filters:
-      #       branches:
-      #         ignore: develop # Run on all branches EXCEPT develop (PR branches only)
+      - go-tests:
+          name: go-tests-short
+          parallelism: 4
+          no_output_timeout: 19m
+          test_timeout: 20m
+          requires:
+            - contracts-bedrock-build
+            - cannon-prestate-quick
+          context:
+            - circleci-repo-readonly-authenticated-github-token
+          filters:
+            branches:
+              ignore: develop # Run on all branches EXCEPT develop (PR branches only)
       - go-tests:
           name: go-tests-full
           rule: "go-tests-ci" # Run full test suite instead of short
@@ -2484,6 +2481,7 @@ workflows:
           no_output_timeout: 89m # Longer timeout for full tests
           test_timeout: 90m
           notify: true
+          # Always run full tests on qkc
           # filters:
           #   branches:
           #     only: develop # Only runs on develop branch (post-merge)

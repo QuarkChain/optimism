@@ -18,6 +18,7 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
+import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 
 /// @title UpgradeAnchorStateRegistry
 contract UpgradeAnchorStateRegistry is Script {
@@ -52,11 +53,7 @@ contract UpgradeAnchorStateRegistry is Script {
             _startingAnchorRoot
         );
         vm.stopBroadcast();
-        checkOutput(
-            IAnchorStateRegistry(_anchorStateRegistryProxy),
-            GameType.wrap(_type),
-            _startingAnchorRoot
-        );
+        checkOutput(IAnchorStateRegistry(_anchorStateRegistryProxy), GameType.wrap(_type), _startingAnchorRoot);
     }
 
     function upgradeAnchorStateRegistryImpl(
@@ -73,7 +70,9 @@ contract UpgradeAnchorStateRegistry is Script {
         address anchorStateRegistryImpl = DeployUtils.create1({
             _name: "AnchorStateRegistry",
             _args: DeployUtils.encodeConstructor(
-                abi.encodeCall(IAnchorStateRegistry.__constructor__, (_anchorStateRegistryProxy.disputeGameFinalityDelaySeconds()))
+                abi.encodeCall(
+                    IAnchorStateRegistry.__constructor__, (_anchorStateRegistryProxy.disputeGameFinalityDelaySeconds())
+                )
             )
         });
 
@@ -87,7 +86,9 @@ contract UpgradeAnchorStateRegistry is Script {
         bytes memory data;
         data = encodeStorageSetterZeroOutInitializedSlot();
         upgradeAndCall(_opChainProxyAdmin, address(_anchorStateRegistryProxy), _storageSetter, data);
-        data = encodeAnchorStateRegistryInitializer(_disputeGameFactoryProxy, _type, _startingAnchorRoot, _superchainConfig);
+        data = encodeAnchorStateRegistryInitializer(
+            _disputeGameFactoryProxy, _type, _startingAnchorRoot, _superchainConfig
+        );
         upgradeAndCall(_opChainProxyAdmin, address(_anchorStateRegistryProxy), anchorStateRegistryImpl, data);
     }
 
@@ -106,7 +107,9 @@ contract UpgradeAnchorStateRegistry is Script {
         virtual
         returns (bytes memory)
     {
-        return abi.encodeCall(IAnchorStateRegistry.initialize, (_superchainConfig, _disputeGameFactory, _startingAnchorRoot, _type));
+        return abi.encodeCall(
+            IAnchorStateRegistry.initialize, (ISystemConfig(address(_superchainConfig))/* this is just for making it pass, the beta contract are not upgraded so it's still _superchainConfig */, _disputeGameFactory, _startingAnchorRoot, _type)
+        );
     }
 
     /// @notice Makes an external call to the target to initialize the proxy with the specified data.
@@ -135,8 +138,14 @@ contract UpgradeAnchorStateRegistry is Script {
         view
     {
         (Hash root, uint256 l2BlockNumber) = IAnchorStateRegistry(_anchorStateRegistryProxy).anchors(_type);
-        require(Hash.unwrap(root) == Hash.unwrap(_startingAnchorRoot.root), "UpgradeAnchorStateRegistryOutput: root mismatch");
-        require(l2BlockNumber == _startingAnchorRoot.l2SequenceNumber, "UpgradeAnchorStateRegistryOutput: l2BlockNumber mismatch");
+        require(
+            Hash.unwrap(root) == Hash.unwrap(_startingAnchorRoot.root),
+            "UpgradeAnchorStateRegistryOutput: root mismatch"
+        );
+        require(
+            l2BlockNumber == _startingAnchorRoot.l2SequenceNumber,
+            "UpgradeAnchorStateRegistryOutput: l2BlockNumber mismatch"
+        );
     }
 
     function bytes32ToHex(bytes32 _data) internal pure returns (string memory) {

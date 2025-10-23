@@ -18,14 +18,18 @@
 !/op-proposer
 !/op-service
 !/op-supervisor
+!/op-test-sequencer
 !/op-wheel
 !/op-alt-da
 !/da-server
 !/op-geth
+!/op-faucet
+!/op-interop-mon
 !/go.mod
 !/go.sum
 !/justfiles
 !/mise.toml
+!/op-e2e/e2eutils
 
 **/bin
 **/testdata

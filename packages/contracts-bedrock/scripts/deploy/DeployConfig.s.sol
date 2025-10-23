@@ -79,6 +79,7 @@ contract DeployConfig is Script {
     bool public deploySoulGasToken;
     bool public isSoulBackedByNative;
     bool public useUpgradedFork;
+    bytes32 public devFeatureBitmap;
 
     function read(string memory _path) public {
         console.log("DeployConfig: reading file %s", _path);
@@ -153,6 +154,7 @@ contract DeployConfig is Script {
         useInterop = _readOr(_json, "$.useInterop", false);
         deploySoulGasToken = _readOr(_json, "$.deploySoulGasToken", false);
         isSoulBackedByNative = _readOr(_json, "$.isSoulBackedByNative", false);
+        devFeatureBitmap = bytes32(_readOr(_json, "$.devFeatureBitmap", 0));
         useUpgradedFork;
     }
 
@@ -218,6 +220,11 @@ contract DeployConfig is Script {
     /// @notice Allow the `fundDevAccounts` config to be overridden.
     function setFundDevAccounts(bool _fundDevAccounts) public {
         fundDevAccounts = _fundDevAccounts;
+    }
+
+    /// @notice Allow the `devFeatureBitmap` config to be overridden in testing environments
+    function setDevFeatureBitmap(bytes32 _devFeatureBitmap) public {
+        devFeatureBitmap = _devFeatureBitmap;
     }
 
     /// @notice Allow the `useUpgradedFork` config to be overridden in testing environments

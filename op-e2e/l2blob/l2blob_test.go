@@ -98,7 +98,7 @@ func sendTransactionWithBlobs(t *testing.T, ctx context.Context, l2Client *ethcl
 	require.NoError(t, err)
 	nonce, err := l2Client.NonceAt(ctx, crypto.PubkeyToAddress(sender.PublicKey), nil)
 	require.NoError(t, err)
-	sidecar, blobHashes, err := txmgr.MakeSidecar(blobs)
+	sidecar, blobHashes, err := txmgr.MakeSidecar(blobs, true)
 	require.NoError(t, err)
 	tx := types.MustSignNewTx(sender, types.LatestSignerForChainID(chainID), &types.BlobTx{
 		ChainID:    uint256.NewInt(chainID.Uint64()),
@@ -132,10 +132,7 @@ func gasPriceEstimator(ctx context.Context, client *ethclient.Client) (*big.Int,
 		return nil, nil, nil, errors.New("head BaseFee is nil")
 	}
 
-	var blobFee *big.Int
-	if head.ExcessBlobGas != nil {
-		blobFee = eth.CalcBlobFeeDefault(head)
-	}
+	blobFee := eth.CalcBlobFeeCancun(*head.ExcessBlobGas)
 
 	gasFeeCap := new(big.Int).Add(
 		tip,

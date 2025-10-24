@@ -335,6 +335,8 @@ func GenesisL2(l2Host *script.Host, cfg *L2Config, deployment *L2Deployment, mul
 		DeployCrossL2Inbox:                       multichainDepSet,
 		EnableGovernance:                         cfg.EnableGovernance,
 		FundDevAccounts:                          cfg.FundDevAccounts,
+		DeploySoulGasToken:                       cfg.DeploySoulGasToken,
+		IsSoulBackedByNative:                     cfg.IsSoulBackedByNative,
 	}); err != nil {
 		return fmt.Errorf("failed L2 genesis: %w", err)
 	}

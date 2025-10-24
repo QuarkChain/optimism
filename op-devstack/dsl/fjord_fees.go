@@ -357,12 +357,22 @@ func CalculateFjordL1Cost(ctx context.Context, client apis.EthClient, rollupCost
 	if err != nil {
 		return nil, err
 	}
+	operatorFeeScalar, err := contractio.Read(l1Block.OperatorFeeScalar(), ctx, overrideBlockOpt)
+	if err != nil {
+		return nil, err
+	}
+	operatorFeeConstant, err := contractio.Read(l1Block.OperatorFeeConstant(), ctx, overrideBlockOpt)
+	if err != nil {
+		return nil, err
+	}
 
 	costFunc := types.NewL1CostFuncFjord(
 		l1BaseFee,
 		blobBaseFee,
 		new(big.Int).SetUint64(uint64(baseFeeScalar)),
-		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)),
+		new(big.Int).SetUint64(uint64(operatorFeeScalar)),
+		new(big.Int).SetUint64(uint64(operatorFeeConstant)))
 
 	fee, _ := costFunc(rollupCostData)
 	return fee, nil

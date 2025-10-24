@@ -311,8 +311,8 @@ contract L1Block_SetL1BlockValuesIsthmus_Test is L1Block_TestInit {
         assertEq(l1Block.blobBaseFee(), blobBaseFee);
         assertEq(l1Block.hash(), hash);
         assertEq(l1Block.batcherHash(), batcherHash);
-        assertEq(l1Block.l1BaseFeeScalarMultiplier(), l1BaseFeeScalarMultiplier);
-        assertEq(l1Block.l1BlobBaseFeeScalarMultiplier(), l1BlobBaseFeeScalarMultiplier);
+        assertEq(l1Block.operatorFeeScalar(), operatorFeeScalar);
+        assertEq(l1Block.operatorFeeConstant(), operatorFeeConstant);
 
         // ensure we didn't accidentally pollute the 128 bits of the sequencenum+scalars slot that
         // should be empty

@@ -132,7 +132,10 @@ func gasPriceEstimator(ctx context.Context, client *ethclient.Client) (*big.Int,
 		return nil, nil, nil, errors.New("head BaseFee is nil")
 	}
 
-	blobFee := eth.CalcBlobFeeCancun(*head.ExcessBlobGas)
+	var blobFee *big.Int
+	if head.ExcessBlobGas != nil {
+		blobFee = eth.CalcBlobFeeCancun(*head.ExcessBlobGas)
+	}
 
 	gasFeeCap := new(big.Int).Add(
 		tip,

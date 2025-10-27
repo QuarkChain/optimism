@@ -255,5 +255,5 @@ func (n *L2Network) DepositContractAddr() common.Address {
 }
 
 func (n *L2Network) L1ScalarMultiplierConfig() (*big.Int, *big.Int) {
-	return n.inner.RollupConfig().ChainOpConfig.L1ScalarMultipliers(0)
+	return n.inner.RollupConfig().ChainOpConfig.L1ScalarMultipliers(n.unsafeHeadRef().Time)
 }

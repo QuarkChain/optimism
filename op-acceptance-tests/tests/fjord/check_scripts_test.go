@@ -3,7 +3,6 @@ package fjord
 import (
 	"context"
 	"crypto/rand"
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/rpc"
@@ -163,19 +162,15 @@ func checkFastLZTransactions(t devtest.T, ctx context.Context, sys *presets.Mini
 		gpoFee, err := dsl.ReadGasPriceOracleL1FeeAt(ctx, l2Client, gasPriceOracle, txUnsigned, receipt.BlockHash)
 		require.NoError(err)
 
-		baseFeeScalar, err := contractio.Read(gasPriceOracle.BaseFeeScalar(), ctx)
-		require.NoError(err)
-		blobBaseFeeScalar, err := contractio.Read(gasPriceOracle.BlobBaseFeeScalar(), ctx)
-		require.NoError(err)
-		baseFeeScalarBig := big.NewInt(int64(baseFeeScalar))
-		blobBaseFeeScalarBig := big.NewInt(int64(blobBaseFeeScalar))
+		baseFeeScalarMultiplierBig := common.Big1
+		blobBaseFeeScalarMultiplierBig := common.Big1
 
 		fastLzSize := uint64(types.FlzCompressLen(txUnsigned) + 68)
-		gethGPOFee, err := dsl.CalculateFjordL1Cost(ctx, l2Client, types.RollupCostData{FastLzSize: fastLzSize}, receipt.BlockHash, baseFeeScalarBig, blobBaseFeeScalarBig)
+		gethGPOFee, err := dsl.CalculateFjordL1Cost(ctx, l2Client, types.RollupCostData{FastLzSize: fastLzSize}, receipt.BlockHash, baseFeeScalarMultiplierBig, blobBaseFeeScalarMultiplierBig)
 		require.NoError(err)
 		require.Equalf(gethGPOFee.Uint64(), gpoFee.Uint64(), "GPO L1 fee mismatch (expected=%d actual=%d)", gethGPOFee.Uint64(), gpoFee.Uint64())
 
-		expectedFee, err := dsl.CalculateFjordL1Cost(ctx, l2Client, signedTx.RollupCostData(), receipt.BlockHash, baseFeeScalarBig, blobBaseFeeScalarBig)
+		expectedFee, err := dsl.CalculateFjordL1Cost(ctx, l2Client, signedTx.RollupCostData(), receipt.BlockHash, baseFeeScalarMultiplierBig, blobBaseFeeScalarMultiplierBig)
 		require.NoError(err)
 		require.NotNil(receipt.L1Fee)
 		dsl.ValidateL1FeeMatches(t, expectedFee, receipt.L1Fee)
@@ -184,7 +179,7 @@ func checkFastLZTransactions(t devtest.T, ctx context.Context, sys *presets.Mini
 		require.NoError(err)
 		txLenGPO := len(txUnsigned) + 68
 		flzUpperBound := uint64(txLenGPO + txLenGPO/255 + 16)
-		upperBoundCost, err := dsl.CalculateFjordL1Cost(ctx, l2Client, types.RollupCostData{FastLzSize: flzUpperBound}, receipt.BlockHash, baseFeeScalarBig, blobBaseFeeScalarBig)
+		upperBoundCost, err := dsl.CalculateFjordL1Cost(ctx, l2Client, types.RollupCostData{FastLzSize: flzUpperBound}, receipt.BlockHash, baseFeeScalarMultiplierBig, blobBaseFeeScalarMultiplierBig)
 		require.NoError(err)
 		require.Equalf(upperBoundCost.Uint64(), upperBound.Uint64(), "GPO L1 upper bound mismatch (expected=%d actual=%d)", upperBoundCost.Uint64(), upperBound.Uint64())
 	}

@@ -182,5 +182,10 @@ func checkFastLZTransactions(t devtest.T, ctx context.Context, sys *presets.Mini
 		upperBoundCost, err := dsl.CalculateFjordL1Cost(ctx, l2Client, types.RollupCostData{FastLzSize: flzUpperBound}, receipt.BlockHash, baseFeeScalarMultiplierBig, blobBaseFeeScalarMultiplierBig)
 		require.NoError(err)
 		require.Equalf(upperBoundCost.Uint64(), upperBound.Uint64(), "GPO L1 upper bound mismatch (expected=%d actual=%d)", upperBoundCost.Uint64(), upperBound.Uint64())
+
+		_, err = contractio.Read(gasPriceOracle.BaseFeeScalar(), ctx)
+		require.NoError(err)
+		_, err = contractio.Read(gasPriceOracle.BlobBaseFeeScalar(), ctx)
+		require.NoError(err)
 	}
 }

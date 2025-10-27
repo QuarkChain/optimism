@@ -196,7 +196,8 @@ func (ff *FjordFees) validateFjordFeatures(receipt *types.Receipt, l1Fee *big.In
 		return fastLzSizeSigned, nil
 	}
 
-	expectedFee, err := CalculateFjordL1Cost(ff.ctx, client, signedTx.RollupCostData(), receipt.BlockHash)
+	scalar1, scalar2 := ff.l2Network.L1ScalarMultiplierConfig()
+	expectedFee, err := CalculateFjordL1Cost(ff.ctx, client, signedTx.RollupCostData(), receipt.BlockHash, scalar1, scalar2)
 	ff.require.NoError(err, "should calculate L1 fee")
 
 	ff.require.Equalf(expectedFee, receiptL1Fee, "Calculated L1 fee should match receipt L1 fee (expected=%s actual=%s)", expectedFee.String(), receiptL1Fee.String())
@@ -329,7 +330,7 @@ func ValidateL1FeeMatches(t devtest.T, calculatedFee, receiptFee *big.Int) {
 }
 
 // CalculateFjordL1Cost calculates L1 cost using Fjord formula with block-specific L1 state
-func CalculateFjordL1Cost(ctx context.Context, client apis.EthClient, rollupCostData types.RollupCostData, blockHash common.Hash) (*big.Int, error) {
+func CalculateFjordL1Cost(ctx context.Context, client apis.EthClient, rollupCostData types.RollupCostData, blockHash common.Hash, l1BaseFeeScalarMultiplier, l1BlobBaseFeeScalarMultiplier *big.Int) (*big.Int, error) {
 	l1Block := bindings.NewL1Block(
 		bindings.WithClient(client),
 		bindings.WithTo(predeploys.L1BlockAddr),
@@ -362,7 +363,9 @@ func CalculateFjordL1Cost(ctx context.Context, client apis.EthClient, rollupCost
 		l1BaseFee,
 		blobBaseFee,
 		new(big.Int).SetUint64(uint64(baseFeeScalar)),
-		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)))
+		new(big.Int).SetUint64(uint64(blobBaseFeeScalar)),
+		l1BaseFeeScalarMultiplier,
+		l1BlobBaseFeeScalarMultiplier)
 
 	fee, _ := costFunc(rollupCostData)
 	return fee, nil

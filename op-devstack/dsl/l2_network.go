@@ -3,6 +3,7 @@ package dsl
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -251,4 +252,8 @@ func (n *L2Network) DisputeGameFactoryProxyAddr() common.Address {
 
 func (n *L2Network) DepositContractAddr() common.Address {
 	return n.inner.RollupConfig().DepositContractAddress
+}
+
+func (n *L2Network) L1ScalarMultiplierConfig() (*big.Int, *big.Int) {
+	return n.inner.RollupConfig().ChainOpConfig.L1ScalarMultipliers(n.unsafeHeadRef().Time)
 }

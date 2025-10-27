@@ -5,7 +5,7 @@ footer: |
 base:
   name: official optimism
   url: https://github.com/ethereum-optimism/optimism
-  hash: c8b9f62736a7dad7e569719a84c406605f4472e6
+  hash: c1081e3ad0004590435e3179e583cdfdbdd6bc61
 fork:
   name: SWC optimism
   url: https://github.com/Quarkchain/optimism

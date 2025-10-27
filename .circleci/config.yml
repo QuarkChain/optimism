@@ -201,7 +201,7 @@ commands:
           channel: << parameters.channel >>
           event: fail
           template: basic_fail_1
-          branch_pattern: op-es
+          branch_pattern: dl-c3
           mentions: "<< parameters.mentions >>"
 
   # Notifies us on Discord when a build fails on develop
@@ -798,7 +798,7 @@ jobs:
                   - "<<parameters.release>>"
               - and:
                   - "<<parameters.publish>>"
-                  - equal: [op-es, << pipeline.git.branch >>]
+                  - equal: [dl-c3, << pipeline.git.branch >>]
           steps:
             - gcp-oidc-authenticate:
                 service_account_email: GCP_SERVICE_ATTESTOR_ACCOUNT_EMAIL
@@ -1953,7 +1953,7 @@ jobs:
     parameters:
       diff_branch:
         type: string
-        default: op-es
+        default: dl-c3
       scan_command:
         type: string
         default: semgrep ci --timeout=100
@@ -1969,7 +1969,7 @@ jobs:
       - checkout # no need to use mise here since the docker image contains the only dependency
       - unless:
           condition:
-            equal: [ "op-es", << pipeline.git.branch >> ]
+            equal: [ "dl-c3", << pipeline.git.branch >> ]
           steps:
             - run:
                 # Scan changed files in PRs, block on new issues only (existing issues ignored)
@@ -2364,7 +2364,7 @@ workflows:
       - contracts-bedrock-tests:
           # Heavily fuzz any fuzz tests within added or modified test files.
           name: contracts-bedrock-tests-heavy-fuzz-modified
-          test_list: git diff origin/op-es...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
+          test_list: git diff origin/dl-c3...HEAD --name-only --diff-filter=AM -- './test/**/*.t.sol' | sed 's|packages/contracts-bedrock/||'
           test_timeout: 3h
           test_profile: ciheavy
           context:

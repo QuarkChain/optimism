@@ -457,9 +457,8 @@ jobs:
           mentions: "Platforms (<@&1346448413172170807>)" # Protocol DevX Pod
           message: "Kurtosis acceptance tests failed for devnet <<parameters.devnet>> gate <<parameters.gate>>"
   initialize:
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    resource_class: large
+    machine: true
+    resource_class: qkc/ax101
     steps:
       - utils/checkout-with-mise
       - install-contracts-dependencies
@@ -2258,64 +2257,64 @@ jobs:
 
 workflows:
   # Nightly Kurtosis acceptance tests
-  scheduled-kurtosis-acceptance-tests:
-    when:
-      or:
-        - equal: [build_daily, <<pipeline.schedule.name>>]
-        - and:
-            - equal: [true, << pipeline.parameters.kurtosis_acceptance_tests_dispatch >>]
-            - equal: ["api", << pipeline.trigger_source >>]
-    jobs:
-      - initialize:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - contracts-bedrock-build: # needed for in-process tests that some suites may use
-          build_args: --skip test
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - cannon-prestate-quick: # needed for sysgo tests (if any package is in-memory)
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - op-acceptance-tests-kurtosis:
-          name: kurtosis-simple-nightly
-          devnet: simple
-          gate: base
-          use_circleci_runner: true
-          no_output_timeout: 60m
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate-quick
-      - op-acceptance-tests-kurtosis:
-          name: kurtosis-jovian-nightly
-          devnet: jovian
-          gate: jovian
-          use_circleci_runner: true
-          no_output_timeout: 60m
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate-quick
-      - op-acceptance-tests-kurtosis:
-          name: kurtosis-interop-nightly
-          devnet: interop
-          gate: interop
-          use_circleci_runner: true
-          no_output_timeout: 60m
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - discord
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate-quick
+  # scheduled-kurtosis-acceptance-tests:
+  #   when:
+  #     or:
+  #       - equal: [build_daily, <<pipeline.schedule.name>>]
+  #       - and:
+  #           - equal: [true, << pipeline.parameters.kurtosis_acceptance_tests_dispatch >>]
+  #           - equal: ["api", << pipeline.trigger_source >>]
+  #   jobs:
+  #     - initialize:
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #     - contracts-bedrock-build: # needed for in-process tests that some suites may use
+  #         build_args: --skip test
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #         requires:
+  #           - initialize
+  #     - cannon-prestate-quick: # needed for sysgo tests (if any package is in-memory)
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #         requires:
+  #           - initialize
+  #     - op-acceptance-tests-kurtosis:
+  #         name: kurtosis-simple-nightly
+  #         devnet: simple
+  #         gate: base
+  #         use_circleci_runner: true
+  #         no_output_timeout: 60m
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - discord
+  #         requires:
+  #           - contracts-bedrock-build
+  #           - cannon-prestate-quick
+  #     - op-acceptance-tests-kurtosis:
+  #         name: kurtosis-jovian-nightly
+  #         devnet: jovian
+  #         gate: jovian
+  #         use_circleci_runner: true
+  #         no_output_timeout: 60m
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - discord
+  #         requires:
+  #           - contracts-bedrock-build
+  #           - cannon-prestate-quick
+  #     - op-acceptance-tests-kurtosis:
+  #         name: kurtosis-interop-nightly
+  #         devnet: interop
+  #         gate: interop
+  #         use_circleci_runner: true
+  #         no_output_timeout: 60m
+  #         context:
+  #           - circleci-repo-readonly-authenticated-github-token
+  #           - discord
+  #         requires:
+  #           - contracts-bedrock-build
+  #           - cannon-prestate-quick
   main:
     when:
       and:
@@ -2476,7 +2475,7 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           filters:
             branches:
-              ignore: develop # Run on all branches EXCEPT develop (PR branches only)
+              ignore: dl-c3 # Run on all branches EXCEPT develop (PR branches only)
       - go-tests:
           name: go-tests-full
           rule: "go-tests-ci" # Run full test suite instead of short

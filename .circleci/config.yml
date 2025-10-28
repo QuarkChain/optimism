@@ -326,11 +326,6 @@ commands:
     steps:
       - attach_workspace:
           at: "."
-      - run:
-          name: Clean workspace
-          command: |
-            git reset --hard
-            git clean -fdx
       - utils/install-mise
 
 jobs:

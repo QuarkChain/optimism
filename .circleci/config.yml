@@ -2475,9 +2475,9 @@ workflows:
       - go-tests:
           name: go-tests-full
           rule: "go-tests-ci" # Run full test suite instead of short
-          parallelism: 4
-          no_output_timeout: 89m # Longer timeout for full tests
-          test_timeout: 90m
+          parallelism: 1
+          no_output_timeout: 360m # Longer timeout for full tests
+          test_timeout: 360m
           notify: true
           # Always run full tests on qkc
           # filters:

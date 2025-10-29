@@ -536,7 +536,6 @@ jobs:
           name: Check `RISCV.sol` bytecode
           working_directory: packages/contracts-bedrock
           command: |
-            rm -rf ./asterisc
             # Clone asterisc @ the pinned version to fetch remote `RISCV.sol`
             ASTERISC_REV="v$(yq '.tools.asterisc' ../../mise.toml)"
             REMOTE_ASTERISC_PATH="./src/vendor/asterisc/RISCV_Remote.sol"

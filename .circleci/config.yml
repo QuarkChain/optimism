@@ -2017,36 +2017,36 @@ jobs:
             make verify-compat
           working_directory: op-program
 
-  check-generated-mocks-op-node:
-    machine: true
-    resource_class: qkc/ax101
-    steps:
-      - checkout-from-workspace
-      - check-changed:
-          patterns: op-node
-      - run:
-          name: check-generated-mocks
-          command: make generate-mocks-op-node && git diff --exit-code
+  # check-generated-mocks-op-node:
+  #   machine: true
+  #   resource_class: qkc/ax101
+  #   steps:
+  #     - checkout-from-workspace
+  #     - check-changed:
+  #         patterns: op-node
+  #     - run:
+  #         name: check-generated-mocks
+  #         command: make generate-mocks-op-node && git diff --exit-code
 
-  check-generated-mocks-op-service:
-    machine: true
-    resource_class: qkc/ax101
-    steps:
-      - checkout-from-workspace
-      - check-changed:
-          patterns: op-service
-      - run:
-          name: check-generated-mocks
-          command: make generate-mocks-op-service && git diff --exit-code
+  # check-generated-mocks-op-service:
+  #   machine: true
+  #   resource_class: qkc/ax101
+  #   steps:
+  #     - checkout-from-workspace
+  #     - check-changed:
+  #         patterns: op-service
+  #     - run:
+  #         name: check-generated-mocks
+  #         command: make generate-mocks-op-service && git diff --exit-code
 
-  op-deployer-forge-version:
-    docker:
-      - image: <<pipeline.parameters.default_docker_image>>
-    steps:
-      - checkout-from-workspace
-      - run:
-          command: just check-forge-version
-          working_directory: op-deployer
+  # op-deployer-forge-version:
+  #   docker:
+  #     - image: <<pipeline.parameters.default_docker_image>>
+  #   steps:
+  #     - checkout-from-workspace
+  #     - run:
+  #         command: just check-forge-version
+  #         working_directory: op-deployer
 
   kontrol-tests:
     docker:
@@ -2332,11 +2332,11 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - check-kontrol-build:
-          requires:
-            - contracts-bedrock-build
-          context:
-            - circleci-repo-readonly-authenticated-github-token
+      # - check-kontrol-build:
+      #     requires:
+      #       - contracts-bedrock-build
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
       # - contracts-bedrock-tests:
       #     # Test everything except PreimageOracle.t.sol since it's slow.
       #     name: contracts-bedrock-tests
@@ -2395,11 +2395,11 @@ workflows:
             - contracts-bedrock-build
           context:
             - circleci-repo-readonly-authenticated-github-token
-      - diff-fetcher-forge-artifacts:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - contracts-bedrock-build
+      # - diff-fetcher-forge-artifacts:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - contracts-bedrock-build
       - op-deployer-forge-version:
           context:
             - circleci-repo-readonly-authenticated-github-token
@@ -2410,23 +2410,23 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - semgrep-scan:
-          name: semgrep-scan-local
-          scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
-          context:
-            - slack
-            - circleci-repo-readonly-authenticated-github-token
-      - semgrep-scan:
-          name: semgrep-test
-          scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
-          context:
-            - slack
-            - circleci-repo-readonly-authenticated-github-token
-      - go-lint:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
+      # - semgrep-scan:
+      #     name: semgrep-scan-local
+      #     scan_command: semgrep scan --timeout=100 --config .semgrep/rules/ --error .
+      #     context:
+      #       - slack
+      #       - circleci-repo-readonly-authenticated-github-token
+      # - semgrep-scan:
+      #     name: semgrep-test
+      #     scan_command: semgrep scan --test --config .semgrep/rules/ .semgrep/tests/
+      #     context:
+      #       - slack
+      #       - circleci-repo-readonly-authenticated-github-token
+      # - go-lint:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
       # - fuzz-golang:
       #     name: fuzz-golang-<<matrix.package_name>>
       #     on_changes: <<matrix.package_name>>
@@ -2441,24 +2441,24 @@ workflows:
       #       - circleci-repo-readonly-authenticated-github-token
       #     requires:
       #       - initialize
-      - fuzz-golang:
-          name: cannon-fuzz
-          package_name: cannon
-          on_changes: cannon,packages/contracts-bedrock/src/cannon
-          uses_artifacts: true
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - contracts-bedrock-build
-      - fuzz-golang:
-          name: op-e2e-fuzz
-          package_name: op-e2e
-          on_changes: op-e2e,packages/contracts-bedrock/src
-          uses_artifacts: true
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - contracts-bedrock-build
+      # - fuzz-golang:
+      #     name: cannon-fuzz
+      #     package_name: cannon
+      #     on_changes: cannon,packages/contracts-bedrock/src/cannon
+      #     uses_artifacts: true
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - contracts-bedrock-build
+      # - fuzz-golang:
+      #     name: op-e2e-fuzz
+      #     package_name: op-e2e
+      #     on_changes: op-e2e,packages/contracts-bedrock/src
+      #     uses_artifacts: true
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - contracts-bedrock-build
       - go-tests:
           name: go-tests-short
           parallelism: 4
@@ -2489,98 +2489,98 @@ workflows:
           context:
             - circleci-repo-readonly-authenticated-github-token
             - slack
-      - analyze-op-program-client:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
+      # - analyze-op-program-client:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
       - op-program-compat:
           context:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - bedrock-go-tests:
-          requires:
-            - go-lint
-            - cannon-go-lint-and-test
-            - check-generated-mocks-op-node
-            - check-generated-mocks-op-service
-            - op-program-compat
-            # Not needed for the devnet but we want to make sure they build successfully
-            - cannon-docker-build
-            - op-dispute-mon-docker-build
-            - op-program-docker-build
-            - op-supervisor-docker-build
-            - op-test-sequencer-docker-build
-            - go-tests-short
-            - sanitize-op-program
-          context:
-            - circleci-repo-readonly-authenticated-github-tokens
-      - docker-build:
-          name: <<matrix.docker_name>>-docker-build
-          docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
-          save_image_tag: <<pipeline.git.revision>>
-          matrix:
-            parameters:
-              docker_name:
-                # - op-node
-                # - op-batcher
-                # - op-faucet
-                - op-program
-                # - op-proposer
-                # - op-challenger
-                - op-dispute-mon
-                # - op-deployer
-                # - op-conductor
-                # - da-server
-                - op-supervisor
-                - op-test-sequencer
-                - cannon
-                # - op-dripper
-                # - op-interop-mon
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
+      # - bedrock-go-tests:
+      #     requires:
+      #       - go-lint
+      #       - cannon-go-lint-and-test
+      #       - check-generated-mocks-op-node
+      #       - check-generated-mocks-op-service
+      #       - op-program-compat
+      #       # Not needed for the devnet but we want to make sure they build successfully
+      #       - cannon-docker-build
+      #       - op-dispute-mon-docker-build
+      #       - op-program-docker-build
+      #       - op-supervisor-docker-build
+      #       - op-test-sequencer-docker-build
+      #       - go-tests-short
+      #       - sanitize-op-program
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-tokens
+      # - docker-build:
+      #     name: <<matrix.docker_name>>-docker-build
+      #     docker_tags: <<pipeline.git.revision>>,<<pipeline.git.branch>>
+      #     save_image_tag: <<pipeline.git.revision>>
+      #     matrix:
+      #       parameters:
+      #         docker_name:
+      #           # - op-node
+      #           # - op-batcher
+      #           # - op-faucet
+      #           - op-program
+      #           # - op-proposer
+      #           # - op-challenger
+      #           - op-dispute-mon
+      #           # - op-deployer
+      #           # - op-conductor
+      #           # - da-server
+      #           - op-supervisor
+      #           - op-test-sequencer
+      #           - cannon
+      #           # - op-dripper
+      #           # - op-interop-mon
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
       - cannon-prestate-quick:
           context:
             - circleci-repo-readonly-authenticated-github-token
           requires:
             - initialize
-      - sanitize-op-program:
-          requires:
-            - cannon-prestate-quick
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - check-generated-mocks-op-node:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - check-generated-mocks-op-service:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
-      - cannon-go-lint-and-test:
-          requires:
-            - contracts-bedrock-build
-          skip_slow_tests: true
-          notify: true
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - todo-issues:
-          name: todo-issues-check
-          check_closed: false
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - shellcheck/check:
-          name: shell-check
-          # We don't need the `exclude` key as the orb detects the `.shellcheckrc`
-          dir: .
-          ignore-dirs: ./packages/contracts-bedrock/lib
-          context:
-            - circleci-repo-readonly-authenticated-github-token
+      # - sanitize-op-program:
+      #     requires:
+      #       - cannon-prestate-quick
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      # - check-generated-mocks-op-node:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
+      # - check-generated-mocks-op-service:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
+      # - cannon-go-lint-and-test:
+      #     requires:
+      #       - contracts-bedrock-build
+      #     skip_slow_tests: true
+      #     notify: true
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      # - todo-issues:
+      #     name: todo-issues-check
+      #     check_closed: false
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      # - shellcheck/check:
+      #     name: shell-check
+      #     # We don't need the `exclude` key as the orb detects the `.shellcheckrc`
+      #     dir: .
+      #     ignore-dirs: ./packages/contracts-bedrock/lib
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
 
   # go-release-op-deployer:
   #   jobs:

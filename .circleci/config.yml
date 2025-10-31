@@ -2044,14 +2044,14 @@ jobs:
   #         name: check-generated-mocks
   #         command: make generate-mocks-op-service && git diff --exit-code
 
-  # op-deployer-forge-version:
-  #   docker:
-  #     - image: <<pipeline.parameters.default_docker_image>>
-  #   steps:
-  #     - checkout-from-workspace
-  #     - run:
-  #         command: just check-forge-version
-  #         working_directory: op-deployer
+  op-deployer-forge-version:
+    docker:
+      - image: <<pipeline.parameters.default_docker_image>>
+    steps:
+      - checkout-from-workspace
+      - run:
+          command: just check-forge-version
+          working_directory: op-deployer
 
   kontrol-tests:
     docker:
@@ -2405,11 +2405,11 @@ workflows:
       #       - circleci-repo-readonly-authenticated-github-token
       #     requires:
       #       - contracts-bedrock-build
-      - op-deployer-forge-version:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - initialize
+      # - op-deployer-forge-version:
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #     requires:
+      #       - initialize
       - diff-asterisc-bytecode:
           context:
             - circleci-repo-readonly-authenticated-github-token

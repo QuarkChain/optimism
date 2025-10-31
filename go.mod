@@ -309,7 +309,7 @@ require (
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/Quarkchain/op-geth v0.0.0-20251023031242-695bd127b9bd
+replace github.com/ethereum/go-ethereum => github.com/Quarkchain/op-geth v0.0.0-20251031024324-4b2736d4cdeb
 
 // replace github.com/ethereum/go-ethereum => ../op-geth
 

@@ -98,7 +98,7 @@ func sendTransactionWithBlobs(t *testing.T, ctx context.Context, l2Client *ethcl
 	require.NoError(t, err)
 	nonce, err := l2Client.NonceAt(ctx, crypto.PubkeyToAddress(sender.PublicKey), nil)
 	require.NoError(t, err)
-	sidecar, blobHashes, err := txmgr.MakeSidecar(blobs, true)
+	sidecar, blobHashes, err := txmgr.MakeSidecar(blobs, false)
 	require.NoError(t, err)
 	tx := types.MustSignNewTx(sender, types.LatestSignerForChainID(chainID), &types.BlobTx{
 		ChainID:    uint256.NewInt(chainID.Uint64()),

@@ -33,16 +33,28 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     error OptimismPortal_ProofNotOldEnough();
     error OptimismPortal_Unproven();
     error OptimismPortal_InvalidLockboxState();
+
+    /// @notice added back by QKC
     error OptimismPortal_Unauthorized();
+
+    // @notice Thrown when native token is deposited to the portal contract when disabled.
+    //         For swc, the native token is actually qkc so we need to disable ETH deposits.
     error OptimismPortal_NativeDepositForbidden();
     error OutOfGas();
     error UnexpectedList();
     error UnexpectedString();
 
     event Initialized(uint8 version);
-    event NativeDepositEnabled();
-    event NativeDepositDisabled();
+
+    /// QKC changes:
+    /// @notice Emitted when a minter is set.
     event MinterSet(address indexed minter);
+
+    /// @notice Emitted when native deposit is enabled.
+    event NativeDepositEnabled();
+
+    /// @notice Emitted when native deposit is disabled.
+    event NativeDepositDisabled();
     event TransactionDeposited(address indexed from, address indexed to, uint256 indexed version, bytes opaqueData);
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);

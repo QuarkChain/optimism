@@ -2,8 +2,14 @@
 pragma solidity ^0.8.0;
 
 interface IL2ToL1MessagePasser {
-    event NativeDepositEnabled();
+
+    /// @notice Emitted when native deposit is disabled.
     event NativeDepositDisabled();
+
+    /// @notice Emitted when native deposit is enabled.
+    event NativeDepositEnabled();
+
+    /// @notice Error for disabled native deposit/withdraw.
     error L2ToL1MessagePasser_NativeDepositDisabled();
 
     event MessagePassed(

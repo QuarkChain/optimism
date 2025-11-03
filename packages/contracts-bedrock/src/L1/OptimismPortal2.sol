@@ -179,18 +179,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param success        Whether the withdrawal transaction was successful.
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
 
-    /// QKC changes:
-
-    /// @notice added back by QKC
-    error OptimismPortal_Unauthorized();
-    /// @notice Emitted when a minter is set.
-
-    event MinterSet(address indexed minter);
-    /// @notice Emitted when native deposit is disabled.
-    event NativeDepositDisabled();
-    /// @notice Emitted when native deposit is enabled.
-    event NativeDepositEnabled();
-
     /// @notice Thrown when a withdrawal has already been finalized.
     error OptimismPortal_AlreadyFinalized();
 
@@ -208,10 +196,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
 
     /// @notice Thrown when the gas limit for a deposit is too low.
     error OptimismPortal_GasLimitTooLow();
-
-    // @notice Thrown when native token is deposited to the portal contract when disabled.
-    //         For swc, the native token is actually qkc so we need to disable ETH deposits.
-    error OptimismPortal_NativeDepositForbidden();
 
     /// @notice Thrown when the target of a withdrawal is not a proper dispute game.
     error OptimismPortal_ImproperDisputeGame();

@@ -324,13 +324,13 @@ commands:
 
   checkout-from-workspace:
     steps:
-      - attach_workspace:
-          at: "."
       - run:
           name: Clean workspace
           command: |
             git reset --hard
             git clean -fdx
+      - attach_workspace:
+          at: "."
       - utils/install-mise
 
 jobs:

@@ -79,6 +79,19 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_disable",
+        "type": "bool"
+      }
+    ],
+    "name": "setNativeDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "version",
     "outputs": [
@@ -142,6 +155,18 @@
   },
   {
     "anonymous": false,
+    "inputs": [],
+    "name": "NativeDepositDisabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "NativeDepositEnabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
     "inputs": [
       {
         "indexed": true,
@@ -152,5 +177,10 @@
     ],
     "name": "WithdrawerBalanceBurnt",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "L2ToL1MessagePasser_NativeDepositDisabled",
+    "type": "error"
   }
 ]

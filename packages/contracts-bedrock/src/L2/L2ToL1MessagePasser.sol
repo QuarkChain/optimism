@@ -68,6 +68,14 @@ contract L2ToL1MessagePasser is ISemver {
     /// @param amount Amount of ETh that was burned.
     event WithdrawerBalanceBurnt(uint256 indexed amount);
 
+    /// @notice Emitted when native deposit is disabled.
+    event NativeDepositDisabled();
+    /// @notice Emitted when native deposit is enabled.
+    event NativeDepositEnabled();
+
+    /// @notice Error for disabled native deposit/withdraw.
+    error L2ToL1MessagePasser_NativeDepositDisabled();
+
     /// @custom:semver 1.1.2
     string public constant version = "1.1.2";
 

@@ -59,11 +59,14 @@ contract DeployOPChainInput is BaseDeployIO {
     uint32 internal _operatorFeeScalar;
     uint64 internal _operatorFeeConstant;
 
+    address internal _batchInbox;
+
     function set(bytes4 _sel, address _addr) public {
         require(_addr != address(0), "DeployOPChainInput: cannot set zero address");
         if (_sel == this.opChainProxyAdminOwner.selector) _opChainProxyAdminOwner = _addr;
         else if (_sel == this.systemConfigOwner.selector) _systemConfigOwner = _addr;
         else if (_sel == this.batcher.selector) _batcher = _addr;
+        else if (_sel == this.batchInbox.selector) _batchInbox = _addr;
         else if (_sel == this.unsafeBlockSigner.selector) _unsafeBlockSigner = _addr;
         else if (_sel == this.proposer.selector) _proposer = _addr;
         else if (_sel == this.challenger.selector) _challenger = _addr;
@@ -129,6 +132,11 @@ contract DeployOPChainInput is BaseDeployIO {
     function batcher() public view returns (address) {
         require(_batcher != address(0), "DeployOPChainInput: not set");
         return _batcher;
+    }
+
+     function batchInbox() public view returns (address) {
+        require(_batchInbox != address(0), "DeployOPChainInput: not set");
+        return _batchInbox;
     }
 
     function unsafeBlockSigner() public view returns (address) {
@@ -381,7 +389,8 @@ contract DeployOPChain is Script {
             disputeMaxGameDepth: _doi.disputeMaxGameDepth(),
             disputeSplitDepth: _doi.disputeSplitDepth(),
             disputeClockExtension: _doi.disputeClockExtension(),
-            disputeMaxClockDuration: _doi.disputeMaxClockDuration()
+            disputeMaxClockDuration: _doi.disputeMaxClockDuration(),
+            batchInbox: _doi.batchInbox()
         });
 
         vm.broadcast(msg.sender);

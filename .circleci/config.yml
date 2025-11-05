@@ -314,7 +314,13 @@ commands:
           command: |
             git reset --hard
             git clean -df
+            echo "------------debug run-contracts-check -----"
+            git status --porcelain
+            echo "------------debug run-contracts-check end -----"
             just <<parameters.command>>
+            rm -rf asterisc/
+            rm -rf ../../testlogs.tar.gz
+            rm -rf ../../tmp/
             git status --porcelain
             [ -z "$(git status --porcelain)" ] || exit 1
           working_directory: packages/contracts-bedrock
@@ -328,9 +334,15 @@ commands:
           name: Clean workspace
           command: |
             git reset --hard
-            git clean -fdx
+            git clean -fd
       - attach_workspace:
           at: "."
+      - run:
+          name: Show workspace status
+          command: |
+            echo "------------debug checkout-from-workspace -----"
+            git status --porcelain
+            echo "------------debug checkout-from-workspace end -----"
       - utils/install-mise
 
 jobs:

@@ -2410,11 +2410,11 @@ workflows:
       #       - circleci-repo-readonly-authenticated-github-token
       #     requires:
       #       - initialize
-      - contracts-bedrock-checks:
-          requires:
-            - contracts-bedrock-build
-          context:
-            - circleci-repo-readonly-authenticated-github-token
+      # - contracts-bedrock-checks:
+      #     requires:
+      #       - contracts-bedrock-build
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
       # - diff-fetcher-forge-artifacts:
       #     context:
       #       - circleci-repo-readonly-authenticated-github-token

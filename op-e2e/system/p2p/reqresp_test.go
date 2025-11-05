@@ -137,6 +137,7 @@ func TestSystemP2PAltSync(t *testing.T) {
 			},
 		},
 	}
+	syncNodeCfg.L1ChainConfig = sys.L1GenesisCfg.Config
 	e2esys.ConfigureL1(syncNodeCfg, sys.EthInstances["l1"], sys.L1BeaconEndpoint())
 	syncerL2Engine, err := geth.InitL2("syncer", sys.L2GenesisCfg, cfg.JWTFilePath)
 	require.NoError(t, err)

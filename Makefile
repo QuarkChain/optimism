@@ -252,6 +252,9 @@ export NAT_INTEROP_LOADTEST_TARGET=10 && \
 export NAT_INTEROP_LOADTEST_TIMEOUT=30s
 endef
 
+echo "QKC: SEPOLIA_RPC_URL is $(SEPOLIA_RPC_URL)"
+echo "QKC: MAINNET_RPC_URL is $(MAINNET_RPC_URL)"
+
 # Test timeout (can be overridden via environment)
 TEST_TIMEOUT ?= 10m
 

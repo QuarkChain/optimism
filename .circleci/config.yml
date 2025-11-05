@@ -1095,23 +1095,23 @@ jobs:
             FOUNDRY_PROFILE: <<parameters.test_profile>>
           working_directory: packages/contracts-bedrock
           no_output_timeout: <<parameters.test_timeout>>
-      - run:
-          name: Print failed test traces
-          command: |
-            export ETH_RPC_URL="${MAINNET_RPC_URL}"
-            just test-rerun | tee failed-test-traces.log
-          environment:
-            FOUNDRY_PROFILE: <<parameters.test_profile>>
-          working_directory: packages/contracts-bedrock
-          when: on_fail
-      - codecov/upload:
-          disable_search: true
-          files: ./packages/contracts-bedrock/lcov-all.info
-          flags: contracts-bedrock-tests
-      - store_artifacts:
-          path: packages/contracts-bedrock/failed-test-traces.log
-          when: on_fail
-      - notify-failures-on-develop
+      # - run:
+      #     name: Print failed test traces
+      #     command: |
+      #       export ETH_RPC_URL="${MAINNET_RPC_URL}"
+      #       just test-rerun | tee failed-test-traces.log
+      #     environment:
+      #       FOUNDRY_PROFILE: <<parameters.test_profile>>
+      #     working_directory: packages/contracts-bedrock
+      #     when: on_fail
+      # - codecov/upload:
+      #     disable_search: true
+      #     files: ./packages/contracts-bedrock/lcov-all.info
+      #     flags: contracts-bedrock-tests
+      # - store_artifacts:
+      #     path: packages/contracts-bedrock/failed-test-traces.log
+      #     when: on_fail
+      # - notify-failures-on-develop
 
   contracts-bedrock-tests-upgrade:
     circleci_ip_ranges: true

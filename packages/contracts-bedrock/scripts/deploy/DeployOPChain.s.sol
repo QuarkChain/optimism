@@ -134,7 +134,7 @@ contract DeployOPChainInput is BaseDeployIO {
         return _batcher;
     }
 
-     function batchInbox() public view returns (address) {
+    function batchInbox() public view returns (address) {
         require(_batchInbox != address(0), "DeployOPChainInput: not set");
         return _batchInbox;
     }

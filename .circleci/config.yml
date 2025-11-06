@@ -1195,9 +1195,14 @@ jobs:
       - run:
           name: Clean workspace
           command: |
-            rm -rf packages/contracts-bedrock/asterisc/
-            rm -rf testlogs.tar.gz
-            rm -rf tmp/
+            echo "before reset hard"
+            git status --porcelain
+            git reset --hard
+            echo "after reset hard"
+            git status --porcelain
+            git clean -df
+            echo "after clean -df"
+            git status --porcelain
       - run-contracts-check:
           command: check-kontrol-summaries-unchanged
       - run-contracts-check:

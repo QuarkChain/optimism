@@ -326,15 +326,6 @@ commands:
     steps:
       - attach_workspace:
           at: "."
-      - run:
-          name: Clean workspace
-          command: |
-            git status --porcelain
-            rm -rf packages/contracts-bedrock/asterisc/
-            rm -rf testlogs.tar.gz
-            rm -rf tmp/
-            echo "---- checkout-from-workspace cleanup ----"
-            git status --porcelain
       - utils/install-mise
 
 jobs:
@@ -1201,6 +1192,12 @@ jobs:
       - run:
           name: print forge version
           command: forge --version
+      - run:
+          name: Clean workspace
+          command: |
+            rm -rf packages/contracts-bedrock/asterisc/
+            rm -rf testlogs.tar.gz
+            rm -rf tmp/
       - run-contracts-check:
           command: check-kontrol-summaries-unchanged
       - run-contracts-check:

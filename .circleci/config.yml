@@ -2488,7 +2488,7 @@ workflows:
       - go-tests:
           name: go-tests-full
           rule: "go-tests-ci" # Run full test suite instead of short
-          parallelism: 1
+          parallelism: 4
           no_output_timeout: 360m # Longer timeout for full tests
           test_timeout: 360m
           notify: true

@@ -244,16 +244,14 @@ endef
 
 # Additional CI-specific environment variables
 define CI_ENV_VARS
-export OP_TESTLOG_FILE_LOGGER_OUTDIR=$$(realpath ./tmp/testlogs); \
-# QKC: use Environment variables for RPC URLs in CircleCI
-# export SEPOLIA_RPC_URL="https://ci-sepolia-l1-archive.optimism.io" && \
-# export MAINNET_RPC_URL="https://ci-mainnet-l1-archive.optimism.io" && \
+export OP_TESTLOG_FILE_LOGGER_OUTDIR=$$(realpath ./tmp/testlogs) && \
 export NAT_INTEROP_LOADTEST_TARGET=10 && \
 export NAT_INTEROP_LOADTEST_TIMEOUT=30s
 endef
 
-$(info QKC: SEPOLIA_RPC_URL is $(SEPOLIA_RPC_URL))
-$(info QKC: MAINNET_RPC_URL is $(MAINNET_RPC_URL))
+# QKC: The following are removed from above to use environment variables for RPC URLs in CircleCI
+# export SEPOLIA_RPC_URL="https://ci-sepolia-l1-archive.optimism.io" && \
+# export MAINNET_RPC_URL="https://ci-mainnet-l1-archive.optimism.io" && \
 
 # Test timeout (can be overridden via environment)
 TEST_TIMEOUT ?= 10m

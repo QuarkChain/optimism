@@ -559,6 +559,7 @@ jobs:
             else
               echo "Asterisc version up to date."
             fi
+            rm -rf ./asterisc
       - notify-failures-on-develop:
           mentions: "@clabby @proofs-team"
 
@@ -1195,14 +1196,12 @@ jobs:
       - run:
           name: Clean workspace
           command: |
-            echo "before reset hard"
-            git status --porcelain
-            git reset --hard
-            echo "after reset hard"
+            echo "before clean -df"
             git status --porcelain
             git clean -df
             echo "after clean -df"
             git status --porcelain
+            rm -rf packages/contracts-bedrock/asterisc
       - run-contracts-check:
           command: check-kontrol-summaries-unchanged
       - run-contracts-check:

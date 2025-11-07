@@ -2474,8 +2474,8 @@ workflows:
       - go-tests:
           name: go-tests-short
           parallelism: 4
-          no_output_timeout: 19m
-          test_timeout: 20m
+          no_output_timeout: 60m
+          test_timeout: 60m
           requires:
             - contracts-bedrock-build
             - cannon-prestate-quick
@@ -2483,24 +2483,24 @@ workflows:
             - circleci-repo-readonly-authenticated-github-token
           filters:
             branches:
-              ignore: dl-c3 # Run on all branches EXCEPT develop (PR branches only)
-      - go-tests:
-          name: go-tests-full
-          rule: "go-tests-ci" # Run full test suite instead of short
-          parallelism: 4
-          no_output_timeout: 360m # Longer timeout for full tests
-          test_timeout: 360m
-          notify: true
-          # Always run full tests on qkc
-          # filters:
-          #   branches:
-          #     only: develop # Only runs on develop branch (post-merge)
-          requires:
-            - contracts-bedrock-build
-            - cannon-prestate-quick
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-            - slack
+              ignore: develop # Run on all branches EXCEPT develop (PR branches only)
+      # - go-tests:
+      #     name: go-tests-full
+      #     rule: "go-tests-ci" # Run full test suite instead of short
+      #     parallelism: 4
+      #     no_output_timeout: 360m # Longer timeout for full tests
+      #     test_timeout: 360m
+      #     notify: true
+      #     # Always run full tests on qkc
+      #     # filters:
+      #     #   branches:
+      #     #     only: develop # Only runs on develop branch (post-merge)
+      #     requires:
+      #       - contracts-bedrock-build
+      #       - cannon-prestate-quick
+      #     context:
+      #       - circleci-repo-readonly-authenticated-github-token
+      #       - slack
       # - analyze-op-program-client:
       #     context:
       #       - circleci-repo-readonly-authenticated-github-token

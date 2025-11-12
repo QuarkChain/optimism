@@ -20,13 +20,13 @@ import (
 	"github.com/ethereum-optimism/optimism/op-node/rollup/engine"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/interop"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/sync"
+	"github.com/ethereum-optimism/optimism/op-service/cliiface"
 	opmetrics "github.com/ethereum-optimism/optimism/op-service/metrics"
 	"github.com/ethereum-optimism/optimism/op-service/oppprof"
 	oprpc "github.com/ethereum-optimism/optimism/op-service/rpc"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethstorage/da-server/pkg/da/client"
-	"github.com/urfave/cli/v2"
 )
 
 type Config struct {
@@ -100,7 +100,7 @@ type Config struct {
 	ExperimentalOPStackAPI bool
 }
 
-func ReadDACConfigFromCLI(c *cli.Context) *DACConfig {
+func ReadDACConfigFromCLI(c cliiface.Context) *DACConfig {
 	urls := c.String(flags.DACUrlsFlag.Name)
 	if urls == "" {
 		return nil

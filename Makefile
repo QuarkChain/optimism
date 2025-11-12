@@ -255,10 +255,6 @@ export NAT_INTEROP_LOADTEST_TARGET=10 && \
 export NAT_INTEROP_LOADTEST_TIMEOUT=30s
 endef
 
-# QKC: The following are removed from above to use environment variables for RPC URLs in CircleCI
-# export SEPOLIA_RPC_URL="https://ci-sepolia-l1-archive.optimism.io" && \
-# export MAINNET_RPC_URL="https://ci-mainnet-l1-archive.optimism.io" && \
-
 # Test timeout (can be overridden via environment)
 TEST_TIMEOUT ?= 10m
 

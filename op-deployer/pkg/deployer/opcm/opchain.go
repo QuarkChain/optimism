@@ -26,6 +26,9 @@ type DeployOPChainInput struct {
 	Proposer               common.Address
 	Challenger             common.Address
 
+	// added by QKC
+	BatchInbox common.Address
+
 	BasefeeScalar     uint32
 	BlobBaseFeeScalar uint32
 	L2ChainId         *big.Int

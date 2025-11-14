@@ -7,9 +7,6 @@ import { Script } from "forge-std/Script.sol";
 // Scripts
 import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 
-// Contracts
-import { StorageSetter } from "src/universal/StorageSetter.sol";
-
 // Interfaces
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IStorageSetter } from "interfaces/universal/IStorageSetter.sol";

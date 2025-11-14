@@ -33,11 +33,16 @@ interface IOptimismPortal2 is IProxyAdminOwnedBase {
     error OptimismPortal_ProofNotOldEnough();
     error OptimismPortal_Unproven();
     error OptimismPortal_InvalidLockboxState();
+    error OptimismPortal_Unauthorized();
+    error OptimismPortal_NativeDepositForbidden();
     error OutOfGas();
     error UnexpectedList();
     error UnexpectedString();
 
     event Initialized(uint8 version);
+    event NativeDepositEnabled();
+    event NativeDepositDisabled();
+    event MinterSet(address indexed minter);
     event TransactionDeposited(address indexed from, address indexed to, uint256 indexed version, bytes opaqueData);
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
     event WithdrawalProven(bytes32 indexed withdrawalHash, address indexed from, address indexed to);

@@ -84,7 +84,15 @@ library ChainAssertions {
             require(config.scalar() >> 248 == 1, "CHECK-SCFG-70");
             // Depends on start block being set to 0 in `initialize`
             require(config.startBlock() == block.number, "CHECK-SCFG-140");
-            require(config.batchInbox() == (_doi.batchInbox() == address(0) ? _doi.opcm().chainIdToBatchInboxAddress(_doi.l2ChainId()) : _doi.batchInbox()), "CHECK-SCFG-150");
+            require(
+                config.batchInbox()
+                    == (
+                        _doi.batchInbox() == address(0)
+                            ? _doi.opcm().chainIdToBatchInboxAddress(_doi.l2ChainId())
+                            : _doi.batchInbox()
+                    ),
+                "CHECK-SCFG-150"
+            );
             // Check _addresses
             require(config.l1CrossDomainMessenger() == _contracts.L1CrossDomainMessenger, "CHECK-SCFG-160");
             require(config.l1ERC721Bridge() == _contracts.L1ERC721Bridge, "CHECK-SCFG-170");

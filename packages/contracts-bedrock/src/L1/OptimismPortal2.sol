@@ -179,7 +179,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     /// @param success        Whether the withdrawal transaction was successful.
     event WithdrawalFinalized(bytes32 indexed withdrawalHash, bool success);
 
-
     /// @notice added back by QKC
     error OptimismPortal_Unauthorized();
 
@@ -189,7 +188,6 @@ contract OptimismPortal2 is Initializable, ResourceMetering, ReinitializableBase
     event NativeDepositDisabled();
     /// @notice Emitted when native deposit is enabled.
     event NativeDepositEnabled();
-
 
     /// @notice Thrown when a withdrawal has already been finalized.
     error OptimismPortal_AlreadyFinalized();

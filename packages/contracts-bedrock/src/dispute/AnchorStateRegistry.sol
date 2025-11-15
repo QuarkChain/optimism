@@ -344,7 +344,8 @@ contract AnchorStateRegistry is ProxyAdminOwnedBase, Initializable, Reinitializa
     /// @notice Asserts that the caller is the Guardian.
     function _assertOnlyGuardian() internal view {
         if (msg.sender != systemConfig.guardian()) {
-            revert AnchorStateRegistry_Unauthorized();
+            /// QKC changes: we also allow the ProxyAdmin or ProxyAdmin owner to perform guardian actions
+            _assertOnlyProxyAdminOrProxyAdminOwner();
         }
     }
 }

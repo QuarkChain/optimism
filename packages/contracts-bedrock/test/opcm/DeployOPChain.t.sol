@@ -506,5 +506,6 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         doi.set(doi.disputeSplitDepth.selector, disputeSplitDepth);
         doi.set(doi.disputeClockExtension.selector, disputeClockExtension);
         doi.set(doi.disputeMaxClockDuration.selector, disputeMaxClockDuration);
+        doi.set(doi.batchInbox.selector, opcm.chainIdToBatchInboxAddress(l2ChainId));
     }
 }

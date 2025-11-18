@@ -4,128 +4,97 @@
 #MISE alias="dt"
 
 set -e
-# Inherit ERR trap in functions/subshells and catch pipeline failures
-set -E -o pipefail
 SECONDS=0
 
 error_handler() {
-    local rc=$?
-    local cmd=${BASH_COMMAND:-unknown}
-    local where
-    where=$(caller 0 2>/dev/null || true)
-    halt "Command failed (exit $rc): ${cmd} | at: ${where}"
+    echo "Execution time: ${SECONDS} seconds"
+    exit 1
 }
 
 trap 'error_handler' ERR
 
-# Graceful halt helper: print error, show total time, stop script without closing terminal
-halt() {
-    echo "Error: $*" >&2
-    echo "Execution time: ${SECONDS} seconds"
-    # remove ERR trap to avoid double messaging
-    trap - ERR
-    # If sourced use return, else exit with success code (0) to not signal failure
-    return 0 2>/dev/null || exit 0
-}
+# Environment tests
 
-# Environment verify
-echo "Setting up mise environment..."
-mise install
-
-if [ -z "${MISE_SHELL:-}" ]; then
-    if [ -n "${ZSH_VERSION:-}" ]; then
-        eval "$(mise activate zsh)"
-    elif [ -n "${BASH_VERSION:-}" ]; then
-        eval "$(mise activate bash)"
-    fi
-fi
-echo "Setting up mise environment done"
+forge --version
 
 for var in SEPOLIA_RPC_URL MAINNET_RPC_URL; do
     if [ -z "${!var}" ]; then
         echo "Error: $var is not set."
-        return 0 2>/dev/null || exit 0
+        exit 1
     fi
 done
 
-# Sync binary from op-es and contracts from merge_op_contracts_v4.1.0
-
-# 1) verify clean tree (including submodules)
-if [ -n "$(git status --porcelain)" ]; then
-  echo "Working tree not clean. Commit/stash changes first." >&2
-  git status --porcelain
-  exit 1
-fi
-# 2) fetch
-git fetch origin --prune
-# 3) move dl-ci-local to op-es (fast, destructive to prior dl-ci-local commits)
-git checkout -B dl-ci-local origin/op-es
-# 4) overlay contracts-bedrock from merge_op_contracts_v4.1.0
-git restore --source merge_op_contracts_v4.1.0 -- packages/contracts-bedrock
-# 5) show status and commit if there are changes
-if [ -n "$(git status --porcelain packages/contracts-bedrock)" ]; then
-  git add -A packages/contracts-bedrock
-  git commit -m "Base from op-es; sync packages/contracts-bedrock from merge_op_contracts_v4.1.0"
+STATUS=$(kurtosis engine status)
+if echo "$STATUS" | grep -q "1.4.3"; then
+    echo "Kurtosis engine is running."
 else
-  echo "No differences in packages/contracts-bedrock vs target branch."
+    echo "The Kurtosis engine is not running, or there is a version mismatch."
+    exit 1
 fi
-# show summary
-printf "\nSync code done! Current HEAD: %s\n"
 
+# Runs semgrep tests on the entire monorepo
+
+just semgrep
+just semgrep-test
+
+# Solidity
 
 cd packages/contracts-bedrock
+just lint-check
+just pre-pr
+just test
 
-# contracts-bedrock-tests & contracts-bedrock-tests-preimage-oracle
-just build-go-ffi
-for _spec in \
-    "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
-    "-name 'PreimageOracle.t.sol'"; do
-    TEST_FILES=$(eval find test ${_spec})
-    if [ -z "$TEST_FILES" ]; then
-        echo "No tests matched spec: ${_spec}; skipping"
-        continue
-    fi
-    TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
-    MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
-    echo "Running forge test --match-path $MATCH_PATH"
-    forge test --match-path "$MATCH_PATH"
-done
-
-# contracts-bedrock-build
-just forge-build --deny-warnings --skip test
+# Go
 
 cd ../..
+make lint-go
+make build-go
 
-# Switch to binary branch
-git checkout op-es
-git pull --ff-only
+cd op-program && make op-program-client && cd ..
+cd cannon && make elf && cd ..
+cd op-e2e && make pre-test && cd ..
 
-# cannon-prestate-quick
-make cannon-prestates
+make devnet-allocs
 
-# go-tests-full
-export TEST_TIMEOUT=90m
-make go-tests-ci
+export ENABLE_KURTOSIS=true
+export OP_E2E_CANNON_ENABLED="false"
+export OP_E2E_SKIP_SLOW_TEST=true
+export OP_E2E_USE_HTTP=true
+export ENABLE_ANVIL=true
 
-# op-e2e-fuzz
-cd op-e2e && make fuzz && cd ..
-
-# cannon-fuzz
-cd cannon && make fuzz && cd ..
-
-# op-program-compat
-cd op-program && make verify-compat && cd ..
-
-# fuzz-golang
-if ! command -v parallel >/dev/null 2>&1; then
-    echo "Notice: GNU parallel not found; stopping before fuzz and later steps." >&2
-    echo "Install it to enable fuzzing. Examples:" >&2
-    echo "  macOS:   brew install parallel" >&2
-    echo "  Ubuntu:  apt-get update && apt-get install -y parallel" >&2
-    return 0 2>/dev/null || exit 0
-fi
-for dir in op-challenger op-node op-service op-chain-ops; do
-    (cd "$dir" && just fuzz && cd ..)
+# Note: not all packages are tested.
+# For example the test `TestFinalization` in `op-alt-da` package fails even in upstream.
+packages=(
+    op-batcher
+    op-chain-ops
+    op-node
+    op-proposer
+    op-challenger
+    op-dispute-mon
+    op-conductor
+    op-program
+    op-service
+    op-supervisor
+    op-deployer
+    op-e2e/system
+    op-e2e/e2eutils
+    op-e2e/opgeth
+    op-e2e/interop
+    op-e2e/actions
+    op-e2e/faultproofs
+    op-e2e/l2blob
+    op-e2e/inbox
+    op-e2e/sgt
+    packages/contracts-bedrock/scripts/checks
+)
+formatted_packages=""
+for package in "${packages[@]}"; do
+    formatted_packages="$formatted_packages ./$package/..."
 done
+
+gotestsum --no-summary=skipped,output \
+   --packages="$formatted_packages" \
+   --format=short-verbose \
+   --rerun-fails=2
 
 echo "Execution time: $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s)"

@@ -347,6 +347,11 @@
             "internalType": "Duration",
             "name": "disputeMaxClockDuration",
             "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "batchInbox",
+            "type": "address"
           }
         ],
         "internalType": "struct OPContractsManager.DeployInput",

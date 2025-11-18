@@ -172,7 +172,8 @@ contract AnchorStateRegistry_SetRespectedGameType_Test is AnchorStateRegistry_Te
 
         // Attempt to call as non-guardian
         vm.prank(_caller);
-        vm.expectRevert(IAnchorStateRegistry.AnchorStateRegistry_Unauthorized.selector);
+        // QKC PR: https://github.com/QuarkChain/optimism/pull/123
+        vm.expectRevert(IProxyAdminOwnedBase.ProxyAdminOwnedBase_NotProxyAdminOrProxyAdminOwner.selector);
         anchorStateRegistry.setRespectedGameType(_gameType);
     }
 }
@@ -219,7 +220,8 @@ contract AnchorStateRegistry_UpdateRetirementTimestamp_Test is AnchorStateRegist
 
         // Attempt to call as non-guardian
         vm.prank(_caller);
-        vm.expectRevert(IAnchorStateRegistry.AnchorStateRegistry_Unauthorized.selector);
+        // QKC PR: https://github.com/QuarkChain/optimism/pull/123
+        vm.expectRevert(IProxyAdminOwnedBase.ProxyAdminOwnedBase_NotProxyAdminOrProxyAdminOwner.selector);
         anchorStateRegistry.updateRetirementTimestamp();
     }
 }
@@ -263,7 +265,8 @@ contract AnchorStateRegistry_BlacklistDisputeGame_Test is AnchorStateRegistry_Te
 
         // Attempt to call as non-guardian
         vm.prank(_caller);
-        vm.expectRevert(IAnchorStateRegistry.AnchorStateRegistry_Unauthorized.selector);
+        // QKC PR: https://github.com/QuarkChain/optimism/pull/123
+        vm.expectRevert(IProxyAdminOwnedBase.ProxyAdminOwnedBase_NotProxyAdminOrProxyAdminOwner.selector);
         anchorStateRegistry.blacklistDisputeGame(gameProxy);
     }
 

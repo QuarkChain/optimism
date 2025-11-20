@@ -41,7 +41,7 @@ if [ -z "${MISE_SHELL:-}" ]; then
 fi
 
 if [ -n "$(git status --porcelain)" ]; then
-  echo "Working tree not clean. Commit/stash changes first." >&2
+  echo "WARN: Working tree not clean. Commit/stash changes first." >&2
   git status --porcelain
   exit 1
 fi
@@ -54,6 +54,11 @@ for var in SEPOLIA_RPC_URL MAINNET_RPC_URL; do
 done
 echo "==========Checking environment done"
 
+echo "==========Cleaning workspace..."
+make nuke
+echo "==========Workspace cleaned."
+
+# Updating dependencies in contracts lib
 cd packages/contracts-bedrock
 forge install
 

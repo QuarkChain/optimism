@@ -37,6 +37,12 @@ forge-build *ARGS:
     --sig "idonotexist()" \
     --skip-simulation \
     2>/dev/null || true
+  @# Warm the DeployImplementations script as op-e2e tests depend on its artifact
+  @forge script "scripts/deploy/DeployImplementations.s.sol" \
+    --skip "/**/test/**" \
+    --sig "idonotexist()" \
+    --skip-simulation \
+    2>/dev/null || true
 
 # Developer build command (faster).
 forge-build-dev *ARGS:

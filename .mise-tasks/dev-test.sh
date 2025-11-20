@@ -91,6 +91,11 @@ forge script "scripts/deploy/DeployImplementations.s.sol" \
 ls forge-artifacts/DeployImplementations.s.sol/DeployImplementations.json
 cd ../..
 
+# op-deployer embedded artifacts (required by op-deployer Go tests)
+echo "==========Packing op-deployer artifacts..."
+just -f op-deployer/justfile copy-contract-artifacts
+echo "==========Artifacts packed."
+
 # cannon-prestate-quick
 echo "==========Starting cannon-prestates-quick..."
 make cannon-prestates

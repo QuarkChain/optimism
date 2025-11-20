@@ -77,7 +77,12 @@ echo "==========Contracts-bedrock tests done."
 
 # contracts-bedrock-build
 just forge-build --deny-warnings --skip test
-
+forge script "scripts/deploy/DeployImplementations.s.sol" \
+    --skip "/**/test/**" \
+    --sig "idonotexist()" \
+    --skip-simulation \
+    2>/dev/null || true
+ls forge-artifacts/DeployImplementations.s.sol/DeployImplementations.json
 cd ../..
 
 # cannon-prestate-quick

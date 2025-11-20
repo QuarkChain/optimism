@@ -55,7 +55,7 @@ done
 echo "==========Checking environment done"
 
 echo "==========Cleaning workspace..."
-make nuke
+git clean -df
 echo "==========Workspace cleaned."
 
 # Updating dependencies in contracts lib
@@ -81,6 +81,7 @@ done
 echo "==========Contracts-bedrock tests done."
 
 # contracts-bedrock-build
+just clean
 just forge-build --deny-warnings --skip test
 forge script "scripts/deploy/DeployImplementations.s.sol" \
     --skip "/**/test/**" \
@@ -89,6 +90,11 @@ forge script "scripts/deploy/DeployImplementations.s.sol" \
     2>/dev/null || true
 ls forge-artifacts/DeployImplementations.s.sol/DeployImplementations.json
 cd ../..
+
+# op-deployer embedded artifacts (required by op-deployer Go tests)
+echo "==========Packing op-deployer artifacts..."
+just -f op-deployer/justfile copy-contract-artifacts
+echo "==========Artifacts packed."
 
 # cannon-prestate-quick
 echo "==========Starting cannon-prestates-quick..."

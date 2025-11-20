@@ -55,7 +55,7 @@ done
 echo "==========Checking environment done"
 
 echo "==========Cleaning workspace..."
-make nuke
+git clean -df
 echo "==========Workspace cleaned."
 
 # Updating dependencies in contracts lib

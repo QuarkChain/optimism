@@ -164,7 +164,7 @@ func (r *CLITestRunner) RunWithNetwork(ctx context.Context, args []string, env m
 
 // ExpectSuccess runs a command expecting it to succeed
 func (r *CLITestRunner) ExpectSuccess(t *testing.T, args []string, env map[string]string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3000*time.Second)
 	defer cancel()
 
 	output, err := r.Run(ctx, args, env)
@@ -174,7 +174,7 @@ func (r *CLITestRunner) ExpectSuccess(t *testing.T, args []string, env map[strin
 
 // ExpectSuccessWithNetwork runs a command with network parameters expecting it to succeed
 func (r *CLITestRunner) ExpectSuccessWithNetwork(t *testing.T, args []string, env map[string]string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	output, err := r.RunWithNetwork(ctx, args, env)

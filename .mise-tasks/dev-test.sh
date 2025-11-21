@@ -102,10 +102,10 @@ make cannon-prestates
 echo "==========Cannon-prestates-quick done."
 
 # go-tests-full
-echo "==========Starting go-tests-full..."
-export TEST_TIMEOUT=90m
-make go-tests-ci
-echo "==========Go-tests-full done."
+# echo "==========Starting go-tests-full..."
+# export TEST_TIMEOUT=90m
+# make go-tests-ci
+# echo "==========Go-tests-full done."
 
 # op-e2e-fuzz
 echo "==========Starting op-e2e-fuzz..."

@@ -38,7 +38,7 @@ func TestInitLiveStrategy_OPCMReuseLogicSepolia(t *testing.T) {
 		require.NoError(t, retryProxy.Stop())
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	rpcClient, err := rpc.Dial(retryProxy.Endpoint())

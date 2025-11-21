@@ -22,6 +22,7 @@ type DeployOPChainInput struct {
 	OpChainProxyAdminOwner common.Address
 	SystemConfigOwner      common.Address
 	Batcher                common.Address
+	BatchInbox             common.Address
 	UnsafeBlockSigner      common.Address
 	Proposer               common.Address
 	Challenger             common.Address

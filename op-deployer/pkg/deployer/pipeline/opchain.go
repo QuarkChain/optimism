@@ -94,6 +94,7 @@ func makeDCI(intent *state.Intent, thisIntent *state.ChainIntent, chainID common
 		OpChainProxyAdminOwner:       thisIntent.Roles.L1ProxyAdminOwner,
 		SystemConfigOwner:            thisIntent.Roles.SystemConfigOwner,
 		Batcher:                      thisIntent.Roles.Batcher,
+		BatchInbox:                   state.CalculateBatchInboxAddr(chainID),
 		UnsafeBlockSigner:            thisIntent.Roles.UnsafeBlockSigner,
 		Proposer:                     thisIntent.Roles.Proposer,
 		Challenger:                   thisIntent.Roles.Challenger,

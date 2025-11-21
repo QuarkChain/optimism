@@ -229,6 +229,7 @@ func DeployL2ToL1(l1Host *script.Host, superCfg *SuperchainConfig, superDeployme
 		OpChainProxyAdminOwner:       superCfg.ProxyAdminOwner,
 		SystemConfigOwner:            cfg.SystemConfigOwner,
 		Batcher:                      cfg.BatchSenderAddress,
+		BatchInbox:                   cfg.BatchInboxAddress,
 		UnsafeBlockSigner:            cfg.P2PSequencerAddress,
 		Proposer:                     cfg.Proposer,
 		Challenger:                   cfg.Challenger,

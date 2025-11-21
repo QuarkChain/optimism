@@ -59,8 +59,8 @@ git clean -df
 echo "==========Workspace cleaned."
 
 # Updating dependencies in contracts lib
-cd packages/contracts-bedrock
-forge install
+# cd packages/contracts-bedrock
+# forge install
 
 # contracts-bedrock-tests & contracts-bedrock-tests-preimage-oracle
 # echo "==========Starting contracts-bedrock tests..."
@@ -92,9 +92,9 @@ forge install
 # cd ../..
 
 # op-deployer embedded artifacts (required by op-deployer Go tests)
-echo "==========Packing op-deployer artifacts..."
-just -f op-deployer/justfile copy-contract-artifacts
-echo "==========Artifacts packed."
+# echo "==========Packing op-deployer artifacts..."
+# just -f op-deployer/justfile copy-contract-artifacts
+# echo "==========Artifacts packed."
 
 # cannon-prestate-quick
 echo "==========Starting cannon-prestates-quick..."

@@ -40,6 +40,7 @@ if [ -z "${MISE_SHELL:-}" ]; then
     fi
 fi
 
+echo "Current branch: $(git rev-parse --abbrev-ref HEAD)" >&2
 if [ -n "$(git status --porcelain)" ]; then
   echo "WARN: Working tree not clean. Commit/stash changes first." >&2
   git status --porcelain

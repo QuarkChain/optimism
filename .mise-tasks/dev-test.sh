@@ -40,6 +40,7 @@ if [ -z "${MISE_SHELL:-}" ]; then
     fi
 fi
 
+echo "Current branch: $(git rev-parse --abbrev-ref HEAD)" >&2
 if [ -n "$(git status --porcelain)" ]; then
   echo "WARN: Working tree not clean. Commit/stash changes first." >&2
   git status --porcelain
@@ -59,42 +60,42 @@ git clean -df
 echo "==========Workspace cleaned."
 
 # Updating dependencies in contracts lib
-# cd packages/contracts-bedrock
-# forge install
+cd packages/contracts-bedrock
+forge install
 
 # contracts-bedrock-tests & contracts-bedrock-tests-preimage-oracle
-# echo "==========Starting contracts-bedrock tests..."
-# just build-go-ffi
-# for _spec in \
-#     "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
-#     "-name 'PreimageOracle.t.sol'"; do
-#     TEST_FILES=$(eval find test ${_spec})
-#     if [ -z "$TEST_FILES" ]; then
-#         echo "No tests matched spec: ${_spec}; skipping"
-#         continue
-#     fi
-#     TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
-#     MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
-#     echo "Running forge test --match-path $MATCH_PATH"
-#     forge test --match-path "$MATCH_PATH"
-# done
-# echo "==========Contracts-bedrock tests done."
+echo "==========Starting contracts-bedrock tests..."
+just build-go-ffi
+for _spec in \
+    "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
+    "-name 'PreimageOracle.t.sol'"; do
+    TEST_FILES=$(eval find test ${_spec})
+    if [ -z "$TEST_FILES" ]; then
+        echo "No tests matched spec: ${_spec}; skipping"
+        continue
+    fi
+    TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
+    MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
+    echo "Running forge test --match-path $MATCH_PATH"
+    forge test --match-path "$MATCH_PATH"
+done
+echo "==========Contracts-bedrock tests done."
 
 # contracts-bedrock-build
-# just clean
-# just forge-build --deny-warnings --skip test
-# forge script "scripts/deploy/DeployImplementations.s.sol" \
-#     --skip "/**/test/**" \
-#     --sig "idonotexist()" \
-#     --skip-simulation \
-#     2>/dev/null || true
-# ls forge-artifacts/DeployImplementations.s.sol/DeployImplementations.json
-# cd ../..
+just clean
+just forge-build --deny-warnings --skip test
+forge script "scripts/deploy/DeployImplementations.s.sol" \
+    --skip "/**/test/**" \
+    --sig "idonotexist()" \
+    --skip-simulation \
+    2>/dev/null || true
+ls forge-artifacts/DeployImplementations.s.sol/DeployImplementations.json
+cd ../..
 
 # op-deployer embedded artifacts (required by op-deployer Go tests)
-# echo "==========Packing op-deployer artifacts..."
-# just -f op-deployer/justfile copy-contract-artifacts
-# echo "==========Artifacts packed."
+echo "==========Packing op-deployer artifacts..."
+just -f op-deployer/justfile copy-contract-artifacts
+echo "==========Artifacts packed."
 
 # cannon-prestate-quick
 echo "==========Starting cannon-prestates-quick..."

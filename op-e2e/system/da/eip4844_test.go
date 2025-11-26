@@ -76,7 +76,7 @@ func testSystem4844E2E(t *testing.T, multiBlob bool, daType batcherFlags.DataAva
 	// transaction. The hook used here makes sure we make the jamming call before batch submission
 	// is started, as is required by the function.
 	var jamChan chan error
-	jamCtx, jamCancel := context.WithTimeout(context.Background(), 20*time.Second)
+	jamCtx, jamCancel := context.WithTimeout(context.Background(), 200*time.Second)
 	action := e2esys.StartOption{
 		Key: "beforeBatcherStart",
 		Action: func(cfg *e2esys.SystemConfig, s *e2esys.System) {

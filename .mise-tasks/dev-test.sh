@@ -64,22 +64,22 @@ cd packages/contracts-bedrock
 forge install
 
 # contracts-bedrock-tests & contracts-bedrock-tests-preimage-oracle
-# echo "==========Starting contracts-bedrock tests..."
-# just build-go-ffi
-# for _spec in \
-#     "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
-#     "-name 'PreimageOracle.t.sol'"; do
-#     TEST_FILES=$(eval find test ${_spec})
-#     if [ -z "$TEST_FILES" ]; then
-#         echo "No tests matched spec: ${_spec}; skipping"
-#         continue
-#     fi
-#     TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
-#     MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
-#     echo "Running forge test --match-path $MATCH_PATH"
-#     forge test --match-path "$MATCH_PATH"
-# done
-# echo "==========Contracts-bedrock tests done."
+echo "==========Starting contracts-bedrock tests..."
+just build-go-ffi
+for _spec in \
+    "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
+    "-name 'PreimageOracle.t.sol'"; do
+    TEST_FILES=$(eval find test ${_spec})
+    if [ -z "$TEST_FILES" ]; then
+        echo "No tests matched spec: ${_spec}; skipping"
+        continue
+    fi
+    TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
+    MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
+    echo "Running forge test --match-path $MATCH_PATH"
+    forge test --match-path "$MATCH_PATH"
+done
+echo "==========Contracts-bedrock tests done."
 
 # contracts-bedrock-build
 just clean
@@ -103,10 +103,10 @@ make cannon-prestates
 echo "==========Cannon-prestates-quick done."
 
 # go-tests-full
-# echo "==========Starting go-tests-full..."
-# export TEST_TIMEOUT=90m
-# make go-tests-ci
-# echo "==========Go-tests-full done."
+echo "==========Starting go-tests-full..."
+export TEST_TIMEOUT=90m
+make go-tests-ci
+echo "==========Go-tests-full done."
 
 # op-e2e-fuzz
 echo "==========Starting op-e2e-fuzz..."

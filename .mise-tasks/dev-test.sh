@@ -102,12 +102,6 @@ echo "==========Starting cannon-prestates-quick..."
 make cannon-prestates
 echo "==========Cannon-prestates-quick done."
 
-# go-tests-full
-echo "==========Starting go-tests-full..."
-export TEST_TIMEOUT=90m
-make go-tests-ci
-echo "==========Go-tests-full done."
-
 # op-e2e-fuzz
 echo "==========Starting op-e2e-fuzz..."
 cd op-e2e && make fuzz && cd ..
@@ -136,5 +130,11 @@ for dir in op-challenger op-node op-service op-chain-ops; do
     (cd "$dir" && just fuzz && cd ..)
 done
 echo "==========Fuzz-golang done."
+
+# go-tests-full
+echo "==========Starting go-tests-full..."
+export TEST_TIMEOUT=90m
+make go-tests-ci
+echo "==========Go-tests-full done."
 
 echo "Execution time: $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s)"

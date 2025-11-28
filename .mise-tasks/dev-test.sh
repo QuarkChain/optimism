@@ -56,7 +56,7 @@ done
 echo "==========Checking environment done"
 
 # Updating dependencies in contracts lib
-cd packages/contracts-bedrock
+pushd packages/contracts-bedrock > /dev/null
 forge install
 
 # contracts-bedrock-tests & contracts-bedrock-tests-preimage-oracle
@@ -78,15 +78,14 @@ done
 echo "==========Contracts-bedrock tests done."
 
 # contracts-bedrock-build
-just clean
-just forge-build --deny-warnings --skip test
-forge script "scripts/deploy/DeployImplementations.s.sol" \
-    --skip "/**/test/**" \
-    --sig "idonotexist()" \
-    --skip-simulation \
-    2>/dev/null || true
-ls forge-artifacts/DeployImplementations.s.sol/DeployImplementations.json
-cd ../..
+just clean && just forge-build --deny-warnings --skip test
+# compile only
+# forge script "scripts/deploy/DeployImplementations.s.sol" \
+#     --skip "/**/test/**" \
+#     --sig "idonotexist()" \
+#     --skip-simulation \
+#     2>/dev/null || true
+popd > /dev/null
 
 # op-deployer embedded artifacts (required by op-deployer Go tests)
 echo "==========Packing op-deployer artifacts..."

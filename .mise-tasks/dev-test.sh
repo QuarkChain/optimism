@@ -79,12 +79,6 @@ echo "==========Contracts-bedrock tests done."
 
 # contracts-bedrock-build
 just clean && just forge-build --deny-warnings --skip test
-# compile only
-# forge script "scripts/deploy/DeployImplementations.s.sol" \
-#     --skip "/**/test/**" \
-#     --sig "idonotexist()" \
-#     --skip-simulation \
-#     2>/dev/null || true
 popd > /dev/null
 
 # op-deployer embedded artifacts (required by op-deployer Go tests)

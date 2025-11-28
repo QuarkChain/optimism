@@ -55,10 +55,6 @@ for var in SEPOLIA_RPC_URL MAINNET_RPC_URL; do
 done
 echo "==========Checking environment done"
 
-echo "==========Cleaning workspace..."
-git clean -df
-echo "==========Workspace cleaned."
-
 # Updating dependencies in contracts lib
 cd packages/contracts-bedrock
 forge install

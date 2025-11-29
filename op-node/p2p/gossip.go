@@ -613,13 +613,18 @@ func (p *publisher) publishRawSignedPayload(ctx context.Context, timestamp uint6
 	// This also copies the data, freeing up the original buffer to go back into the pool
 	out := snappy.Encode(nil, data)
 
+	fmt.Println("publishRawSignedPayload1")
 	if p.cfg.IsIsthmus(timestamp) {
+		fmt.Println("publishRawSignedPayload2")
 		return p.blocksV4.topic.Publish(ctx, out)
 	} else if p.cfg.IsEcotone(timestamp) {
+		fmt.Println("publishRawSignedPayload3")
 		return p.blocksV3.topic.Publish(ctx, out)
 	} else if p.cfg.IsCanyon(timestamp) {
+		fmt.Println("publishRawSignedPayload4")
 		return p.blocksV2.topic.Publish(ctx, out)
 	} else {
+		fmt.Println("publishRawSignedPayload5")
 		return p.blocksV1.topic.Publish(ctx, out)
 	}
 }

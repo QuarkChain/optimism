@@ -336,6 +336,24 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "mintTransaction",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "bytes32",
         "name": "_withdrawalHash",
         "type": "bytes32"
@@ -589,6 +607,32 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_minter",
+        "type": "address"
+      }
+    ],
+    "name": "setMinter",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_disable",
+        "type": "bool"
+      }
+    ],
+    "name": "setNativeDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "superchainConfig",
     "outputs": [
@@ -651,6 +695,31 @@
       }
     ],
     "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "minter",
+        "type": "address"
+      }
+    ],
+    "name": "MinterSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "NativeDepositDisabled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [],
+    "name": "NativeDepositEnabled",
     "type": "event"
   },
   {
@@ -834,12 +903,22 @@
   },
   {
     "inputs": [],
+    "name": "OptimismPortal_NativeDepositForbidden",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "OptimismPortal_NoReentrancy",
     "type": "error"
   },
   {
     "inputs": [],
     "name": "OptimismPortal_ProofNotOldEnough",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OptimismPortal_Unauthorized",
     "type": "error"
   },
   {

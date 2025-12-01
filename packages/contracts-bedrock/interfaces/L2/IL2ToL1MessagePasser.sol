@@ -2,6 +2,10 @@
 pragma solidity ^0.8.0;
 
 interface IL2ToL1MessagePasser {
+    event NativeDepositEnabled();
+    event NativeDepositDisabled();
+    error L2ToL1MessagePasser_NativeDepositDisabled();
+
     event MessagePassed(
         uint256 indexed nonce,
         address indexed sender,

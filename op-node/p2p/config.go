@@ -43,6 +43,9 @@ var DefaultBootnodes = []string{
 	"enode://010800c668896c100e8d64abc388ac5a22a8134a96fb0107c5d0c56d79ba7225c12d9e9e012d3cc0ee2701d7f63dd45f8abf0bbcf6f3c541f91742b1d7a99355@3.134.214.169:9222",
 	"enode://b97abcc7011d06299c4bc44742be4a0e631a1a2925a2992adcfe80ed86bec5ff0ddf1b90d015f2dbb5e305560e12c9873b2dad72d84d131ac4be9f2a4c74b763@52.14.30.39:9222",
 	"enode://760230a662610620d6d2e4ad846a6dccbceaa4556872dfacf9cdca7c2f5b49e4c66e822ed2e8813debb5fb7391f0519b8d075e565a2a89c79a9e4092e81b3e5b@3.148.100.173:9222",
+	// QKC
+	// delta node
+	"enr:-Iq4QK5jDs6AyoCM5mSgAX1dPGoHtwUwkhgn7CVpVEl_D4_xduIVPwdnGDGwAGBmwwYIzoUjg2IHkmiww3kswk3RWhCGAZshpYCkgmlkgnY0gmlwhIbRyI2Jc2VjcDI1NmsxoQJNw-Bv4LbZD1lJHwH1j1f4gHCMTuV2kUaPbLyns3yD1YN1ZHCCJoc",
 }
 
 type HostMetrics interface {

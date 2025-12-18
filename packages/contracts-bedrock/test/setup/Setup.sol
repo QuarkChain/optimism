@@ -358,7 +358,7 @@ abstract contract Setup is FeatureFlags {
                 enableGovernance: deploy.cfg().enableGovernance(),
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
                 deploySoulGasToken: deploy.cfg().deploySoulGasToken(),
-                isSoulBackedByNative: deploy.cfg().isSoulBackedByNative()
+                isSoulBackedByNative: deploy.cfg().isSoulBackedByNative(),
                 useRevenueShare: deploy.cfg().useRevenueShare(),
                 chainFeesRecipient: deploy.cfg().chainFeesRecipient(),
                 l1FeesDepositor: deploy.cfg().l1FeesDepositor(),

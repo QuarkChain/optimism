@@ -49,7 +49,6 @@ abstract contract Predeploys_TestInit is CommonTest {
     function _isInitializableV5(address _addr) internal pure returns (bool) {
         return _addr == Predeploys.SEQUENCER_FEE_WALLET || _addr == Predeploys.BASE_FEE_VAULT
             || _addr == Predeploys.L1_FEE_VAULT || _addr == Predeploys.OPERATOR_FEE_VAULT;
->>>>>>> op-node/v1.16.3
     }
 
     /// @notice Returns true if the predeploy uses immutables.

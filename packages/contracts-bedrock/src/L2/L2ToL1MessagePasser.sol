@@ -65,8 +65,9 @@ contract L2ToL1MessagePasser is ISemver {
     );
 
     /// @notice Emitted when the balance of this contract is burned.
-    /// @param amount Amount of ETh that was burned.
+    /// @param amount Amount of ETH that was burned.
     event WithdrawerBalanceBurnt(uint256 indexed amount);
+
 
     /// @notice Emitted when native deposit is disabled.
     event NativeDepositDisabled();
@@ -76,8 +77,10 @@ contract L2ToL1MessagePasser is ISemver {
     /// @notice Error for disabled native deposit/withdraw.
     error L2ToL1MessagePasser_NativeDepositDisabled();
 
-    /// @custom:semver 1.1.2
-    string public constant version = "1.1.2";
+    /// @custom:semver 1.2.0
+    function version() public pure virtual returns (string memory) {
+        return "1.2.0";
+    }
 
     /// @notice Allows users to withdraw ETH by sending directly to this contract.
     receive() external payable {
@@ -98,11 +101,12 @@ contract L2ToL1MessagePasser is ISemver {
     /// @param _target   Address to call on L1 execution.
     /// @param _gasLimit Minimum gas limit for executing the message on L1.
     /// @param _data     Data to forward to L1 target.
-    function initiateWithdrawal(address _target, uint256 _gasLimit, bytes memory _data) public payable {
+    function initiateWithdrawal(address _target, uint256 _gasLimit, bytes memory _data) public payable virtual {
         QKCConfigStorage storage $ = _getQKCConfigStorage();
         if ($.disableNativeDeposit && msg.value > 0) {
             revert L2ToL1MessagePasser_NativeDepositDisabled();
         }
+
         bytes32 withdrawalHash = Hashing.hashWithdrawal(
             Types.WithdrawalTransaction({
                 nonce: messageNonce(),

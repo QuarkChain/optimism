@@ -22,6 +22,7 @@ import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
 import { Chains } from "scripts/libraries/Chains.sol";
+import { DevFeatures } from "src/libraries/DevFeatures.sol";
 
 // Interfaces
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
@@ -63,6 +64,12 @@ import { ISoulGasToken } from "interfaces/L2/ISoulGasToken.sol";
 import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { ICrossL2Inbox } from "interfaces/L2/ICrossL2Inbox.sol";
+import { ILiquidityController } from "interfaces/L2/ILiquidityController.sol";
+import { INativeAssetLiquidity } from "interfaces/L2/INativeAssetLiquidity.sol";
+import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
+import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
+import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
+import { IOPContractsManagerV2 } from "interfaces/L1/opcm/IOPContractsManagerV2.sol";
 
 /// @title Setup
 /// @dev This contact is responsible for setting up the contracts in state. It currently
@@ -120,6 +127,7 @@ abstract contract Setup is FeatureFlags {
     ISuperchainConfig superchainConfig;
     IDataAvailabilityChallenge dataAvailabilityChallenge;
     IOPContractsManager opcm;
+    IOPContractsManagerV2 opcmV2;
     IBigStepper mips;
 
     // L2 contracts
@@ -148,6 +156,11 @@ abstract contract Setup is FeatureFlags {
     IOptimismSuperchainERC20Factory l2OptimismSuperchainERC20Factory =
         IOptimismSuperchainERC20Factory(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
     ISoulGasToken soulGasToken = ISoulGasToken(Predeploys.SOUL_GAS_TOKEN);
+    ILiquidityController liquidityController = ILiquidityController(Predeploys.LIQUIDITY_CONTROLLER);
+    INativeAssetLiquidity nativeAssetLiquidity = INativeAssetLiquidity(Predeploys.NATIVE_ASSET_LIQUIDITY);
+    IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
+    IL1Withdrawer l1Withdrawer;
+    ISuperchainRevSharesCalculator superchainRevSharesCalculator;
 
     /// @notice Indicates whether a test is running against a forked production network.
     function isForkTest() public view returns (bool) {
@@ -218,6 +231,14 @@ abstract contract Setup is FeatureFlags {
         }
     }
 
+    /// @dev Skips tests when not running against forked production network.
+    function skipIfNotForkTest(string memory message) public {
+        if (!isForkTest()) {
+            vm.skip(true);
+            console.log(string.concat("Skipping non-fork test: ", message));
+        }
+    }
+
     /// @dev Skips tests when running against a forked production network using the superchain ops repo.
     function skipIfOpsRepoTest(string memory message) public {
         if (forkLive.useOpsRepo()) {
@@ -280,7 +301,11 @@ abstract contract Setup is FeatureFlags {
         anchorStateRegistry = IAnchorStateRegistry(artifacts.mustGetAddress("AnchorStateRegistryProxy"));
         disputeGameFactory = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
         delayedWeth = IDelayedWETH(artifacts.mustGetAddress("DelayedWETHProxy"));
-        opcm = IOPContractsManager(artifacts.mustGetAddress("OPContractsManager"));
+        if (isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
+            opcmV2 = IOPContractsManagerV2(artifacts.mustGetAddress("OPContractsManagerV2"));
+        } else {
+            opcm = IOPContractsManager(artifacts.mustGetAddress("OPContractsManager"));
+        }
         proxyAdmin = IProxyAdmin(artifacts.mustGetAddress("ProxyAdmin"));
         proxyAdminOwner = proxyAdmin.owner();
         superchainProxyAdmin = IProxyAdmin(EIP1967Helper.getAdmin(address(superchainConfig)));
@@ -324,6 +349,9 @@ abstract contract Setup is FeatureFlags {
                 l1FeeVaultRecipient: deploy.cfg().l1FeeVaultRecipient(),
                 l1FeeVaultMinimumWithdrawalAmount: deploy.cfg().l1FeeVaultMinimumWithdrawalAmount(),
                 l1FeeVaultWithdrawalNetwork: deploy.cfg().l1FeeVaultWithdrawalNetwork(),
+                operatorFeeVaultRecipient: deploy.cfg().operatorFeeVaultRecipient(),
+                operatorFeeVaultMinimumWithdrawalAmount: deploy.cfg().operatorFeeVaultMinimumWithdrawalAmount(),
+                operatorFeeVaultWithdrawalNetwork: deploy.cfg().operatorFeeVaultWithdrawalNetwork(),
                 governanceTokenOwner: deploy.cfg().governanceTokenOwner(),
                 fork: uint256(l2Fork),
                 deployCrossL2Inbox: deploy.cfg().useInterop(),
@@ -331,8 +359,23 @@ abstract contract Setup is FeatureFlags {
                 fundDevAccounts: deploy.cfg().fundDevAccounts(),
                 deploySoulGasToken: deploy.cfg().deploySoulGasToken(),
                 isSoulBackedByNative: deploy.cfg().isSoulBackedByNative()
+                useRevenueShare: deploy.cfg().useRevenueShare(),
+                chainFeesRecipient: deploy.cfg().chainFeesRecipient(),
+                l1FeesDepositor: deploy.cfg().l1FeesDepositor(),
+                useCustomGasToken: deploy.cfg().useCustomGasToken(),
+                gasPayingTokenName: deploy.cfg().gasPayingTokenName(),
+                gasPayingTokenSymbol: deploy.cfg().gasPayingTokenSymbol(),
+                nativeAssetLiquidityAmount: deploy.cfg().nativeAssetLiquidityAmount(),
+                liquidityControllerOwner: deploy.cfg().liquidityControllerOwner()
             })
         );
+
+        if (deploy.cfg().useRevenueShare()) {
+            superchainRevSharesCalculator = ISuperchainRevSharesCalculator(
+                address(IFeeSplitter(payable(Predeploys.FEE_SPLITTER)).sharesCalculator())
+            );
+            l1Withdrawer = IL1Withdrawer(superchainRevSharesCalculator.shareRecipient());
+        }
 
         // Set the governance token's owner to be the final system owner
         address finalSystemOwner = deploy.cfg().finalSystemOwner();
@@ -362,6 +405,9 @@ abstract contract Setup is FeatureFlags {
         labelPredeploy(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_FACTORY);
         labelPredeploy(Predeploys.OPTIMISM_SUPERCHAIN_ERC20_BEACON);
         labelPredeploy(Predeploys.SUPERCHAIN_TOKEN_BRIDGE);
+        labelPredeploy(Predeploys.NATIVE_ASSET_LIQUIDITY);
+        labelPredeploy(Predeploys.LIQUIDITY_CONTROLLER);
+        labelPredeploy(Predeploys.FEE_SPLITTER);
         labelPredeploy(Predeploys.SOUL_GAS_TOKEN);
 
         // L2 Preinstalls

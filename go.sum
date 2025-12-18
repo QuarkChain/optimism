@@ -39,8 +39,8 @@ github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 h1:wPbRQzjjwFc0ih8puEVAOFGELsn1zoIIYdxvML7mDxA=
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8/go.mod h1:I0gYDMZ6Z5GRU7l58bNFSkPTFN6Yl12dsUlAZ8xy98g=
-github.com/Quarkchain/op-geth v0.0.0-20251218040235-6f71e2fc5a3f h1:iv71miyT1out/gL7QB/Anvmt0WzoUEJR66m2xuqnito=
-github.com/Quarkchain/op-geth v0.0.0-20251218040235-6f71e2fc5a3f/go.mod h1:fCNAwDynfAP6EKsmLqwSDUDgi+GtJIir74Ui3fXXMps=
+github.com/Quarkchain/op-geth v0.0.0-20251218074009-be079efe240f h1:Ikh+bLaa2Aom9x7sujTs3dA4FMYHYThPNS4KGDxcneQ=
+github.com/Quarkchain/op-geth v0.0.0-20251218074009-be079efe240f/go.mod h1:fCNAwDynfAP6EKsmLqwSDUDgi+GtJIir74Ui3fXXMps=
 github.com/VictoriaMetrics/fastcache v1.12.2 h1:N0y9ASrJ0F6h0QaC3o6uJb3NIZ9VKLjCM7NQbSmF7WI=
 github.com/VictoriaMetrics/fastcache v1.12.2/go.mod h1:AmC+Nzz1+3G2eCPapF6UcsnkThDcMsQicp4xDukwJYI=
 github.com/adrg/xdg v0.4.0 h1:RzRqFcjH4nE5C6oTAxhBtoE2IRyjBSa62SCbyPidvls=

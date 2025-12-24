@@ -126,4 +126,10 @@ export TEST_TIMEOUT=90m
 make go-tests-ci
 echo "==========Go-tests-full done."
 
+# op-e2e-tests
+echo "==========Starting op-e2e-tests..."
+make test-actions
+make test-ws
+echo "==========Op-e2e-tests done."
+
 echo "Execution time: $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s)"

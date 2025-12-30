@@ -90,7 +90,8 @@ contract UpgradeAnchorStateRegistry is Script {
     }
 
     function encodeStorageSetterZeroOutInitializedSlot() internal pure returns (bytes memory) {
-        return abi.encodeCall(IStorageSetter.setBytes32, (0, 0));
+        // Use selector directly to disambiguate overloaded setBytes32(bytes32,bytes32)
+        return abi.encodeWithSelector(bytes4(keccak256("setBytes32(bytes32,bytes32)")), bytes32(0), bytes32(0));
     }
 
     function encodeAnchorStateRegistryInitializer(

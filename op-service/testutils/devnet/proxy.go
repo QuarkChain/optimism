@@ -114,7 +114,7 @@ func (p *RetryProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	//nolint:bodyClose
 	res, resBody, err := retry.Do2(r.Context(), p.maxRetries, p.strategy, func() (*http.Response, []byte, error) {
-		ctx, cancel := context.WithTimeout(r.Context(), 50*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 100*time.Second)
 		defer cancel()
 		res, err := p.doProxyReq(ctx, reqBody)
 		if err != nil {

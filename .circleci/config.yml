@@ -91,11 +91,7 @@ orbs:
   slack: circleci/slack@6.0.0
   shellcheck: circleci/shellcheck@3.2.0
   codecov: codecov/codecov@5.0.3
-<<<<<<< HEAD
   utils: qkc/circleci-utils@0.0.2
-=======
-  utils: ethereum-optimism/circleci-utils@1.0.23
->>>>>>> 3f4294bd62460456e9c952789e1d7453e99dca51
   docker: circleci/docker@2.8.2
   github-cli: circleci/github-cli@2.7.0
 
@@ -567,49 +563,6 @@ jobs:
             - notify-failures-on-develop:
                 mentions: "@proofs-team"
 
-<<<<<<< HEAD
-  diff-asterisc-bytecode:
-    machine: true
-    resource_class: qkc/ax101
-    steps:
-      - utils/checkout-with-mise:
-          checkout-method: blobless
-      - run:
-          name: Check `RISCV.sol` bytecode
-          working_directory: packages/contracts-bedrock
-          command: |
-            # Clone asterisc @ the pinned version to fetch remote `RISCV.sol`
-            ASTERISC_REV="v$(yq '.tools.asterisc' ../../mise.toml)"
-            REMOTE_ASTERISC_PATH="./src/vendor/asterisc/RISCV_Remote.sol"
-            git clone https://github.com/ethereum-optimism/asterisc \
-              -b $ASTERISC_REV && \
-              cp ./asterisc/rvsol/src/RISCV.sol $REMOTE_ASTERISC_PATH
-
-            # Replace import paths
-            sed -i -e 's/@optimism\///' $REMOTE_ASTERISC_PATH
-            # Replace legacy interface paths
-            sed -i -e 's/src\/cannon\/interfaces\//interfaces\/cannon\//g' $REMOTE_ASTERISC_PATH
-            sed -i -e 's/src\/dispute\/interfaces\//interfaces\/dispute\//g' $REMOTE_ASTERISC_PATH
-            # Replace contract name
-            sed -i -e 's/contract RISCV/contract RISCV_Remote/' $REMOTE_ASTERISC_PATH
-
-            # Install deps
-            forge install
-
-            # Diff bytecode, with both contracts compiled in the local environment.
-            REMOTE_ASTERISC_CODE="$(forge inspect RISCV_Remote bytecode | tr -d '\n')"
-            LOCAL_ASTERISC_CODE="$(forge inspect RISCV bytecode | tr -d '\n')"
-            if [ "$REMOTE_ASTERISC_CODE" != "$LOCAL_ASTERISC_CODE" ]; then
-              echo "Asterisc bytecode mismatch. Local version does not match remote. Diff:"
-              diff <(echo "$REMOTE_ASTERISC_CODE") <(echo "$LOCAL_ASTERISC_CODE")
-            else
-              echo "Asterisc version up to date."
-            fi
-      - notify-failures-on-develop:
-          mentions: "@clabby @proofs-team"
-
-=======
->>>>>>> 3f4294bd62460456e9c952789e1d7453e99dca51
   contracts-bedrock-build:
     machine: true
     resource_class: qkc/ax101
@@ -1303,11 +1256,7 @@ jobs:
 
   contracts-bedrock-upload:
     machine: true
-<<<<<<< HEAD
     resource_class: qkc/ax101
-=======
-    resource_class: large
->>>>>>> 3f4294bd62460456e9c952789e1d7453e99dca51
     steps:
       - utils/checkout-with-mise:
           checkout-method: blobless
@@ -2525,15 +2474,12 @@ jobs:
           gcp_cred_config_file_path: /tmp/gcp_cred_config.json
           project_id: GCP_TOOLS_ARTIFACTS_PROJECT_ID
           service_account_email: GCP_CONTRACTS_PUBLISHER_SERVICE_ACCOUNT_EMAIL
-<<<<<<< HEAD
-=======
       - utils/checkout-with-mise:
           checkout-method: blobless
           enable-mise-cache: true
       - install-contracts-dependencies
       - install-zstd
       - run:
->>>>>>> 3f4294bd62460456e9c952789e1d7453e99dca51
           name: Pull artifacts
           command: bash scripts/ops/pull-artifacts.sh
           working_directory: packages/contracts-bedrock

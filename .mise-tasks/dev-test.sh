@@ -39,7 +39,7 @@ if [ -z "${MISE_SHELL:-}" ]; then
     fi
 fi
 
-# Ensure required tools exist. Some Solidity tests call `cast` via FFI.
+# Ensure required tools exist.
 if command -v mise >/dev/null 2>&1; then
     for tool in forge cast just anvil; do
         if ! command -v "$tool" >/dev/null 2>&1; then

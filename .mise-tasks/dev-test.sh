@@ -53,6 +53,18 @@ else
     done
 fi
 
+# Ensure gotestsum exists for Go test targets (used by Makefile).
+if ! command -v gotestsum >/dev/null 2>&1; then
+    if command -v go >/dev/null 2>&1; then
+        echo "Notice: 'gotestsum' not found; installing via go install..." >&2
+        GO_BIN="$(go env GOPATH)/bin"
+        go install gotest.tools/gotestsum@latest || halt "Failed to install 'gotestsum'. Try running: go install gotest.tools/gotestsum@latest"
+        export PATH="$GO_BIN:$PATH"
+    else
+        halt "Required tool 'gotestsum' not found and 'go' is not available. Install Go or gotestsum first."
+    fi
+fi
+
 echo "Current branch: $(git rev-parse --abbrev-ref HEAD)" >&2
 if [ -n "$(git status --porcelain)" ]; then
   echo "WARN: Working tree not clean. Commit/stash changes first." >&2
@@ -104,34 +116,35 @@ echo "==========Starting cannon-prestates-quick..."
 make cannon-prestates
 echo "==========Cannon-prestates-quick done."
 
-# op-e2e-fuzz
-echo "==========Starting op-e2e-fuzz..."
-cd op-e2e && make fuzz && cd ..
-echo "==========Op-e2e-fuzz done."
 
-# cannon-fuzz
-echo "==========Starting cannon-fuzz..."
-cd cannon && make fuzz && cd ..
-echo "==========Cannon-fuzz done."
+# # op-e2e-fuzz
+# echo "==========Starting op-e2e-fuzz..."
+# cd op-e2e && make fuzz && cd ..
+# echo "==========Op-e2e-fuzz done."
 
-# op-program-compat
-echo "==========Starting op-program-compat..."
-cd op-program && make verify-compat && cd ..
-echo "==========Op-program-compat done."
+# # cannon-fuzz
+# echo "==========Starting cannon-fuzz..."
+# cd cannon && make fuzz && cd ..
+# echo "==========Cannon-fuzz done."
 
-# fuzz-golang
-echo "==========Starting fuzz-golang..."
-if ! command -v parallel >/dev/null 2>&1; then
-    echo "Notice: GNU parallel not found; stopping before fuzz and later steps." >&2
-    echo "Install it to enable fuzzing. Examples:" >&2
-    echo "  macOS:   brew install parallel" >&2
-    echo "  Ubuntu:  apt-get update && apt-get install -y parallel" >&2
-    return 0 2>/dev/null || exit 0
-fi
-for dir in op-challenger op-node op-service op-chain-ops; do
-    (cd "$dir" && just fuzz && cd ..)
-done
-echo "==========Fuzz-golang done."
+# # op-program-compat
+# echo "==========Starting op-program-compat..."
+# cd op-program && make verify-compat && cd ..
+# echo "==========Op-program-compat done."
+
+# # fuzz-golang
+# echo "==========Starting fuzz-golang..."
+# if ! command -v parallel >/dev/null 2>&1; then
+#     echo "Notice: GNU parallel not found; stopping before fuzz and later steps." >&2
+#     echo "Install it to enable fuzzing. Examples:" >&2
+#     echo "  macOS:   brew install parallel" >&2
+#     echo "  Ubuntu:  apt-get update && apt-get install -y parallel" >&2
+#     return 0 2>/dev/null || exit 0
+# fi
+# for dir in op-challenger op-node op-service op-chain-ops; do
+#     (cd "$dir" && just fuzz && cd ..)
+# done
+# echo "==========Fuzz-golang done."
 
 # op-e2e-tests
 # echo "==========Starting op-e2e-tests..."

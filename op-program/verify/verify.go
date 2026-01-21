@@ -47,7 +47,7 @@ type Runner struct {
 func NewRunner(l1RpcUrl string, l1RpcKind string, l1BeaconUrl string, l2RpcUrl string, dataDir string, network string, chainID eth.ChainID, runInProcess bool) (*Runner, error) {
 	ctx := context.Background()
 	logCfg := oplog.DefaultCLIConfig()
-	logCfg.Level = log.LevelDebug
+	logCfg.Level = log.LevelInfo
 
 	setupLog := oplog.NewLogger(os.Stderr, logCfg)
 
@@ -197,7 +197,7 @@ func (r *Runner) run(ctx context.Context, l1Head common.Hash, agreedBlockInfo et
 	}
 	fmt.Printf("Using dir: %s\n", r.dataDir)
 	args := []string{
-		"--log.level", "DEBUG",
+		"--log.level", "INFO",
 		"--network", r.network,
 		"--exec", "./bin/op-program-client",
 		"--datadir", r.dataDir,

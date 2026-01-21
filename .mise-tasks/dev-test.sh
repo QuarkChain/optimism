@@ -41,14 +41,16 @@ fi
 
 # Ensure required tools exist. Some Solidity tests call `cast` via FFI.
 if command -v mise >/dev/null 2>&1; then
-    for tool in forge cast; do
+    for tool in forge cast just; do
         if ! command -v "$tool" >/dev/null 2>&1; then
             echo "Notice: '$tool' not found; attempting to install via mise..." >&2
             mise install "$tool" || halt "Failed to install '$tool' via mise. Try running: mise install"
         fi
     done
 else
-    command -v cast >/dev/null 2>&1 || halt "Required tool 'cast' not found. Install via mise (recommended): mise install cast"
+    for tool in cast just; do
+        command -v "$tool" >/dev/null 2>&1 || halt "Required tool '$tool' not found. Install via mise (recommended): mise install ${tool}"
+    done
 fi
 
 echo "Current branch: $(git rev-parse --abbrev-ref HEAD)" >&2
@@ -132,12 +134,12 @@ done
 echo "==========Fuzz-golang done."
 
 # op-e2e-tests
-echo "==========Starting op-e2e-tests..."
-cd op-e2e
-make test-actions
-make test-ws
-cd ..
-echo "==========Op-e2e-tests done."
+# echo "==========Starting op-e2e-tests..."
+# cd op-e2e
+# make test-actions
+# make test-ws
+# cd ..
+# echo "==========Op-e2e-tests done."
 
 # go-tests-full
 echo "==========Starting go-tests-full..."

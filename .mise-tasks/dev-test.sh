@@ -30,7 +30,6 @@ halt() {
 
 # Environment verify
 echo "==========Checking environment..."
-# mise install
 
 if [ -z "${MISE_SHELL:-}" ]; then
     if [ -n "${ZSH_VERSION:-}" ]; then
@@ -38,6 +37,18 @@ if [ -z "${MISE_SHELL:-}" ]; then
     elif [ -n "${BASH_VERSION:-}" ]; then
         eval "$(mise activate bash)"
     fi
+fi
+
+# Ensure required tools exist. Some Solidity tests call `cast` via FFI.
+if command -v mise >/dev/null 2>&1; then
+    for tool in forge cast; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            echo "Notice: '$tool' not found; attempting to install via mise..." >&2
+            mise install "$tool" || halt "Failed to install '$tool' via mise. Try running: mise install"
+        fi
+    done
+else
+    command -v cast >/dev/null 2>&1 || halt "Required tool 'cast' not found. Install via mise (recommended): mise install cast"
 fi
 
 echo "Current branch: $(git rev-parse --abbrev-ref HEAD)" >&2

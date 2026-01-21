@@ -120,12 +120,6 @@ for dir in op-challenger op-node op-service op-chain-ops; do
 done
 echo "==========Fuzz-golang done."
 
-# go-tests-full
-echo "==========Starting go-tests-full..."
-export TEST_TIMEOUT=90m
-make go-tests-ci
-echo "==========Go-tests-full done."
-
 # op-e2e-tests
 echo "==========Starting op-e2e-tests..."
 cd op-e2e
@@ -133,5 +127,12 @@ make test-actions
 make test-ws
 cd ..
 echo "==========Op-e2e-tests done."
+
+# go-tests-full
+echo "==========Starting go-tests-full..."
+export TEST_TIMEOUT=90m
+make go-tests-ci
+echo "==========Go-tests-full done."
+
 
 echo "Execution time: $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s)"

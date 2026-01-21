@@ -310,7 +310,7 @@ _go-tests-ci-internal:
 			gotestsum --format=testname \
 				--junitfile=./tmp/test-results/results-$$NODE_INDEX.xml \
 				--jsonfile=./tmp/testlogs/log-$$NODE_INDEX.json \
-				--rerun-fails=3 \
+				--rerun-fails=1 \
 				--rerun-fails-max-failures=50 \
 				--packages="$$PARALLEL_PACKAGES" \
 				-- -parallel=$$PARALLEL -coverprofile=coverage-$$NODE_INDEX.out $(GO_TEST_FLAGS) -timeout=$(TEST_TIMEOUT) -tags="ci"; \
@@ -322,7 +322,7 @@ _go-tests-ci-internal:
 		gotestsum --format=testname \
 			--junitfile=./tmp/test-results/results.xml \
 			--jsonfile=./tmp/testlogs/log.json \
-			--rerun-fails=3 \
+			--rerun-fails=1 \
 			--rerun-fails-max-failures=50 \
 			--packages="$(ALL_TEST_PACKAGES)" \
 			-- -parallel=$$PARALLEL -coverprofile=coverage.out $(GO_TEST_FLAGS) -timeout=$(TEST_TIMEOUT) -tags="ci"; \

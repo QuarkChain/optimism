@@ -41,14 +41,14 @@ fi
 
 # Ensure required tools exist. Some Solidity tests call `cast` via FFI.
 if command -v mise >/dev/null 2>&1; then
-    for tool in forge cast just; do
+    for tool in forge cast just anvil; do
         if ! command -v "$tool" >/dev/null 2>&1; then
             echo "Notice: '$tool' not found; attempting to install via mise..." >&2
             mise install "$tool" || halt "Failed to install '$tool' via mise. Try running: mise install"
         fi
     done
 else
-    for tool in cast just; do
+    for tool in cast just anvil; do
         command -v "$tool" >/dev/null 2>&1 || halt "Required tool '$tool' not found. Install via mise (recommended): mise install ${tool}"
     done
 fi

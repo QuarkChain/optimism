@@ -15,13 +15,6 @@ run_case() {
 	fi
 }
 
-# op-deployer/pkg/deployer/integration_test/cli
-
-run_case "op-deployer/pkg/deployer/integration_test/cli TestCLIUpgrade" \
-	go test ./op-deployer/pkg/deployer/integration_test/cli -run '^TestCLIUpgrade($|/op-contracts/v2\.0\.0$|/op-contracts/v3\.0\.0$|/op-contracts/v4\.0\.0-rc\.7$|/op-contracts/v4\.1\.0$|/op-contracts/v5\.0\.0$)'
-
-# op-deployer/pkg/deployer/pipeline
-
 run_case "op-deployer/pkg/deployer/pipeline TestPopulateSuperchainState" \
 	go test ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState($|/valid_OPCM_address_only$|/OPCM_address_with_SuperchainConfigProxy$|/output_mapping_validation$)'
 

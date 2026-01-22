@@ -40,30 +40,20 @@ if [ -z "${MISE_SHELL:-}" ]; then
 fi
 
 # Ensure required tools exist.
-if command -v mise >/dev/null 2>&1; then
-    for tool in forge cast just anvil; do
-        if ! command -v "$tool" >/dev/null 2>&1; then
-            echo "Notice: '$tool' not found; attempting to install via mise..." >&2
-            mise install "$tool" || halt "Failed to install '$tool' via mise. Try running: mise install"
-        fi
-    done
-else
-    for tool in cast just anvil; do
-        command -v "$tool" >/dev/null 2>&1 || halt "Required tool '$tool' not found. Install via mise (recommended): mise install ${tool}"
-    done
-fi
-
-# Ensure gotestsum exists for Go test targets (used by Makefile).
-if ! command -v gotestsum >/dev/null 2>&1; then
-    if command -v go >/dev/null 2>&1; then
+for tool in forge cast just anvil gotestsum; do
+    command -v "$tool" >/dev/null 2>&1 && continue
+    if [ "$tool" = "gotestsum" ]; then
+        command -v go >/dev/null 2>&1 || halt "'gotestsum' not found and 'go' is not available"
         echo "Notice: 'gotestsum' not found; installing via go install..." >&2
-        GO_BIN="$(go env GOPATH)/bin"
-        go install gotest.tools/gotestsum@latest || halt "Failed to install 'gotestsum'. Try running: go install gotest.tools/gotestsum@latest"
-        export PATH="$GO_BIN:$PATH"
+        go install gotest.tools/gotestsum@latest || halt "Failed to install 'gotestsum'"
+        export PATH="$(go env GOPATH)/bin:$PATH"
+    elif command -v mise >/dev/null 2>&1; then
+        echo "Notice: '$tool' not found; attempting to install via mise..." >&2
+        mise install "$tool" || halt "Failed to install '$tool' via mise"
     else
-        halt "Required tool 'gotestsum' not found and 'go' is not available. Install Go or gotestsum first."
+        halt "Required tool '$tool' not found. Install via mise: mise install ${tool}"
     fi
-fi
+done
 
 echo "Current branch: $(git rev-parse --abbrev-ref HEAD)" >&2
 if [ -n "$(git status --porcelain)" ]; then

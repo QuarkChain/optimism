@@ -68,6 +68,10 @@ for var in SEPOLIA_RPC_URL MAINNET_RPC_URL; do
         return 0 2>/dev/null || exit 0
     fi
 done
+
+# For TestPopulateSuperchainState tests
+export SEPOLIA_RPC_URL_STATE=https://sepolia.drpc.org
+
 echo "==========Checking environment done"
 
 # Updating dependencies in contracts lib

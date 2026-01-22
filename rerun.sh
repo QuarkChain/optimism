@@ -15,13 +15,16 @@ run_case() {
 	fi
 }
 
-export SEPOLIA_RPC_URL=https://sepolia.drpc.org
+# export SEPOLIA_RPC_URL=https://sepolia.drpc.org
 
-run_case "op-deployer/pkg/deployer/pipeline TestPopulateSuperchainState" \
-	go test -v ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState($|/valid_OPCM_address_only$|/OPCM_address_with_SuperchainConfigProxy$|/output_mapping_validation$)'
+run_case "op-e2e/system/conductor TestSequencerFailover_DisasterRecovery_OverrideLeader" \
+	go test -v ./op-e2e/system/conductor -run '^TestSequencerFailover_DisasterRecovery_OverrideLeader$'
 
-run_case "op-deployer/pkg/deployer/pipeline TestPopulateSuperchainState_OPCMV2" \
-	go test -v ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState_OPCMV2($|/SuperchainConfigProxy_only$|/output_mapping_validation$)'
+run_case "op-e2e/system/da TestBatcherAutoDA" \
+	go test -v ./op-e2e/system/da -run '^TestBatcherAutoDA$'
+
+run_case "op-devstack/sysgo TestControlPlane/test-SupervisorRestart" \
+	go test -v ./op-devstack/sysgo -run '^TestControlPlane/test-SupervisorRestart$'
 
 if [[ ${#failures[@]} -gt 0 ]]; then
 	echo ""

@@ -16,10 +16,10 @@ run_case() {
 }
 
 run_case "op-deployer/pkg/deployer/pipeline TestPopulateSuperchainState" \
-	go test ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState($|/valid_OPCM_address_only$|/OPCM_address_with_SuperchainConfigProxy$|/output_mapping_validation$)'
+	go test -v ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState($|/valid_OPCM_address_only$|/OPCM_address_with_SuperchainConfigProxy$|/output_mapping_validation$)'
 
 run_case "op-deployer/pkg/deployer/pipeline TestPopulateSuperchainState_OPCMV2" \
-	go test ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState_OPCMV2($|/SuperchainConfigProxy_only$|/output_mapping_validation$)'
+	go test -v ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState_OPCMV2($|/SuperchainConfigProxy_only$|/output_mapping_validation$)'
 
 if [[ ${#failures[@]} -gt 0 ]]; then
 	echo ""

@@ -15,6 +15,8 @@ run_case() {
 	fi
 }
 
+export SEPOLIA_RPC_URL=https://sepolia.drpc.org
+
 run_case "op-deployer/pkg/deployer/pipeline TestPopulateSuperchainState" \
 	go test -v ./op-deployer/pkg/deployer/pipeline -run '^TestPopulateSuperchainState($|/valid_OPCM_address_only$|/OPCM_address_with_SuperchainConfigProxy$|/output_mapping_validation$)'
 

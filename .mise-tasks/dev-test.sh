@@ -117,42 +117,42 @@ make cannon-prestates
 echo "==========Cannon-prestates-quick done."
 
 
-# # op-e2e-fuzz
-# echo "==========Starting op-e2e-fuzz..."
-# cd op-e2e && make fuzz && cd ..
-# echo "==========Op-e2e-fuzz done."
+# op-e2e-fuzz
+echo "==========Starting op-e2e-fuzz..."
+cd op-e2e && make fuzz && cd ..
+echo "==========Op-e2e-fuzz done."
 
-# # cannon-fuzz
-# echo "==========Starting cannon-fuzz..."
-# cd cannon && make fuzz && cd ..
-# echo "==========Cannon-fuzz done."
+# cannon-fuzz
+echo "==========Starting cannon-fuzz..."
+cd cannon && make fuzz && cd ..
+echo "==========Cannon-fuzz done."
 
-# # op-program-compat
-# echo "==========Starting op-program-compat..."
-# cd op-program && make verify-compat && cd ..
-# echo "==========Op-program-compat done."
+# op-program-compat
+echo "==========Starting op-program-compat..."
+cd op-program && make verify-compat && cd ..
+echo "==========Op-program-compat done."
 
-# # fuzz-golang
-# echo "==========Starting fuzz-golang..."
-# if ! command -v parallel >/dev/null 2>&1; then
-#     echo "Notice: GNU parallel not found; stopping before fuzz and later steps." >&2
-#     echo "Install it to enable fuzzing. Examples:" >&2
-#     echo "  macOS:   brew install parallel" >&2
-#     echo "  Ubuntu:  apt-get update && apt-get install -y parallel" >&2
-#     return 0 2>/dev/null || exit 0
-# fi
-# for dir in op-challenger op-node op-service op-chain-ops; do
-#     (cd "$dir" && just fuzz && cd ..)
-# done
-# echo "==========Fuzz-golang done."
+# fuzz-golang
+echo "==========Starting fuzz-golang..."
+if ! command -v parallel >/dev/null 2>&1; then
+    echo "Notice: GNU parallel not found; stopping before fuzz and later steps." >&2
+    echo "Install it to enable fuzzing. Examples:" >&2
+    echo "  macOS:   brew install parallel" >&2
+    echo "  Ubuntu:  apt-get update && apt-get install -y parallel" >&2
+    return 0 2>/dev/null || exit 0
+fi
+for dir in op-challenger op-node op-service op-chain-ops; do
+    (cd "$dir" && just fuzz && cd ..)
+done
+echo "==========Fuzz-golang done."
 
 # op-e2e-tests
-# echo "==========Starting op-e2e-tests..."
-# cd op-e2e
-# make test-actions
-# make test-ws
-# cd ..
-# echo "==========Op-e2e-tests done."
+echo "==========Starting op-e2e-tests..."
+cd op-e2e
+make test-actions
+make test-ws
+cd ..
+echo "==========Op-e2e-tests done."
 
 # go-tests-full
 echo "==========Starting go-tests-full..."

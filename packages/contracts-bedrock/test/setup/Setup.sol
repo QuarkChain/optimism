@@ -3,9 +3,10 @@ pragma solidity 0.8.15;
 
 // Testing
 import { console2 as console } from "forge-std/console2.sol";
-import { Vm, VmSafe } from "forge-std/Vm.sol";
+import { Vm } from "forge-std/Vm.sol";
 import { EIP1967Helper } from "test/mocks/EIP1967Helper.sol";
 import { FeatureFlags } from "test/setup/FeatureFlags.sol";
+import { DisputeGames } from "test/setup/DisputeGames.sol";
 
 // Scripts
 import { Deploy } from "scripts/deploy/Deploy.s.sol";
@@ -18,6 +19,8 @@ import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Config } from "scripts/libraries/Config.sol";
 
 // Libraries
+import { GameType } from "src/dispute/lib/LibUDT.sol";
+import { GameTypes } from "src/dispute/lib/Types.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Preinstalls } from "src/libraries/Preinstalls.sol";
 import { AddressAliasHelper } from "src/vendor/AddressAliasHelper.sol";
@@ -40,6 +43,8 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IL2StandardBridgeInterop } from "interfaces/L2/IL2StandardBridgeInterop.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
@@ -70,6 +75,7 @@ import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 import { IOPContractsManagerV2 } from "interfaces/L1/opcm/IOPContractsManagerV2.sol";
+import { IConditionalDeployer } from "interfaces/L2/IConditionalDeployer.sol";
 
 /// @title Setup
 /// @dev This contact is responsible for setting up the contracts in state. It currently
@@ -161,6 +167,7 @@ abstract contract Setup is FeatureFlags {
     IFeeSplitter feeSplitter = IFeeSplitter(payable(Predeploys.FEE_SPLITTER));
     IL1Withdrawer l1Withdrawer;
     ISuperchainRevSharesCalculator superchainRevSharesCalculator;
+    IConditionalDeployer conditionalDeployer = IConditionalDeployer(Predeploys.CONDITIONAL_DEPLOYER);
 
     /// @notice Indicates whether a test is running against a forked production network.
     function isForkTest() public view returns (bool) {
@@ -216,10 +223,49 @@ abstract contract Setup is FeatureFlags {
         console.log("Setup: L2 setup done!");
     }
 
-    /// @dev Skips tests when running in coverage mode.
-    function skipIfCoverage() public {
-        if (vm.isContext(VmSafe.ForgeContext.Coverage)) {
+    /// @dev Skips tests that require production-like bytecode. This includes coverage mode
+    ///      (which adds instrumentation) and unoptimized Foundry profiles (which produce
+    ///      different CREATE2 addresses and gas costs). Use for gas measurement tests,
+    ///      bytecode verification tests, and any test sensitive to compiler output.
+    function skipIfUnoptimized() public {
+        if (Config.isUnoptimized()) {
             vm.skip(true);
+        }
+    }
+
+    /// @dev Mocks getProxyImplementation for DelayedWETH and ETHLockbox proxies when running
+    ///      with an unoptimized Foundry profile. These proxies are not re-pointed during OPCM
+    ///      upgrades, so their CREATE2 implementation addresses diverge from mainnet when
+    ///      bytecode differs (unoptimized vs optimized). No-op for optimized profiles.
+    function mockUnoptimizedProxyImplementations(
+        IDisputeGameFactory _dgf,
+        IProxyAdmin _proxyAdmin,
+        address _ethLockbox,
+        address _delayedWETHImpl,
+        address _ethLockboxImpl
+    )
+        internal
+    {
+        if (!Config.isUnoptimized()) return;
+
+        GameType[3] memory gameTypes = [GameTypes.CANNON, GameTypes.PERMISSIONED_CANNON, GameTypes.CANNON_KONA];
+        for (uint256 i = 0; i < gameTypes.length; i++) {
+            IDelayedWETH delayedWETHProxy = DisputeGames.getGameImplDelayedWeth(_dgf, gameTypes[i]);
+            if (address(delayedWETHProxy) != address(0)) {
+                vm.mockCall(
+                    address(_proxyAdmin),
+                    abi.encodeCall(IProxyAdmin.getProxyImplementation, (address(delayedWETHProxy))),
+                    abi.encode(_delayedWETHImpl)
+                );
+            }
+        }
+
+        if (_ethLockbox != address(0)) {
+            vm.mockCall(
+                address(_proxyAdmin),
+                abi.encodeCall(IProxyAdmin.getProxyImplementation, (_ethLockbox)),
+                abi.encode(_ethLockboxImpl)
+            );
         }
     }
 
@@ -366,7 +412,8 @@ abstract contract Setup is FeatureFlags {
                 gasPayingTokenName: deploy.cfg().gasPayingTokenName(),
                 gasPayingTokenSymbol: deploy.cfg().gasPayingTokenSymbol(),
                 nativeAssetLiquidityAmount: deploy.cfg().nativeAssetLiquidityAmount(),
-                liquidityControllerOwner: deploy.cfg().liquidityControllerOwner()
+                liquidityControllerOwner: deploy.cfg().liquidityControllerOwner(),
+                useL2CM: deploy.cfg().useL2CM()
             })
         );
 
@@ -390,6 +437,7 @@ abstract contract Setup is FeatureFlags {
         labelPredeploy(Predeploys.SEQUENCER_FEE_WALLET);
         labelPredeploy(Predeploys.L2_ERC721_BRIDGE);
         labelPredeploy(Predeploys.OPTIMISM_MINTABLE_ERC721_FACTORY);
+        labelPredeploy(Predeploys.PROXY_ADMIN);
         labelPredeploy(Predeploys.BASE_FEE_VAULT);
         labelPredeploy(Predeploys.L1_FEE_VAULT);
         labelPredeploy(Predeploys.OPERATOR_FEE_VAULT);
@@ -408,6 +456,7 @@ abstract contract Setup is FeatureFlags {
         labelPredeploy(Predeploys.NATIVE_ASSET_LIQUIDITY);
         labelPredeploy(Predeploys.LIQUIDITY_CONTROLLER);
         labelPredeploy(Predeploys.FEE_SPLITTER);
+        labelPredeploy(Predeploys.CONDITIONAL_DEPLOYER);
         labelPredeploy(Predeploys.SOUL_GAS_TOKEN);
 
         // L2 Preinstalls

@@ -30,6 +30,15 @@ func (f *QueryFrontend) CheckAccessList(ctx context.Context, inboxEntries []comm
 	return nil
 }
 
+// PublicAdminFrontend exposes read-only admin methods on the public port.
+type PublicAdminFrontend struct {
+	backend *Backend
+}
+
+func (p *PublicAdminFrontend) GetFailsafeEnabled(ctx context.Context) (bool, error) {
+	return p.backend.FailsafeEnabled(), nil
+}
+
 // AdminFrontend handles admin RPC methods
 type AdminFrontend struct {
 	backend *Backend
@@ -40,13 +49,15 @@ func (a *AdminFrontend) GetFailsafeEnabled(ctx context.Context) (bool, error) {
 	return a.backend.FailsafeEnabled(), nil
 }
 
-// SetFailsafeEnabled enables or disables failsafe mode (TODO: implement)
+// SetFailsafeEnabled enables or disables failsafe mode
 func (a *AdminFrontend) SetFailsafeEnabled(ctx context.Context, enabled bool) error {
-	return errors.New("SetFailsafeEnabled not yet implemented")
+	a.backend.SetFailsafeEnabled(enabled)
+	return nil
 }
 
-// Rewind rewinds chain state to a specific block (TODO: implement)
-// This can be used to recover from reorg-induced stuck states.
+// Rewind is not implemented. For cross-chain consistency, rewind would need to
+// coordinate across all chains to the same timestamp, which is complex.
+// Instead, wipe the filter's data directory and restart fresh.
 func (a *AdminFrontend) Rewind(ctx context.Context, chain eth.ChainID, block eth.BlockID) error {
-	return errors.New("Rewind not yet implemented")
+	return errors.New("rewind not implemented: wipe the filter's data directory and restart instead")
 }

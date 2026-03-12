@@ -72,8 +72,10 @@ func NewL2Sequencer(t Testing, log log.Logger, l1 derive.L1Fetcher, blobSrc deri
 	seqStateListener := config.DisabledConfigPersistence{}
 	conduc := &conductor.NoOpConductor{}
 	asyncGossip := async.NoOpGossiper{}
-	seq := sequencing.NewSequencer(t.Ctx(), log, cfg, attrBuilder, l1OriginSelector,
+
+	seq := sequencing.NewSequencer(t.Ctx(), log, cfg, 0, attrBuilder, l1OriginSelector,
 		seqStateListener, conduc, asyncGossip, metr, ver.engine, nil)
+
 	opts := event.WithEmitLimiter(
 		// TestSyncBatchType/DerivationWithFlakyL1RPC does *a lot* of quick retries
 		// TestL2BatcherBatchType/ExtendedTimeWithoutL1Batches as well.

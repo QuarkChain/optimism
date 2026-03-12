@@ -80,6 +80,8 @@ interface IOPContractsManagerV2 {
     error OPContractsManagerV2_InvalidUpgradeInput();
     error OPContractsManagerV2_SuperchainConfigNeedsUpgrade();
     error OPContractsManagerV2_InvalidUpgradeInstruction(string _key);
+    error OPContractsManagerV2_DuplicateUpgradeInstruction(string _key);
+    error OPContractsManagerV2_OnlyDelegateCall();
     error OPContractsManagerV2_CannotUpgradeToCustomGasToken();
     error OPContractsManagerV2_InvalidUpgradeSequence(string _lastVersion, string _thisVersion);
     error IdentityPrecompileCallFailed();
@@ -93,7 +95,6 @@ interface IOPContractsManagerV2 {
     error UnexpectedPreambleData(bytes data);
 
     function __constructor__(
-        IOPContractsManagerContainer _contractsContainer,
         IOPContractsManagerStandardValidator _standardValidator,
         IOPContractsManagerMigrator _migrator,
         IOPContractsManagerUtils _utils

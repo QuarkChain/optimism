@@ -2,6 +2,8 @@ package sysgo
 
 import (
 	"context"
+	"runtime"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	opchallenger "github.com/ethereum-optimism/optimism/op-challenger"
@@ -45,7 +47,7 @@ func WithL2Challenger(challengerID stack.L2ChallengerID, l1ELID stack.L1ELNodeID
 	supervisorID *stack.SupervisorID, clusterID *stack.ClusterID, l2CLID *stack.L2CLNodeID, l2ELIDs []stack.L2ELNodeID,
 ) stack.Option[*Orchestrator] {
 	return stack.AfterDeploy(func(orch *Orchestrator) {
-		WithL2ChallengerPostDeploy(orch, challengerID, l1ELID, l1CLID, supervisorID, clusterID, l2CLID, l2ELIDs)
+		WithL2ChallengerPostDeploy(orch, challengerID, l1ELID, l1CLID, supervisorID, clusterID, l2CLID, l2ELIDs, nil)
 	})
 }
 
@@ -53,19 +55,29 @@ func WithSuperL2Challenger(challengerID stack.L2ChallengerID, l1ELID stack.L1ELN
 	supervisorID *stack.SupervisorID, clusterID *stack.ClusterID, l2ELIDs []stack.L2ELNodeID,
 ) stack.Option[*Orchestrator] {
 	return stack.Finally(func(orch *Orchestrator) {
-		WithL2ChallengerPostDeploy(orch, challengerID, l1ELID, l1CLID, supervisorID, clusterID, nil, l2ELIDs)
+		WithL2ChallengerPostDeploy(orch, challengerID, l1ELID, l1CLID, supervisorID, clusterID, nil, l2ELIDs, nil)
+	})
+}
+
+func WithSupernodeL2Challenger(challengerID stack.L2ChallengerID, l1ELID stack.L1ELNodeID, l1CLID stack.L1CLNodeID,
+	supernodeID *stack.SupernodeID, clusterID *stack.ClusterID, l2ELIDs []stack.L2ELNodeID,
+) stack.Option[*Orchestrator] {
+	return stack.Finally(func(orch *Orchestrator) {
+		WithL2ChallengerPostDeploy(orch, challengerID, l1ELID, l1CLID, nil, clusterID, nil, l2ELIDs, supernodeID)
 	})
 }
 
 func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2ChallengerID, l1ELID stack.L1ELNodeID, l1CLID stack.L1CLNodeID,
 	supervisorID *stack.SupervisorID, clusterID *stack.ClusterID, l2CLID *stack.L2CLNodeID, l2ELIDs []stack.L2ELNodeID,
+	supernodeID *stack.SupernodeID,
 ) {
 	ctx := orch.P().Ctx()
 	ctx = stack.ContextWithID(ctx, challengerID)
 	p := orch.P().WithCtx(ctx)
 
 	require := p.Require()
-	require.False(orch.challengers.Has(challengerID), "challenger must not already exist")
+	challengerCID := stack.ConvertL2ChallengerID(challengerID).ComponentID
+	require.False(orch.registry.Has(challengerCID), "challenger must not already exist")
 
 	challengerSecret, err := orch.keys.Secret(devkeys.ChallengerRole.Key(challengerID.ChainID().ToBig()))
 	require.NoError(err)
@@ -73,10 +85,12 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 	logger := p.Logger()
 	logger.Info("Challenger key acquired", "addr", crypto.PubkeyToAddress(challengerSecret.PublicKey))
 
-	l1EL, ok := orch.l1ELs.Get(l1ELID)
+	l1ELComponent, ok := orch.registry.Get(stack.ConvertL1ELNodeID(l1ELID).ComponentID)
 	require.True(ok)
-	l1CL, ok := orch.l1CLs.Get(l1CLID)
+	l1EL := l1ELComponent.(L1ELNode)
+	l1CLComponent, ok := orch.registry.Get(stack.ConvertL1CLNodeID(l1CLID).ComponentID)
 	require.True(ok)
+	l1CL := l1CLComponent.(*L1CLNode)
 
 	l2Geneses := make([]*core.Genesis, 0, len(l2ELIDs))
 	rollupCfgs := make([]*rollup.Config, 0, len(l2ELIDs))
@@ -92,8 +106,9 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 	}
 	for _, l2ELID := range l2ELIDs {
 		chainID := l2ELID.ChainID()
-		l2Net, ok := orch.l2Nets.Get(chainID)
+		l2NetComponent, ok := orch.registry.Get(stack.ConvertL2NetworkID(stack.L2NetworkID(chainID)).ComponentID)
 		require.Truef(ok, "l2Net %s not found", chainID)
+		l2Net := l2NetComponent.(*L2Network)
 		factory := l2Net.deployment.DisputeGameFactoryProxyAddr()
 		if disputeGameFactoryAddr == (common.Address{}) {
 			disputeGameFactoryAddr = factory
@@ -107,10 +122,11 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 		l2NetIDs = append(l2NetIDs, l2Net.id)
 	}
 
-	l1Net, ok := orch.l1Nets.Get(l1ELID.ChainID())
+	l1NetComponent, ok := orch.registry.Get(stack.ConvertL1NetworkID(stack.L1NetworkID(l1ELID.ChainID())).ComponentID)
 	if !ok {
 		require.Fail("l1 network not found")
 	}
+	l1Net := l1NetComponent.(*L1Network)
 	l1Genesis := l1Net.genesis
 
 	if orch.l2ChallengerOpts.useCannonKonaConfig {
@@ -121,18 +137,36 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 	var cfg *config.Config
 	// If interop is scheduled, or if we cannot do the pre-interop connection, then set up with supervisor
 	if interopScheduled || l2CLID == nil || useSuperRoots {
-		require.NotNil(supervisorID, "need supervisor to connect to in interop")
 		require.NotNil(clusterID, "need cluster in interop")
-		supervisorNode, ok := orch.supervisors.Get(*supervisorID)
-		require.True(ok)
+		require.False(supervisorID != nil && supernodeID != nil, "cannot set both supervisorID and supernodeID")
+
+		superRPC := ""
+		useSuperNode := false
+		switch {
+		case supervisorID != nil:
+			supervisorComponent, ok := orch.registry.Get(stack.ConvertSupervisorID(*supervisorID).ComponentID)
+			require.True(ok)
+			supervisorNode := supervisorComponent.(Supervisor)
+			superRPC = supervisorNode.UserRPC()
+		case supernodeID != nil:
+			supernode, ok := orch.supernodes.Get(*supernodeID)
+			require.True(ok)
+			superRPC = supernode.UserRPC()
+			useSuperNode = true
+		default:
+			require.FailNow("need supervisor or supernode to connect to in interop/super-roots")
+		}
+
 		l2ELRPCs := make([]string, len(l2ELIDs))
 		for i, l2ELID := range l2ELIDs {
-			l2EL, ok := orch.l2ELs.Get(l2ELID)
+			l2ELComponent, ok := orch.registry.Get(stack.ConvertL2ELNodeID(l2ELID).ComponentID)
 			require.True(ok)
+			l2EL := l2ELComponent.(L2ELNode)
 			l2ELRPCs[i] = l2EL.UserRPC()
 		}
-		cluster, ok := orch.clusters.Get(*clusterID)
+		clusterComponent, ok := orch.registry.Get(stack.ConvertClusterID(*clusterID).ComponentID)
 		require.True(ok)
+		cluster := clusterComponent.(*Cluster)
 		prestateVariant := shared.InteropVariant
 		options := []shared.Option{
 			shared.WithFactoryAddress(disputeGameFactoryAddr),
@@ -144,12 +178,13 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 		}
 		if orch.l2ChallengerOpts.useCannonKonaConfig {
 			options = append(options,
-				shared.WithCannonKonaConfig(rollupCfgs, l1Genesis, l2Geneses),
-				shared.WithCannonKonaGameType(),
+				shared.WithCannonKonaInteropConfig(rollupCfgs, l1Genesis, l2Geneses),
+				shared.WithSuperCannonKonaGameType(),
 			)
 		}
-		cfg, err = shared.NewInteropChallengerConfig(dir, l1EL.UserRPC(), l1CL.beaconHTTPAddr, supervisorNode.UserRPC(), l2ELRPCs, options...)
+		cfg, err = shared.NewInteropChallengerConfig(dir, l1EL.UserRPC(), l1CL.beaconHTTPAddr, superRPC, l2ELRPCs, options...)
 		require.NoError(err, "Failed to create interop challenger config")
+		cfg.UseSuperNode = useSuperNode
 	} else {
 		require.NotNil(l2CLID, "need L2 CL to connect to pre-interop")
 		// In a post-interop infra setup, with unscheduled interop, we may see multiple EL nodes.
@@ -161,9 +196,10 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 			}
 		}
 		require.NotZero(l2ELID, "need single L2 EL to connect to pre-interop")
-		l2CL, ok := orch.l2CLs.Get(*l2CLID)
+		l2CLComponent, ok := orch.registry.Get(stack.ConvertL2CLNodeID(*l2CLID).ComponentID)
 		require.True(ok)
-		l2EL, ok := orch.l2ELs.Get(l2ELID)
+		l2CL := l2CLComponent.(L2CLNode)
+		l2EL, ok := orch.GetL2EL(l2ELID)
 		require.True(ok)
 		prestateVariant := shared.MTCannonVariant
 		options := []shared.Option{
@@ -192,7 +228,18 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 		ctx, cancel := context.WithCancel(ctx)
 		cancel() // force-quit
 		logger.Info("Closing challenger")
+		// Start a separate goroutine to print a stack trace if the challenger fails to stop in a timely manner.
+		timer := time.AfterFunc(1*time.Minute, func() {
+			if svc.Stopped() {
+				return
+			}
+			// Print stack trace of all goroutines
+			buf := make([]byte, 1<<20) // 1MB buffer
+			stacklen := runtime.Stack(buf, true)
+			logger.Error("Challenger failed to stop; printing all goroutine stacks:\n%v", string(buf[:stacklen]))
+		})
 		_ = svc.Stop(ctx)
+		timer.Stop()
 		logger.Info("Closed challenger")
 	})
 
@@ -202,5 +249,5 @@ func WithL2ChallengerPostDeploy(orch *Orchestrator, challengerID stack.L2Challen
 		l2NetIDs: l2NetIDs,
 		config:   cfg,
 	}
-	orch.challengers.Set(challengerID, c)
+	orch.registry.Register(stack.ConvertL2ChallengerID(challengerID).ComponentID, c)
 }

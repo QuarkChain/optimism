@@ -49,6 +49,7 @@ func NewDriver(
 	sequencerConductor conductor.SequencerConductor,
 	altDA AltDAIface,
 	indexingMode bool,
+	superAuthority rollup.SuperAuthority,
 	dacClient engine.DACClient,
 ) *Driver {
 	driverCtx, driverCancel := context.WithCancel(context.Background())
@@ -61,15 +62,15 @@ func NewDriver(
 	l1 = metered.NewMeteredL1Fetcher(l1Tracker, metrics)
 	verifConfDepth := confdepth.NewConfDepth(driverCfg.VerifierConfDepth, statusTracker.L1Head, l1)
 
-	ec := engine.NewEngineController(driverCtx, l2, log, metrics, cfg, syncCfg, l1, sys.Register("engine-controller", nil))
+	ec := engine.NewEngineController(driverCtx, l2, log, metrics, cfg, syncCfg, indexingMode, l1, sys.Register("engine-controller", nil), superAuthority)
 	// TODO(#17115): Refactor dependency cycles
 	ec.SetCrossUpdateHandler(statusTracker)
 
 	var finalizer Finalizer
 	if cfg.AltDAEnabled() {
-		finalizer = finality.NewAltDAFinalizer(driverCtx, log, cfg, driverCfg.Finalizer, l1, altDA, ec)
+		finalizer = finality.NewAltDAFinalizer(driverCtx, log, cfg, driverCfg.Finalizer, indexingMode, l1, altDA, ec)
 	} else {
-		finalizer = finality.NewFinalizer(driverCtx, log, cfg, driverCfg.Finalizer, l1, ec)
+		finalizer = finality.NewFinalizer(driverCtx, log, cfg, driverCfg.Finalizer, indexingMode, l1, ec)
 	}
 	sys.Register("finalizer", finalizer)
 
@@ -120,8 +121,9 @@ func NewDriver(
 		// Connect origin selector to the engine controller for force reset notifications
 		ec.SetOriginSelectorResetter(findL1Origin)
 
-		sequencer = sequencing.NewSequencer(driverCtx, log, cfg, attrBuilder, findL1Origin,
+		sequencer = sequencing.NewSequencer(driverCtx, log, cfg, driverCfg.SequencerSealingDuration, attrBuilder, findL1Origin,
 			sequencerStateListener, sequencerConductor, asyncGossiper, metrics, ec, dacClient)
+
 		sys.Register("sequencer", sequencer)
 	} else {
 		sequencer = sequencing.DisabledSequencer{}
@@ -492,9 +494,28 @@ func (s *Driver) followUpstream() {
 		s.log.Warn("Follow Upstream: Failed to fetch status", "err", err)
 		return
 	}
-	s.log.Info("Follow Upstream", "eSafe", status.SafeL2, "eFinalized", status.FinalizedL2, "eCurrentL1", status.CurrentL1)
+	s.log.Info("Follow Upstream", "eSafe", status.SafeL2, "eLocalSafe", status.LocalSafeL2, "eFinalized", status.FinalizedL2, "eCurrentL1", status.CurrentL1)
+	if status.SafeL2.Number > status.LocalSafeL2.Number {
+		s.log.Warn("Follow Upstream: Invalid external state, safe is ahead of local safe",
+			"safe", status.SafeL2.Number, "localSafe", status.LocalSafeL2.Number)
+		return
+	}
 	if status.FinalizedL2.Number > status.SafeL2.Number {
 		s.log.Warn("Follow Upstream: Invalid external state, finalized is ahead of safe", "safe", status.SafeL2.Number, "finalized", status.FinalizedL2.Number)
+		return
+	}
+
+	eLocalSafeL1Origin, err := s.upstreamFollowSource.L1BlockRefByNumber(s.driverCtx, status.LocalSafeL2.L1Origin.Number)
+	if err != nil {
+		s.log.Warn("Follow Upstream: Failed to look up L1 origin of external local safe head", "err", err)
+		return
+	}
+	if eLocalSafeL1Origin.Hash != status.LocalSafeL2.L1Origin.Hash {
+		s.log.Warn(
+			"Follow Upstream: Invalid external local safe: L1 origin of external local safe head mismatch",
+			"actual", eLocalSafeL1Origin,
+			"expected", status.LocalSafeL2.L1Origin,
+		)
 		return
 	}
 
@@ -547,5 +568,5 @@ func (s *Driver) followUpstream() {
 		s.emitter.Emit(s.driverCtx, derive.DeriverL1StatusEvent{Origin: status.CurrentL1})
 	}
 	// Only reach this point if all L1 checks passed
-	s.SyncDeriver.Engine.FollowSource(status.SafeL2, status.FinalizedL2)
+	s.SyncDeriver.Engine.FollowSource(status.SafeL2, status.LocalSafeL2, status.FinalizedL2)
 }

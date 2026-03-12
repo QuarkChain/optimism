@@ -1,9 +1,15 @@
 version: 2.1
 
+# Setup Configuration for CircleCI Dynamic Configuration
+# Uses path-filtering to detect changes and continuation orb to merge configs.
+# See: https://circleci.com/docs/using-dynamic-configuration/
+
+setup: true
+
 parameters:
   default_docker_image:
     type: string
-    default: cimg/base:2024.01
+    default: cimg/base:2026.03
   base_image:
     type: string
     default: default
@@ -35,9 +41,6 @@ parameters:
   docker_publish_dispatch:
     type: boolean
     default: false
-  publish_contract_artifacts_dispatch:
-    type: boolean
-    default: false
   stale_check_dispatch:
     type: boolean
     default: false
@@ -47,16 +50,16 @@ parameters:
   heavy_fuzz_dispatch:
     type: boolean
     default: false
-  acceptance_tests_dispatch:
-    type: boolean
-    default: false
-  kurtosis_acceptance_tests_dispatch:
-    type: boolean
-    default: false
   sync_test_op_node_dispatch:
     type: boolean
     default: false
   ai_contracts_test_dispatch:
+    type: boolean
+    default: false
+  rust_ci_dispatch:
+    type: boolean
+    default: false
+  rust_e2e_dispatch:
     type: boolean
     default: false
   github-event-type:
@@ -86,6 +89,7 @@ parameters:
     default: "v0.0"
 
 orbs:
+<<<<<<< HEAD
   go: circleci/go@1.8.0
   gcp-cli: circleci/gcp-cli@3.0.1
   slack: circleci/slack@6.0.0
@@ -2645,21 +2649,16 @@ jobs:
       - store_artifacts:
           path: ./op-acceptance-tests/reports
           destination: flaky-test-reports
+=======
+  path-filtering: circleci/path-filtering@3.0.0
+>>>>>>> op-node/v1.16.8
 
 workflows:
-  # Nightly Kurtosis acceptance tests
-  scheduled-kurtosis-acceptance-tests:
+  setup:
     when:
-      or:
-        - equal: [build_daily, <<pipeline.schedule.name>>]
-        - and:
-            - equal:
-                [
-                  true,
-                  << pipeline.parameters.kurtosis_acceptance_tests_dispatch >>,
-                ]
-            - equal: ["api", << pipeline.trigger_source >>]
+      equal: ["", << pipeline.git.tag >>]
     jobs:
+<<<<<<< HEAD
       - contracts-bedrock-build: # needed for in-process tests that some suites may use
           build_args: --skip test
           context:
@@ -2986,45 +2985,58 @@ workflows:
               - circleci-repo-readonly-authenticated-github-token
             requires:
               - build-contracts-go-release-op-deployer
+=======
+      - path-filtering/filter: &path_filter
+          base-revision: develop
+          config-path: .circleci/continue/main.yml
+          mapping: |
+            .* c-default_docker_image << pipeline.parameters.default_docker_image >> .circleci/continue/main.yml
+            .* c-base_image << pipeline.parameters.base_image >> .circleci/continue/main.yml
+            .* c-main_dispatch << pipeline.parameters.main_dispatch >> .circleci/continue/main.yml
+            .* c-fault_proofs_dispatch << pipeline.parameters.fault_proofs_dispatch >> .circleci/continue/main.yml
+            .* c-reproducibility_dispatch << pipeline.parameters.reproducibility_dispatch >> .circleci/continue/main.yml
+            .* c-kontrol_dispatch << pipeline.parameters.kontrol_dispatch >> .circleci/continue/main.yml
+            .* c-cannon_full_test_dispatch << pipeline.parameters.cannon_full_test_dispatch >> .circleci/continue/main.yml
+            .* c-sdk_dispatch << pipeline.parameters.sdk_dispatch >> .circleci/continue/main.yml
+            .* c-docker_publish_dispatch << pipeline.parameters.docker_publish_dispatch >> .circleci/continue/main.yml
 
-  go-release-op-up:
-    jobs:
-      - contracts-bedrock-build:
-          name: build-contracts-go-release-op-up
-          filters:
-            tags:
-              only: /^op-up.*/
-            branches:
-              ignore: /.*/
-          build_args: --skip test
-          context:
-            - circleci-repo-readonly-authenticated-github-token
-      - go-release:
-          filters:
-            tags:
-              only: /^op-up.*/
-            branches:
-              ignore: /.*/
-          module: op-up
-          context:
-            - oplabs-gcr-release
-            - circleci-repo-readonly-authenticated-github-token
-          requires:
-            - build-contracts-go-release-op-up
+            .* c-stale_check_dispatch << pipeline.parameters.stale_check_dispatch >> .circleci/continue/main.yml
+            .* c-contracts_coverage_dispatch << pipeline.parameters.contracts_coverage_dispatch >> .circleci/continue/main.yml
+            .* c-heavy_fuzz_dispatch << pipeline.parameters.heavy_fuzz_dispatch >> .circleci/continue/main.yml
+            .* c-sync_test_op_node_dispatch << pipeline.parameters.sync_test_op_node_dispatch >> .circleci/continue/main.yml
+            .* c-ai_contracts_test_dispatch << pipeline.parameters.ai_contracts_test_dispatch >> .circleci/continue/main.yml
+            .* c-github-event-type << pipeline.parameters.github-event-type >> .circleci/continue/main.yml
+            .* c-github-event-action << pipeline.parameters.github-event-action >> .circleci/continue/main.yml
+            .* c-github-event-base64 << pipeline.parameters.github-event-base64 >> .circleci/continue/main.yml
+            .* c-devnet-metrics-collect << pipeline.parameters.devnet-metrics-collect >> .circleci/continue/main.yml
+            .* c-flake-shake-dispatch << pipeline.parameters.flake-shake-dispatch >> .circleci/continue/main.yml
+            .* c-flake-shake-iterations << pipeline.parameters.flake-shake-iterations >> .circleci/continue/main.yml
+            .* c-flake-shake-workers << pipeline.parameters.flake-shake-workers >> .circleci/continue/main.yml
+            .* c-go-cache-version << pipeline.parameters.go-cache-version >> .circleci/continue/main.yml
+>>>>>>> op-node/v1.16.8
 
-  release:
+            (rust|\.circleci)/.* c-rust_ci_dispatch << pipeline.parameters.rust_ci_dispatch >> .circleci/continue/rust-ci.yml
+            (rust|\.circleci)/.* c-default_docker_image << pipeline.parameters.default_docker_image >> .circleci/continue/rust-ci.yml
+            (rust|\.circleci)/.* c-base_image << pipeline.parameters.base_image >> .circleci/continue/rust-ci.yml
+            (rust|\.circleci)/.* c-go-cache-version << pipeline.parameters.go-cache-version >> .circleci/continue/rust-ci.yml
+
+            (rust|\.circleci)/.* c-rust_e2e_dispatch << pipeline.parameters.rust_e2e_dispatch >> .circleci/continue/rust-e2e.yml
+            (rust|\.circleci)/.* c-default_docker_image << pipeline.parameters.default_docker_image >> .circleci/continue/rust-e2e.yml
+            (rust|\.circleci)/.* c-go-cache-version << pipeline.parameters.go-cache-version >> .circleci/continue/rust-e2e.yml
+
+  setup-tag:
     when:
       not:
-        equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+        equal: ["", << pipeline.git.tag >>]
     jobs:
-      - initialize:
-          context:
-            - circleci-repo-readonly-authenticated-github-token
+      - path-filtering/filter:
+          <<: *path_filter
           filters:
             tags:
-              only: /^(da-server|cannon|ufm-[a-z0-9\-]*|op-[a-z0-9\-]*)\/v.*/
+              only: /.*/
             branches:
               ignore: /.*/
+<<<<<<< HEAD
       - contracts-bedrock-build:
           context:
             - circleci-repo-readonly-authenticated-github-token
@@ -3554,3 +3566,5 @@ workflows:
             - circleci-api-token
             - devin-api
             - slack
+=======
+>>>>>>> op-node/v1.16.8

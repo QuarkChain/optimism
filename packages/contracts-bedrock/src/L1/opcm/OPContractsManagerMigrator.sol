@@ -5,12 +5,12 @@ pragma solidity 0.8.15;
 import { OPContractsManagerUtilsCaller } from "src/L1/opcm/OPContractsManagerUtilsCaller.sol";
 
 // Libraries
+import { DevFeatures } from "src/libraries/DevFeatures.sol";
 import { GameTypes } from "src/dispute/lib/Types.sol";
 import { Constants } from "src/libraries/Constants.sol";
 import { Features } from "src/libraries/Features.sol";
 
 // Interfaces
-import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
@@ -46,31 +46,38 @@ contract OPContractsManagerMigrator is OPContractsManagerUtilsCaller {
     /// @notice Thrown when the starting respected game type is not a valid super game type.
     error OPContractsManagerMigrator_InvalidStartingRespectedGameType();
 
-    /// @notice Container of blueprint and implementation contract addresses.
-    IOPContractsManagerContainer public immutable contractsContainer;
+    /// @notice Thrown when the OPTIMISM_PORTAL_INTEROP dev feature is not enabled.
+    error OPContractsManagerMigrator_InteropNotEnabled();
 
-    /// @param _contractsContainer The container of blueprint and implementation contract addresses.
     /// @param _utils The utility functions for the OPContractsManager.
-    constructor(
-        IOPContractsManagerContainer _contractsContainer,
-        IOPContractsManagerUtils _utils
-    )
-        OPContractsManagerUtilsCaller(_utils)
-    {
-        contractsContainer = _contractsContainer;
-    }
+    constructor(IOPContractsManagerUtils _utils) OPContractsManagerUtilsCaller(_utils) { }
 
     /// @notice Migrates one or more OP Stack chains to use the Super Root dispute games and shared
     ///         dispute game contracts.
     /// @dev WARNING: This is a one-way operation. You cannot easily undo this operation without a
     ///      smart contract upgrade. Do not call this function unless you are 100% confident that
     ///      you know what you're doing and that you are prepared to fully execute this migration.
+    ///      You SHOULD NOT CALL THIS FUNCTION IN PRODUCTION unless you are absolutely sure that
+    ///      you know what you are doing.
+    /// @dev WARNING: Executing this function WILL result in all prior withdrawal proofs being
+    ///      invalidated. Users will have to submit new proofs for their withdrawals in the
+    ///      OptimismPortal contract. THIS IS EXPECTED BEHAVIOR.
     /// @dev NOTE: Unlike other functions in OPCM, this is a one-off function used to serve the
     ///      temporary need to support the interop migration action. It will likely be removed in
     ///      the near future once interop support is baked more directly into OPCM. It does NOT
     ///      look or function like all of the other functions in OPCMv2.
+    /// @dev NOTE: This function is designed exclusively for the case of N independent pre-interop
+    ///      chains merging into a single interop set. It does NOT support partial migration (i.e.,
+    ///      migrating a subset of chains that share a lockbox), re-migration of already-migrated
+    ///      chains, or any other migration scenario. Re-calling this function on already-migrated
+    ///      portals will corrupt the shared DisputeGameFactory used by all migrated chains.
     /// @param _input The input parameters for the migration.
     function migrate(MigrateInput calldata _input) public {
+        // Check that the OPTIMISM_PORTAL_INTEROP dev feature is enabled.
+        if (!contractsContainer().isDevFeatureEnabled(DevFeatures.OPTIMISM_PORTAL_INTEROP)) {
+            revert OPContractsManagerMigrator_InteropNotEnabled();
+        }
+
         // Check that the starting respected game type is a valid super game type.
         if (
             _input.startingRespectedGameType.raw() != GameTypes.SUPER_CANNON.raw()
@@ -99,7 +106,7 @@ contract OPContractsManagerMigrator is OPContractsManagerUtilsCaller {
         // what we use here.
         IOPContractsManagerUtils.ProxyDeployArgs memory proxyDeployArgs = IOPContractsManagerUtils.ProxyDeployArgs({
             proxyAdmin: _input.chainSystemConfigs[0].proxyAdmin(),
-            addressManager: IAddressManager(address(0)), // AddressManager NOT needed for these proxies.
+            addressManager: _input.chainSystemConfigs[0].proxyAdmin().addressManager(),
             l2ChainId: block.timestamp,
             saltMixer: "interop salt mixer"
         });
@@ -159,9 +166,13 @@ contract OPContractsManagerMigrator is OPContractsManagerUtilsCaller {
         // Separate context to avoid stack too deep (isolate the implementations variable).
         {
             // Grab the implementations.
-            IOPContractsManagerContainer.Implementations memory impls = contractsContainer.implementations();
+            IOPContractsManagerContainer.Implementations memory impls = contractsContainer().implementations();
 
             // Initialize the new ETHLockbox.
+            // NOTE: Shared contracts (ETHLockbox, AnchorStateRegistry, DelayedWETH) are
+            // intentionally initialized with chainSystemConfigs[0]. All chains are validated to
+            // share the same ProxyAdmin owner and SuperchainConfig, so the first chain's
+            // SystemConfig is used as the canonical governance reference for shared contracts.
             _upgrade(
                 proxyDeployArgs.proxyAdmin,
                 address(ethLockbox),
@@ -264,5 +275,11 @@ contract OPContractsManagerMigrator is OPContractsManagerUtilsCaller {
         // (OptimismPortalInterop). If the portal is not on the interop version, this call will
         // fail.
         portal.migrateToSuperRoots(_newLockbox, _newASR);
+    }
+
+    /// @notice Returns the contracts container.
+    /// @return The contracts container.
+    function contractsContainer() public view returns (IOPContractsManagerContainer) {
+        return opcmUtils.contractsContainer();
     }
 }

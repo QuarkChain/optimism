@@ -51,6 +51,16 @@ require_command() {
     fi
 }
 
+require_clang_c_headers() {
+    local probe='#include <stdarg.h>
+#include <stdbool.h>
+int main(void){return 0;}'
+
+    if ! printf "%s\n" "$probe" | clang -x c - -fsyntax-only >/dev/null 2>&1; then
+        halt "Missing C toolchain headers for clang (stdarg.h/stdbool.h). Install system deps manually (e.g. Ubuntu/Debian: build-essential clang libc6-dev libclang-dev)."
+    fi
+}
+
 # Environment verify
 echo "==========Checking environment..."
 require_command mise "Install mise first so dev-test.sh can provision repo-managed tools."
@@ -74,6 +84,8 @@ fi
 
 # Only check dependencies not managed by mise.toml.
 require_command m4 "m4 is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
+require_command clang "clang is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
+require_clang_c_headers
 
 echo "==========Checking environment done"
 
@@ -109,7 +121,7 @@ echo "==========Checking environment done"
 # run_step "op-program compatibility" bash -c "cd op-program && make verify-compat"
 
 # rust-ci functional tests (from .circleci/continue/rust-ci.yml)
-run_step "rust workspace tests" bash -c "cd rust && just test"
+run_step "rust workspace tests" bash -c "cd rust && cargo nextest run --workspace --all-features --no-fail-fast -E '!test(test_online)'"
 run_step "op-reth integration tests" bash -c "cd rust && just --justfile op-reth/justfile test-integration"
 run_step "op-reth edge tests" bash -c "cd rust && just --justfile op-reth/justfile test edge"
 

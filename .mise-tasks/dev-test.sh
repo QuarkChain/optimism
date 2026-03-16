@@ -86,39 +86,42 @@ fi
 require_command m4 "m4 is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
 require_command clang "clang is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
 require_clang_c_headers
+if ! cargo nextest --version >/dev/null 2>&1; then
+    halt "Missing cargo-nextest. Ensure it is installed via mise and available in PATH."
+fi
 
 echo "==========Checking environment done"
 
-# # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
-# pushd packages/contracts-bedrock > /dev/null
-# forge install
+# contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
+pushd packages/contracts-bedrock > /dev/null
+forge install
 
-# run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi
+run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi
 
-# for _spec in \
-#     "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
-#     "-name 'PreimageOracle.t.sol'"; do
-#     TEST_FILES=$(eval find test ${_spec})
-#     if [ -z "$TEST_FILES" ]; then
-#         echo "No tests matched spec: ${_spec}; skipping"
-#         continue
-#     fi
-#     TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
-#     MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
-#     echo "Running forge test --match-path $MATCH_PATH"
-#     forge test --match-path "$MATCH_PATH"
-# done
+for _spec in \
+    "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
+    "-name 'PreimageOracle.t.sol'"; do
+    TEST_FILES=$(eval find test ${_spec})
+    if [ -z "$TEST_FILES" ]; then
+        echo "No tests matched spec: ${_spec}; skipping"
+        continue
+    fi
+    TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
+    MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
+    echo "Running forge test --match-path $MATCH_PATH"
+    forge test --match-path "$MATCH_PATH"
+done
 
-# run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
-# popd > /dev/null
+run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
+popd > /dev/null
 
-# run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
 
-# # cannon-prestate (from .circleci/continue/main.yml)
-# run_step "cannon prestate build" make -j reproducible-prestate
+# cannon-prestate (from .circleci/continue/main.yml)
+run_step "cannon prestate build" make -j reproducible-prestate
 
-# # op-program-compat (from .circleci/continue/main.yml)
-# run_step "op-program compatibility" bash -c "cd op-program && make verify-compat"
+# op-program-compat (from .circleci/continue/main.yml)
+run_step "op-program compatibility" bash -c "cd op-program && make verify-compat"
 
 # rust-ci functional tests (from .circleci/continue/rust-ci.yml)
 run_step "rust workspace tests" bash -c "cd rust && cargo nextest run --workspace --all-features --no-fail-fast -E '!test(test_online)'"

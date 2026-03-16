@@ -61,14 +61,14 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-for cmd in just forge cargo make go gotestsum; do
+for cmd in just forge cargo make go gotestsum m4; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
         halt "Missing required command: $cmd"
     fi
 done
 
 if ! cargo nextest --version >/dev/null 2>&1; then
-    halt "Missing cargo-nextest. Install with: cargo binstall --no-confirm cargo-nextest"
+    halt "Missing cargo-nextest. Install with: cargo install cargo-nextest --locked"
 fi
 
 echo "==========Checking environment done"

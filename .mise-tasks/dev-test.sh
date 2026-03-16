@@ -67,7 +67,7 @@ for cmd in just forge cargo make go gotestsum; do
     fi
 done
 
-if ! command -v cargo-nextest >/dev/null 2>&1; then
+if ! cargo nextest --version >/dev/null 2>&1; then
     halt "Missing cargo-nextest. Install with: cargo binstall --no-confirm cargo-nextest"
 fi
 
@@ -93,7 +93,7 @@ for _spec in \
     forge test --match-path "$MATCH_PATH"
 done
 
-run_step "contracts-bedrock build" bash -lc "just clean && just forge-build --deny-warnings --skip test"
+run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
 popd > /dev/null
 
 run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
@@ -102,16 +102,16 @@ run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-
 run_step "cannon prestate build" make -j reproducible-prestate
 
 # op-program-compat (from .circleci/continue/main.yml)
-run_step "op-program compatibility" bash -lc "cd op-program && make verify-compat"
+run_step "op-program compatibility" bash -c "cd op-program && make verify-compat"
 
 # rust-ci functional tests (from .circleci/continue/rust-ci.yml)
-run_step "rust workspace tests" bash -lc "cd rust && just test"
-run_step "op-reth integration tests" bash -lc "cd rust && just --justfile op-reth/justfile test-integration"
-run_step "op-reth edge tests" bash -lc "cd rust && just --justfile op-reth/justfile test edge"
+run_step "rust workspace tests" bash -c "cd rust && just test"
+run_step "op-reth integration tests" bash -c "cd rust && just --justfile op-reth/justfile test-integration"
+run_step "op-reth edge tests" bash -c "cd rust && just --justfile op-reth/justfile test edge"
 
 # op-reth-compact-codec (from .circleci/continue/rust-ci.yml)
 if git rev-parse --verify refs/remotes/origin/develop >/dev/null 2>&1 || git rev-parse --verify develop >/dev/null 2>&1; then
-    run_step "op-reth compact codec" bash -lc '
+    run_step "op-reth compact codec" bash -c '
         set -euo pipefail
 
         if git rev-parse --verify refs/remotes/origin/develop >/dev/null 2>&1; then
@@ -140,35 +140,35 @@ else
 fi
 
 # rust-e2e prerequisites (from .circleci/continue/rust-e2e.yml)
-run_step "rust e2e binary build" bash -lc "cd rust && cargo build --release --bin kona-node --bin kona-host --bin kona-supervisor --bin op-reth"
+run_step "rust e2e binary build" bash -c "cd rust && cargo build --release --bin kona-node --bin kona-host --bin kona-supervisor --bin op-reth"
 
 for devnet in simple-kona simple-kona-geth simple-kona-sequencer large-kona-sequencer; do
-    run_step "kona sysgo node/common (${devnet})" bash -lc "
+    run_step "kona sysgo node/common (${devnet})" bash -c "
         export KONA_NODE_EXEC_PATH='$(pwd)/rust/target/release/kona-node'
         export OP_RETH_EXEC_PATH='$(pwd)/rust/target/release/op-reth'
         cd rust/kona && just test-e2e-sysgo-run node node/common ${devnet}
     "
 done
 
-run_step "kona sysgo node/restart" bash -lc "
+run_step "kona sysgo node/restart" bash -c "
     export KONA_NODE_EXEC_PATH='$(pwd)/rust/target/release/kona-node'
     export OP_RETH_EXEC_PATH='$(pwd)/rust/target/release/op-reth'
     cd rust/kona && just test-e2e-sysgo-run node node/restart simple-kona
 "
 
-run_step "kona proof action single" bash -lc "
+run_step "kona proof action single" bash -c "
     export KONA_HOST_PATH='$(pwd)/rust/target/release/kona-host'
     cd rust/kona && just action-tests-single-run
 "
 
 for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
-    run_step "kona supervisor e2e (${supervisor_pkg})" bash -lc "
+    run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}
     "
 done
 
 # kona-host-client-offline (adapted from .circleci/continue/rust-ci.yml)
-run_step "kona host/client offline" bash -lc '
+run_step "kona host/client offline" bash -c '
     set -euo pipefail
 
     ROOT_DIR="$(pwd)"

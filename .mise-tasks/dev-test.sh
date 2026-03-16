@@ -42,9 +42,20 @@ skip_step() {
     echo "==========Skipping ${label}: ${reason}"
 }
 
+require_command() {
+    local cmd="$1"
+    local help_msg="$2"
+
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        halt "Missing required command: $cmd. ${help_msg}"
+    fi
+}
+
 # Environment verify
 echo "==========Checking environment..."
-# mise install
+require_command mise "Install mise first so dev-test.sh can provision repo-managed tools."
+
+run_step "mise install" mise install
 
 if [ -z "${MISE_SHELL:-}" ]; then
     if [ -n "${ZSH_VERSION:-}" ]; then
@@ -61,15 +72,8 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-for cmd in just forge cargo make go gotestsum m4; do
-    if ! command -v "$cmd" >/dev/null 2>&1; then
-        halt "Missing required command: $cmd"
-    fi
-done
-
-if ! cargo nextest --version >/dev/null 2>&1; then
-    halt "Missing cargo-nextest. Install with: cargo install cargo-nextest --locked"
-fi
+# Only check dependencies not managed by mise.toml.
+require_command m4 "m4 is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
 
 echo "==========Checking environment done"
 

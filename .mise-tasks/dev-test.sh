@@ -156,9 +156,9 @@ echo "==========Checking environment done"
 cleanup_kona_tmp
 trap cleanup_kona_tmp EXIT
 
-# # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
-# pushd packages/contracts-bedrock > /dev/null
-# forge install
+# contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
+pushd packages/contracts-bedrock > /dev/null
+forge install
 
 # run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi
 
@@ -179,8 +179,8 @@ trap cleanup_kona_tmp EXIT
 #     forge test --match-path "$MATCH_PATH" --no-match-path "$SKIP_PATH"
 # done
 
-# run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
-# popd > /dev/null
+run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
+popd > /dev/null
 
 # required for op-deployer tests and supervisor e2e tests
 run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts

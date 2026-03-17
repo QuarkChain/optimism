@@ -51,6 +51,50 @@ require_command() {
     fi
 }
 
+install_system_package() {
+    local pkg="$1"
+
+    case "$(uname -s)" in
+        Darwin)
+            if ! command -v brew >/dev/null 2>&1; then
+                halt "Homebrew is required to install $pkg on macOS."
+            fi
+            if [ "$pkg" = "docker" ]; then
+                brew install --cask docker
+            else
+                brew install "$pkg"
+            fi
+            ;;
+        Linux)
+            if command -v apt-get >/dev/null 2>&1; then
+                apt-get update
+                if [ "$pkg" = "docker" ]; then
+                    apt-get install -y docker.io
+                else
+                    apt-get install -y "$pkg"
+                fi
+            elif command -v dnf >/dev/null 2>&1; then
+                if [ "$pkg" = "docker" ]; then
+                    dnf install -y docker
+                else
+                    dnf install -y "$pkg"
+                fi
+            elif command -v apk >/dev/null 2>&1; then
+                if [ "$pkg" = "docker" ]; then
+                    apk add --no-cache docker
+                else
+                    apk add --no-cache "$pkg"
+                fi
+            else
+                halt "No supported package manager found to install $pkg."
+            fi
+            ;;
+        *)
+            halt "Unsupported OS for automatic installation: $(uname -s)"
+            ;;
+    esac
+}
+
 require_clang_c_headers() {
     local probe='#include <stdarg.h>
 #include <stdbool.h>
@@ -83,12 +127,20 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 # Only check dependencies not managed by mise.toml.
-require_command m4 "m4 is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
-require_command clang "clang is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
-require_command docker "docker is required by cannon prestate and several rust e2e steps. Install/start Docker before running dev-test.sh."
+command -v m4 >/dev/null 2>&1 || install_system_package m4
+command -v m4 >/dev/null 2>&1 || halt "Failed to install m4."
+
+command -v clang >/dev/null 2>&1 || install_system_package clang
+command -v clang >/dev/null 2>&1 || halt "Failed to install clang."
+
+command -v docker >/dev/null 2>&1 || install_system_package docker
+command -v docker >/dev/null 2>&1 || halt "Failed to install docker."
+
 require_clang_c_headers
+command -v cargo-binstall >/dev/null 2>&1 || cargo install cargo-binstall --locked
+command -v cargo-nextest >/dev/null 2>&1 || cargo binstall --no-confirm cargo-nextest
 if ! cargo nextest --version >/dev/null 2>&1; then
-    halt "Missing cargo-nextest. Ensure it is installed via mise and available in PATH."
+    halt "Failed to install cargo-nextest."
 fi
 
 echo "==========Checking environment done"

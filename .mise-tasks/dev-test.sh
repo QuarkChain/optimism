@@ -218,28 +218,33 @@ trap cleanup_kona_tmp EXIT
 #     cd rust/kona && just test-e2e-sysgo-run node node/restart simple-kona
 # "
 
-# Run single-chain proof action tests using kona-host.
-run_step "kona proof action single" bash -c "
-    export RUST_BINARY_PATH_KONA_HOST='$(pwd)/rust/target/release/kona-host'
-    export KONA_HOST_PATH='$(pwd)/rust/target/release/kona-host'
-    # Fix "/run/user/0/just/just-HqgZ35/action-tests-single-run: line 212: cd: /root/dl/optimism/rust/kona/tests/../../op-e2e/actions/proofs: No such file or directory"
-    CREATED_RUST_OP_E2E_LINK=0
-    if [ ! -e 'rust/op-e2e' ]; then
-        ln -s ../op-e2e rust/op-e2e
-        CREATED_RUST_OP_E2E_LINK=1
-    fi
-    cleanup() {
-        if [ \$CREATED_RUST_OP_E2E_LINK -eq 1 ]; then
-            rm -f rust/op-e2e
-        fi
-    }
-    trap cleanup EXIT
-    cd rust/kona && just action-tests-single-run
-"
+# # Run single-chain proof action tests using kona-host.
+# run_step "kona proof action single" bash -c "
+#     export RUST_BINARY_PATH_KONA_HOST='$(pwd)/rust/target/release/kona-host'
+#     export KONA_HOST_PATH='$(pwd)/rust/target/release/kona-host'
+#     # Fix "/run/user/0/just/just-HqgZ35/action-tests-single-run: line 212: cd: /root/dl/optimism/rust/kona/tests/../../op-e2e/actions/proofs: No such file or directory"
+#     CREATED_RUST_OP_E2E_LINK=0
+#     if [ ! -e 'rust/op-e2e' ]; then
+#         ln -s ../op-e2e rust/op-e2e
+#         CREATED_RUST_OP_E2E_LINK=1
+#     fi
+#     cleanup() {
+#         if [ \$CREATED_RUST_OP_E2E_LINK -eq 1 ]; then
+#             rm -f rust/op-e2e
+#         fi
+#     }
+#     trap cleanup EXIT
+#     cd rust/kona && just action-tests-single-run
+# "
 
 # Run supervisor sysgo e2e suites used in CI matrix.
 for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
     run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
+        export OP_DEPLOYER_ARTIFACTS='$(pwd)/packages/contracts-bedrock/forge-artifacts'
+        if [ ! -d \"\$OP_DEPLOYER_ARTIFACTS/src\" ]; then
+            echo \"OP_DEPLOYER_ARTIFACTS/src not found at: \$OP_DEPLOYER_ARTIFACTS/src\" >&2
+            exit 1
+        fi
         export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
         export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}

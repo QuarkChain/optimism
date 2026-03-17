@@ -31,6 +31,9 @@ type L2GenesisInput struct {
 	DeployCrossL2Inbox                       bool
 	EnableGovernance                         bool
 	FundDevAccounts                          bool
+	// Soul Gas Token (QuarkChain fork-specific feature) - must be before UseRevenueShare
+	DeploySoulGasToken                       bool
+	IsSoulBackedByNative                     bool
 	UseRevenueShare                          bool
 	ChainFeesRecipient                       common.Address
 	L1FeesDepositor                          common.Address

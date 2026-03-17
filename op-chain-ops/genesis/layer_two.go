@@ -75,6 +75,9 @@ func BuildL2Genesis(config *DeployConfig, dump *foundry.ForgeAllocs, l1StartBloc
 		if !config.GovernanceEnabled() && addr == predeploys.GovernanceTokenAddr {
 			continue
 		}
+		if !config.SoulGasTokenEnabled() && addr == predeploys.SoulGasTokenAddr {
+			continue
+		}
 		if len(genspec.Alloc[addr].Code) == 0 {
 			return nil, fmt.Errorf("predeploy %x is missing from L2 genesis allocs", addr)
 		}

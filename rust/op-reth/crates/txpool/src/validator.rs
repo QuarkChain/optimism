@@ -210,6 +210,10 @@ where
             _ => {}
         }
 
+        // For now, skip SGT validation at pool level
+        // TODO: Implement proper SGT-aware validation by wrapping state provider
+        // Currently, transactions with insufficient native but sufficient SGT will be rejected from pool
+        // They can still be submitted directly to the sequencer for block building
         let outcome = self.inner.validate_one_with_state(origin, transaction, state);
 
         self.apply_op_checks(outcome)
@@ -251,12 +255,16 @@ where
             };
             let cost = valid_tx.transaction().cost().saturating_add(cost_addition);
 
-            // Checks for max cost
-            if cost > balance {
+            // Read SGT balance for combined balance check
+            let sgt_balance = self.read_sgt_balance(valid_tx.transaction().sender());
+            let combined_balance = balance.saturating_add(sgt_balance);
+
+            // Checks for max cost using combined balance (native + SGT)
+            if cost > combined_balance {
                 return TransactionValidationOutcome::Invalid(
                     valid_tx.into_transaction(),
                     InvalidTransactionError::InsufficientFunds(
-                        GotExpected { got: balance, expected: cost }.into(),
+                        GotExpected { got: combined_balance, expected: cost }.into(),
                     )
                     .into(),
                 );
@@ -288,6 +296,41 @@ where
                 self.fork_tracker.is_interop_activated(),
             )
             .await
+    }
+
+    /// Reads the SGT balance for an account.
+    ///
+    /// Returns the SGT balance from storage, or 0 if SGT is not active or account has no SGT.
+    fn read_sgt_balance(&self, address: alloy_primitives::Address) -> alloy_primitives::U256
+    where
+        Client: StateProviderFactory,
+    {
+        use alloy_primitives::{address, keccak256, U256};
+
+        // Check if SGT is active at current timestamp
+        // TODO: Get this from chainspec configuration
+        // For now, we'll always check SGT balance if the storage slot exists
+
+        // Calculate storage slot for account's SGT balance
+        // Formula: keccak256(abi.encode(account, 51))
+        let mut data = [0u8; 64];
+        data[12..32].copy_from_slice(address.as_slice());
+        data[32..64].copy_from_slice(&U256::from(51u64).to_be_bytes::<32>());
+        let slot = keccak256(data);
+
+        // SGT contract address
+        let sgt_contract = address!("4200000000000000000000000000000000000800");
+
+        // Read from state
+        let state_provider = match self.inner.client().latest() {
+            Ok(provider) => provider,
+            Err(_) => return U256::ZERO,
+        };
+
+        match state_provider.storage(sgt_contract, slot.into()) {
+            Ok(Some(value)) => value,
+            _ => U256::ZERO,
+        }
     }
 }
 

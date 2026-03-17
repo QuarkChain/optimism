@@ -27,6 +27,7 @@ const (
 	SchemaRegistry                = "0x4200000000000000000000000000000000000020"
 	EAS                           = "0x4200000000000000000000000000000000000021"
 	CrossL2Inbox                  = "0x4200000000000000000000000000000000000022"
+	SoulGasToken                  = "0x4200000000000000000000000000000000000800"
 	L2toL2CrossDomainMessenger    = "0x4200000000000000000000000000000000000023"
 	SuperchainETHBridge           = "0x4200000000000000000000000000000000000024"
 	ETHLiquidity                  = "0x4200000000000000000000000000000000000025"
@@ -71,6 +72,7 @@ var (
 	SchemaRegistryAddr                = common.HexToAddress(SchemaRegistry)
 	EASAddr                           = common.HexToAddress(EAS)
 	CrossL2InboxAddr                  = common.HexToAddress(CrossL2Inbox)
+	SoulGasTokenAddr                  = common.HexToAddress(SoulGasToken)
 	L2toL2CrossDomainMessengerAddr    = common.HexToAddress(L2toL2CrossDomainMessenger)
 	SuperchainETHBridgeAddr           = common.HexToAddress(SuperchainETHBridge)
 	ETHLiquidityAddr                  = common.HexToAddress(ETHLiquidity)
@@ -129,6 +131,13 @@ func init() {
 	Predeploys["OperatorFeeVault"] = &Predeploy{Address: OperatorFeeVaultAddr}
 	Predeploys["SchemaRegistry"] = &Predeploy{Address: SchemaRegistryAddr}
 	Predeploys["EAS"] = &Predeploy{Address: EASAddr}
+	Predeploys["SoulGasToken"] = &Predeploy{
+		Address:       SoulGasTokenAddr,
+		ProxyDisabled: true,
+		Enabled: func(config DeployConfig) bool {
+			return config.SoulGasTokenEnabled()
+		},
+	}
 	Predeploys["Create2Deployer"] = &Predeploy{
 		Address:       Create2DeployerAddr,
 		ProxyDisabled: true,

@@ -17,6 +17,13 @@ interop:
 cgt:
     @just acceptance-test "" cgt
 
+sgt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export DEVSTACK_L2EL_KIND=op-reth
+    export OP_RETH_EXEC_PATH="{{REPO_ROOT}}/rust/target/release/op-reth"
+    just acceptance-test "" sgt
+
 
 # Run acceptance tests with mise-managed binary
 # Usage: just acceptance-test [devnet] [gate]

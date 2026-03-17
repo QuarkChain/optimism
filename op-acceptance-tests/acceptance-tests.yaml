@@ -191,6 +191,12 @@ gates:
       - package: github.com/ethereum-optimism/optimism/op-acceptance-tests/tests/custom_gas_token
         timeout: 10m
 
+  - id: sgt
+    description: "Soul Gas Token (SGT) network tests - QuarkChain fork-specific feature."
+    tests:
+      - package: github.com/ethereum-optimism/optimism/op-acceptance-tests/tests/sgt
+        timeout: 10m
+
   - id: supernode
     description: "Supernode tests - tests for the op-supernode multi-chain consensus layer."
     tests:

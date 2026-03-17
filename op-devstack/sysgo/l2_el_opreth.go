@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/logpipe"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 	"github.com/ethereum-optimism/optimism/op-service/testutils/tcpproxy"
+	"github.com/ethereum/go-ethereum/common"
 	gn "github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -210,6 +211,31 @@ func WithOpReth(id stack.ComponentID, opts ...L2ELOption) stack.Option[*Orchestr
 		tempDir := p.TempDir()
 		data, err := json.Marshal(l2Net.genesis)
 		p.Require().NoError(err, "must json-encode genesis")
+
+		// Inject qkc_extension into genesis config if SGT contract is deployed
+		sgtAddr := common.HexToAddress("0x4200000000000000000000000000000000000800")
+		if _, hasSGT := l2Net.genesis.Alloc[sgtAddr]; hasSGT {
+			// Parse the genesis JSON
+			var genesisMap map[string]interface{}
+			p.Require().NoError(json.Unmarshal(data, &genesisMap), "must parse genesis JSON")
+
+			// Add qkc_extension to config section
+			if configSection, ok := genesisMap["config"].(map[string]interface{}); ok {
+				configSection["qkc_extension"] = map[string]interface{}{
+					"sgtActivationTimestamp": 0,
+					"sgtIsNativeBacked":      true,
+					"sgtContractAddress":     "0x4200000000000000000000000000000000000800",
+				}
+				p.Logger().Info("Injected qkc_extension into genesis config",
+					"activation", 0,
+					"mode", "native-backed")
+			}
+
+			// Re-marshal with qkc_extension
+			data, err = json.Marshal(genesisMap)
+			p.Require().NoError(err, "must re-marshal genesis with qkc_extension")
+		}
+
 		chainConfigPath := filepath.Join(tempDir, "genesis.json")
 		p.Require().NoError(os.WriteFile(chainConfigPath, data, 0o644), "must write genesis file")
 
@@ -307,6 +333,13 @@ func WithOpReth(id stack.ComponentID, opts ...L2ELOption) stack.Option[*Orchestr
 			)
 		}
 
+		// Pass RUST_LOG environment variable to op-reth subprocess if set
+		env := []string{}
+		if rustLog := os.Getenv("RUST_LOG"); rustLog != "" {
+			env = append(env, "RUST_LOG="+rustLog)
+			p.Logger().Info("Passing RUST_LOG to op-reth", "RUST_LOG", rustLog)
+		}
+
 		l2EL := &OpReth{
 			id:                 id,
 			jwtPath:            jwtPath,
@@ -315,7 +348,7 @@ func WithOpReth(id stack.ComponentID, opts ...L2ELOption) stack.Option[*Orchestr
 			userRPC:            "",
 			execPath:           execPath,
 			args:               args,
-			env:                []string{},
+			env:                env,
 			p:                  orch.p,
 			l2MetricsRegistrar: orch,
 		}

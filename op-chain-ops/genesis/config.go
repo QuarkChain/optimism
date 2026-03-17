@@ -250,6 +250,32 @@ func (d *GovernanceDeployConfig) GovernanceEnabled() bool {
 	return d.EnableGovernance
 }
 
+// SoulGasTokenDeployConfig configures the SoulGasToken L2 predeploy.
+// This is a QuarkChain fork-specific feature that allows transactions to pay gas fees
+// using tokens from the SoulGasToken contract instead of (or in addition to) native ETH.
+type SoulGasTokenDeployConfig struct {
+	// DeploySoulGasToken configures whether or not to include SoulGasToken predeploy.
+	DeploySoulGasToken bool `json:"deploySoulGasToken"`
+	// IsSoulBackedByNative determines the SGT mode:
+	// - true: Native-backed mode (anyone can deposit native to get SGT)
+	// - false: Independent mode (only whitelisted minters can create SGT)
+	IsSoulBackedByNative bool `json:"isSoulBackedByNative"`
+}
+
+var _ ConfigChecker = (*SoulGasTokenDeployConfig)(nil)
+
+func (d *SoulGasTokenDeployConfig) Check(log log.Logger) error {
+	// No validation needed - both booleans have valid default values
+	if d.DeploySoulGasToken {
+		log.Info("SoulGasToken deployment enabled", "nativeBacked", d.IsSoulBackedByNative)
+	}
+	return nil
+}
+
+func (d *SoulGasTokenDeployConfig) SoulGasTokenEnabled() bool {
+	return d.DeploySoulGasToken
+}
+
 // GasPriceOracleDeployConfig configures the GasPriceOracle L2 predeploy.
 type GasPriceOracleDeployConfig struct {
 	// GasPriceOracleOverhead represents the initial value of the gas overhead in the GasPriceOracle predeploy.
@@ -790,6 +816,7 @@ type L2InitializationConfig struct {
 	OwnershipDeployConfig
 	L2VaultsDeployConfig
 	GovernanceDeployConfig
+	SoulGasTokenDeployConfig
 	GasPriceOracleDeployConfig
 	GasTokenDeployConfig
 	OperatorDeployConfig

@@ -100,6 +100,7 @@ mod tests {
                 genesis_header: base_sepolia_spec.genesis_header,
                 ..Default::default()
             },
+            qkc_extension: Default::default(),
         })
     }
 

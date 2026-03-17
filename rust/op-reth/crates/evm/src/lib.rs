@@ -22,6 +22,7 @@ use reth_chainspec::EthChainSpec;
 use reth_evm::{
     ConfigureEvm, EvmEnv, TransactionEnv, eth::NextEvmEnvAttributes, precompiles::PrecompilesMap,
 };
+use tracing::debug;
 use reth_optimism_chainspec::OpChainSpec;
 use reth_optimism_forks::OpHardforks;
 use reth_optimism_primitives::{DepositReceipt, OpPrimitives};
@@ -113,14 +114,52 @@ impl<ChainSpec: OpHardforks, N: NodePrimitives, R> OpEvmConfig<ChainSpec, N, R> 
 
 impl<ChainSpec, N, R, EvmFactory> OpEvmConfig<ChainSpec, N, R, EvmFactory>
 where
-    ChainSpec: OpHardforks,
+    ChainSpec: OpHardforks + 'static,
     N: NodePrimitives,
 {
     /// Returns the chain spec associated with this configuration.
     pub const fn chain_spec(&self) -> &Arc<ChainSpec> {
         self.executor_factory.spec()
     }
+
+    /// Extracts SGT configuration for a given timestamp.
+    ///
+    /// This attempts to downcast the generic ChainSpec to OpChainSpec.
+    /// If successful, it extracts the SGT configuration. Otherwise, returns disabled config.
+    fn extract_sgt_config(&self, timestamp: u64) -> alloy_op_evm::sgt::SgtConfig {
+        use core::any::Any;
+
+        // Get the Arc<ChainSpec>
+        let chain_spec = self.chain_spec();
+
+        // Dereference to get &ChainSpec, then try to downcast to &OpChainSpec
+        // Note: This uses the Any trait which requires the type to be 'static
+        if let Some(op_chain_spec) = (chain_spec.as_ref() as &dyn Any).downcast_ref::<OpChainSpec>() {
+            // Successfully got OpChainSpec - extract SGT config
+            let config = alloy_op_evm::sgt::SgtConfig {
+                enabled: op_chain_spec.is_sgt_active_at_timestamp(timestamp),
+                is_native_backed: op_chain_spec.is_sgt_native_backed(),
+            };
+            debug!(
+                target: "evm::sgt",
+                enabled = config.enabled,
+                native_backed = config.is_native_backed,
+                timestamp,
+                "SGT configuration loaded from OpChainSpec"
+            );
+            config
+        } else {
+            // Not an OpChainSpec or downcast failed - use disabled config
+            debug!(
+                target: "evm::sgt",
+                timestamp,
+                "ChainSpec downcast to OpChainSpec failed, SGT disabled"
+            );
+            alloy_op_evm::sgt::SgtConfig::default()
+        }
+    }
 }
+
 
 impl<ChainSpec, N, R, EvmF> ConfigureEvm for OpEvmConfig<ChainSpec, N, R, EvmF>
 where
@@ -186,10 +225,14 @@ where
         &self,
         block: &'_ SealedBlock<N::Block>,
     ) -> Result<OpBlockExecutionCtx, Self::Error> {
+        // Extract SGT config for this block's timestamp
+        let sgt_config = self.extract_sgt_config(block.header().timestamp());
+
         Ok(OpBlockExecutionCtx {
             parent_hash: block.header().parent_hash(),
             parent_beacon_block_root: block.header().parent_beacon_block_root(),
             extra_data: block.header().extra_data().clone(),
+            sgt_config,
         })
     }
 
@@ -198,10 +241,14 @@ where
         parent: &SealedHeader<N::BlockHeader>,
         attributes: Self::NextBlockEnvCtx,
     ) -> Result<OpBlockExecutionCtx, Self::Error> {
+        // Extract SGT config for the next block's timestamp
+        let sgt_config = self.extract_sgt_config(attributes.timestamp);
+
         Ok(OpBlockExecutionCtx {
             parent_hash: parent.hash(),
             parent_beacon_block_root: attributes.parent_beacon_block_root,
             extra_data: attributes.extra_data,
+            sgt_config,
         })
     }
 }
@@ -263,10 +310,14 @@ where
         &self,
         payload: &'a OpExecutionData,
     ) -> Result<ExecutionCtxFor<'a, Self>, Self::Error> {
+        // Extract SGT config for this payload's timestamp
+        let sgt_config = self.extract_sgt_config(payload.payload.as_v1().timestamp);
+
         Ok(OpBlockExecutionCtx {
             parent_hash: payload.parent_hash(),
             parent_beacon_block_root: payload.sidecar.parent_beacon_block_root(),
             extra_data: payload.payload.as_v1().extra_data.clone(),
+            sgt_config,
         })
     }
 

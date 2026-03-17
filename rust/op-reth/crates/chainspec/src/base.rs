@@ -35,6 +35,7 @@ pub static BASE_MAINNET: LazyLock<Arc<OpChainSpec>> = LazyLock::new(|| {
             ),
             ..Default::default()
         },
+        qkc_extension: Default::default(),
     }
     .into()
 });

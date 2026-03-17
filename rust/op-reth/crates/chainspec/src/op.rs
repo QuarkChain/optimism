@@ -36,6 +36,7 @@ pub static OP_MAINNET: LazyLock<Arc<OpChainSpec>> = LazyLock::new(|| {
             prune_delete_limit: 10000,
             ..Default::default()
         },
+        qkc_extension: Default::default(),
     }
     .into()
 });

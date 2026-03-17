@@ -56,6 +56,7 @@ type L2Configurator interface {
 	WithFinalizationPeriodSeconds(value uint64)
 	WithRevenueShare(enabled bool, chainFeesRecipient common.Address)
 	WithCustomGasToken(name string, symbol string, initialLiquidity *big.Int, liquidityControllerOwner common.Address)
+	WithSoulGasToken(enabled bool, nativeBacked bool)
 	ContractsConfigurator
 	L2VaultsConfigurator
 	L2RolesConfigurator
@@ -530,6 +531,11 @@ func (c *l2Configurator) WithForkAtOffset(fork opforks.Name, offset *uint64) {
 func (c *l2Configurator) WithRevenueShare(enabled bool, chainFeesRecipient common.Address) {
 	c.builder.intent.Chains[c.chainIndex].UseRevenueShare = enabled
 	c.builder.intent.Chains[c.chainIndex].ChainFeesRecipient = chainFeesRecipient
+}
+
+func (c *l2Configurator) WithSoulGasToken(enabled bool, nativeBacked bool) {
+	c.builder.intent.Chains[c.chainIndex].DeploySoulGasToken = enabled
+	c.builder.intent.Chains[c.chainIndex].IsSoulBackedByNative = nativeBacked
 }
 
 func (c *l2Configurator) initL2DevGenesisParams() *state.L2DevGenesisParams {

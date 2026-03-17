@@ -257,6 +257,8 @@ contract L2Genesis_Run_Test is L2Genesis_TestInit {
             deployCrossL2Inbox: true,
             enableGovernance: true,
             fundDevAccounts: true,
+            deploySoulGasToken: false,
+            isSoulBackedByNative: true,
             useRevenueShare: true,
             chainFeesRecipient: address(0x000000000000000000000000000000000000000b),
             l1FeesDepositor: address(0x000000000000000000000000000000000000000C),

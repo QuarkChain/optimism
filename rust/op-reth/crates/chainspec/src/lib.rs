@@ -218,7 +218,33 @@ impl OpChainSpecBuilder {
         inner.genesis_header =
             SealedHeader::seal_slow(make_op_genesis_header(&inner.genesis, &inner.hardforks));
 
-        OpChainSpec { inner }
+        OpChainSpec {
+            inner,
+            qkc_extension: Default::default(),
+        }
+    }
+}
+
+/// QuarkChain-specific extensions to OP Stack
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QkcOpExtension {
+    /// SGT activation timestamp (None = disabled)
+    pub sgt_activation_timestamp: Option<u64>,
+
+    /// Whether SGT is backed 1:1 by native token
+    pub sgt_is_native_backed: bool,
+
+    /// SGT contract address override (default: 0x4200...0800)
+    pub sgt_contract_address: Option<alloy_primitives::Address>,
+}
+
+impl Default for QkcOpExtension {
+    fn default() -> Self {
+        Self {
+            sgt_activation_timestamp: None,
+            sgt_is_native_backed: true,
+            sgt_contract_address: None,
+        }
     }
 }
 
@@ -226,13 +252,40 @@ impl OpChainSpecBuilder {
 #[derive(Debug, Clone, Deref, Into, Constructor, PartialEq, Eq)]
 pub struct OpChainSpec {
     /// [`ChainSpec`].
+    #[deref]
     pub inner: ChainSpec,
+
+    /// QuarkChain extensions
+    pub qkc_extension: QkcOpExtension,
 }
 
 impl OpChainSpec {
     /// Converts the given [`Genesis`] into a [`OpChainSpec`].
     pub fn from_genesis(genesis: Genesis) -> Self {
         genesis.into()
+    }
+
+    /// Check if SGT is active at given timestamp
+    pub fn is_sgt_active_at_timestamp(&self, timestamp: u64) -> bool {
+        self.qkc_extension
+            .sgt_activation_timestamp
+            .map_or(false, |activation| timestamp >= activation)
+    }
+
+    /// Get SGT contract address
+    pub fn sgt_contract_address(&self) -> alloy_primitives::Address {
+        use alloy_primitives::address;
+        const SGT_CONTRACT: alloy_primitives::Address =
+            address!("4200000000000000000000000000000000000800");
+
+        self.qkc_extension
+            .sgt_contract_address
+            .unwrap_or(SGT_CONTRACT)
+    }
+
+    /// Get SGT mode (native-backed or independent)
+    pub fn is_sgt_native_backed(&self) -> bool {
+        self.qkc_extension.sgt_is_native_backed
     }
 }
 
@@ -335,6 +388,16 @@ impl OpHardforks for OpChainSpec {
     fn op_fork_activation(&self, fork: OpHardfork) -> ForkCondition {
         self.fork(fork)
     }
+
+    fn is_sgt_active_at_timestamp(&self, timestamp: u64) -> bool {
+        self.qkc_extension
+            .sgt_activation_timestamp
+            .map_or(false, |activation| timestamp >= activation)
+    }
+
+    fn is_sgt_native_backed(&self) -> bool {
+        self.qkc_extension.sgt_is_native_backed
+    }
 }
 
 impl From<Genesis> for OpChainSpec {
@@ -422,6 +485,29 @@ impl From<Genesis> for OpChainSpec {
         let hardforks = ChainHardforks::new(ordered_hardforks);
         let genesis_header = SealedHeader::seal_slow(make_op_genesis_header(&genesis, &hardforks));
 
+        // Parse QuarkChain extensions from genesis extra_fields
+        let qkc_extension = genesis.config.extra_fields
+            .get("qkcExtension")
+            .or_else(|| genesis.config.extra_fields.get("qkc_extension"))
+            .and_then(|v| {
+                // Manual parsing since we want to avoid serde feature dependency
+                let obj = v.as_object()?;
+                Some(QkcOpExtension {
+                    sgt_activation_timestamp: obj
+                        .get("sgtActivationTimestamp")
+                        .and_then(|v| v.as_u64()),
+                    sgt_is_native_backed: obj
+                        .get("sgtIsNativeBacked")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(true),
+                    sgt_contract_address: obj
+                        .get("sgtContractAddress")
+                        .and_then(|v| v.as_str())
+                        .and_then(|s| s.parse().ok()),
+                })
+            })
+            .unwrap_or_default();
+
         Self {
             inner: ChainSpec {
                 chain: genesis.config.chain_id.into(),
@@ -434,13 +520,23 @@ impl From<Genesis> for OpChainSpec {
                 base_fee_params: optimism_genesis_info.base_fee_params,
                 ..Default::default()
             },
+            qkc_extension,
         }
     }
 }
 
 impl From<ChainSpec> for OpChainSpec {
     fn from(value: ChainSpec) -> Self {
-        Self { inner: value }
+        Self {
+            inner: value,
+            qkc_extension: Default::default(),
+        }
+    }
+}
+
+impl From<OpChainSpec> for ChainSpec {
+    fn from(value: OpChainSpec) -> Self {
+        value.inner
     }
 }
 

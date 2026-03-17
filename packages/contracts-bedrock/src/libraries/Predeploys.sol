@@ -80,6 +80,9 @@ library Predeploys {
     /// @notice Address of the EAS predeploy.
     address internal constant EAS = 0x4200000000000000000000000000000000000021;
 
+    /// @notice Address of the SOUL_GAS_TOKEN predeploy.
+    address internal constant SOUL_GAS_TOKEN = 0x4200000000000000000000000000000000000800;
+
     /// @notice Address of the GovernanceToken predeploy.
     address internal constant GOVERNANCE_TOKEN = 0x4200000000000000000000000000000000000042;
 
@@ -149,6 +152,7 @@ library Predeploys {
         if (_addr == OPERATOR_FEE_VAULT) return "OperatorFeeVault";
         if (_addr == SCHEMA_REGISTRY) return "SchemaRegistry";
         if (_addr == EAS) return "EAS";
+        if (_addr == SOUL_GAS_TOKEN) return "SoulGasToken";
         if (_addr == GOVERNANCE_TOKEN) return "GovernanceToken";
         if (_addr == LEGACY_ERC20_ETH) return "LegacyERC20ETH";
         if (_addr == CROSS_L2_INBOX) return "CrossL2Inbox";
@@ -167,7 +171,7 @@ library Predeploys {
 
     /// @notice Returns true if the predeploy is not proxied.
     function notProxied(address _addr) internal pure returns (bool) {
-        return _addr == GOVERNANCE_TOKEN || _addr == WETH;
+        return _addr == GOVERNANCE_TOKEN || _addr == WETH || _addr == SOUL_GAS_TOKEN;
     }
 
     /// @notice Returns true if the address is a defined predeploy that is embedded into new OP-Stack chains.
@@ -197,9 +201,9 @@ library Predeploys {
 
     /// @notice Returns true if the address is in the predeploy namespace.
     /// @param _addr The address to check.
-    /// @return True if the address is in range 0x4200...0000 to 0x4200...07FF.
+    /// @return True if the address is in range 0x4200...0000 to 0x4200...0FFF (extended for SGT).
     function isPredeployNamespace(address _addr) internal pure returns (bool) {
-        return uint160(_addr) >> 11 == uint160(0x4200000000000000000000000000000000000000) >> 11;
+        return uint160(_addr) >> 12 == uint160(0x4200000000000000000000000000000000000000) >> 12;
     }
 
     /// @notice Function to compute the expected address of the predeploy implementation

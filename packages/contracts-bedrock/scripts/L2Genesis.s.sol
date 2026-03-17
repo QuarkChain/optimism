@@ -34,6 +34,9 @@ import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 import { IL1Withdrawer } from "interfaces/L2/IL1Withdrawer.sol";
 import { ISuperchainRevSharesCalculator } from "interfaces/L2/ISuperchainRevSharesCalculator.sol";
 
+// Contracts
+import { SoulGasToken } from "src/L2/SoulGasToken.sol";
+
 /// @title L2Genesis
 /// @notice Generates the genesis state for the L2 network.
 ///         The following safety invariants are used when setting state:
@@ -73,6 +76,8 @@ contract L2Genesis is Script {
         bool deployCrossL2Inbox;
         bool enableGovernance;
         bool fundDevAccounts;
+        bool deploySoulGasToken;
+        bool isSoulBackedByNative;
         bool useRevenueShare;
         address chainFeesRecipient;
         address l1FeesDepositor;
@@ -264,6 +269,7 @@ contract L2Genesis is Script {
         // 1C,1D,1E,1F: not used.
         setSchemaRegistry(); // 20
         setEAS(); // 21
+        if (_input.deploySoulGasToken) setSoulGasToken(_input); // 800
         setGovernanceToken(_input); // 42: OP (not behind a proxy)
         setFeeSplitter(_input); // 2B: FeeSplitter
         if (_input.fork >= uint256(Fork.INTEROP)) {
@@ -511,6 +517,25 @@ contract L2Genesis is Script {
         /// Reset so its not included state dump
         vm.etch(address(eas), "");
         vm.resetNonce(address(eas));
+    }
+
+    /// @notice This predeploy is following the safety invariant #2.
+    ///         Deploys the SoulGasToken contract at the predeploy address.
+    function setSoulGasToken(Input memory _input) public {
+        // Deploy SoulGasToken contract (not proxied, similar to GovernanceToken)
+        SoulGasToken token = new SoulGasToken({ _isBackedByNative: _input.isSoulBackedByNative });
+        vm.etch(Predeploys.SOUL_GAS_TOKEN, address(token).code);
+
+        /// Reset so its not included in state dump
+        vm.etch(address(token), "");
+        vm.resetNonce(address(token));
+
+        // Initialize the contract at the predeploy address
+        SoulGasToken(Predeploys.SOUL_GAS_TOKEN).initialize({
+            _name: "SoulQKC",
+            _symbol: "SoulQKC",
+            _owner: _input.opChainProxyAdminOwner
+        });
     }
 
     /// @notice This predeploy is following the safety invariant #1.

@@ -84,6 +84,10 @@ type ChainIntent struct {
 	DAFootprintGasScalar       uint16                    `json:"daFootprintGasScalar,omitempty" toml:"daFootprintGasScalar,omitempty"`
 	CustomGasToken             CustomGasToken            `json:"customGasToken" toml:"customGasToken"`
 
+	// Soul Gas Token (QuarkChain fork-specific feature)
+	DeploySoulGasToken   bool `json:"deploySoulGasToken,omitempty" toml:"deploySoulGasToken,omitempty"`
+	IsSoulBackedByNative bool `json:"isSoulBackedByNative,omitempty" toml:"isSoulBackedByNative,omitempty"`
+
 	// Optional. For development purposes only. Only enabled if the operation mode targets a genesis-file output.
 	L2DevGenesisParams *L2DevGenesisParams `json:"l2DevGenesisParams,omitempty" toml:"l2DevGenesisParams,omitempty"`
 }

@@ -1,6 +1,7 @@
 //! Block executor for Optimism.
 
 use crate::OpEvmFactory;
+
 use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use alloy_consensus::{Eip658Value, Header, Transaction, TransactionEnvelope, TxReceipt};
 use alloy_eips::{Encodable2718, Typed2718};
@@ -55,6 +56,8 @@ pub struct OpBlockExecutionCtx {
     pub parent_beacon_block_root: Option<B256>,
     /// The block's extra data.
     pub extra_data: Bytes,
+    /// SGT configuration for this block.
+    pub sgt_config: crate::sgt::SgtConfig,
 }
 
 /// The result of executing an OP transaction.
@@ -100,6 +103,8 @@ pub struct OpBlockExecutor<Evm, R: OpReceiptBuilder, Spec> {
     pub is_regolith: bool,
     /// Utility to call system smart contracts.
     pub system_caller: SystemCaller<Spec>,
+    /// SGT configuration.
+    pub sgt_config: crate::sgt::SgtConfig,
 }
 
 impl<E, R, Spec> OpBlockExecutor<E, R, Spec>
@@ -110,6 +115,9 @@ where
 {
     /// Creates a new [`OpBlockExecutor`].
     pub fn new(evm: E, ctx: OpBlockExecutionCtx, spec: Spec, receipt_builder: R) -> Self {
+        // Get SGT config from context
+        let sgt_config = ctx.sgt_config;
+
         Self {
             is_regolith: spec
                 .is_regolith_active_at_timestamp(evm.block().timestamp().saturating_to()),
@@ -121,7 +129,16 @@ where
             gas_used: 0,
             da_footprint_used: 0,
             ctx,
+            sgt_config,
         }
+    }
+
+    /// Sets the SGT configuration for this executor.
+    ///
+    /// This should be called during executor initialization to enable SGT support.
+    pub fn with_sgt_config(mut self, config: crate::sgt::SgtConfig) -> Self {
+        self.sgt_config = config;
+        self
     }
 }
 
@@ -460,13 +477,16 @@ where
 
     fn create_executor<'a, DB, I>(
         &'a self,
-        evm: EvmF::Evm<&'a mut State<DB>, I>,
+        mut evm: EvmF::Evm<&'a mut State<DB>, I>,
         ctx: Self::ExecutionCtx<'a>,
     ) -> impl BlockExecutorFor<'a, Self, DB, I>
     where
         DB: Database + 'a,
         I: Inspector<EvmF::Context<&'a mut State<DB>>> + 'a,
     {
+        // Configure SGT settings for OP Stack
+        evm.configure_sgt(ctx.sgt_config.enabled, ctx.sgt_config.is_native_backed);
+
         OpBlockExecutor::new(evm, ctx, &self.spec, &self.receipt_builder)
     }
 }

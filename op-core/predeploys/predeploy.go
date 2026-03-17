@@ -6,6 +6,7 @@ import (
 
 type DeployConfig interface {
 	GovernanceEnabled() bool
+	SoulGasTokenEnabled() bool
 	CanyonTime(genesisTime uint64) *uint64
 }
 

@@ -97,6 +97,21 @@ func WithDAFootprintGasScalar(scalar uint16, l2IDs ...stack.ComponentID) Deploye
 	}
 }
 
+// WithSoulGasToken enables Soul Gas Token deployment for L2 networks.
+// If enabled is true, SGT contract will be deployed in genesis.
+// nativeBacked determines if SGT is 1:1 backed by native token.
+func WithSoulGasToken(enabled bool, nativeBacked bool, l2IDs ...stack.ComponentID) DeployerOption {
+	return func(p devtest.P, _ devkeys.Keys, builder intentbuilder.Builder) {
+		for _, l2 := range builder.L2s() {
+			if len(l2IDs) == 0 || slices.ContainsFunc(l2IDs, func(id stack.ComponentID) bool {
+				return id.ChainID() == l2.ChainID()
+			}) {
+				l2.WithSoulGasToken(enabled, nativeBacked)
+			}
+		}
+	}
+}
+
 func WithDeployerPipelineOption(opt DeployerPipelineOption) stack.Option[*Orchestrator] {
 	return stack.BeforeDeploy(func(o *Orchestrator) {
 		o.deployerPipelineOptions = append(o.deployerPipelineOptions, opt)

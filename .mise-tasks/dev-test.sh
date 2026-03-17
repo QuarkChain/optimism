@@ -182,7 +182,7 @@ forge install
 run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
 popd > /dev/null
 
-# required for op-deployer tests and supervisor e2e tests
+# required for kona supervisor sysgo e2e artifact resolution
 run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
 
 # # cannon-prestate (from .circleci/continue/main.yml)
@@ -238,10 +238,16 @@ run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-
 #     cd rust/kona && just action-tests-single-run
 # "
 
-# Run supervisor sysgo e2e suites used in CI matrix.
+# Run kona supervisor sysgo e2e suites.
 for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
     run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
-        export OP_DEPLOYER_ARTIFACTS='$(pwd)/packages/contracts-bedrock/forge-artifacts'
+        ROOT_DIR='$(pwd)'
+        OP_DEPLOYER_ARTIFACTS_DIR=\"\$ROOT_DIR/rust/kona/tmp/op-deployer-artifacts\"
+        mkdir -p \"\$OP_DEPLOYER_ARTIFACTS_DIR\"
+        rm -rf \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
+        ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\"
+        ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
+        export OP_DEPLOYER_ARTIFACTS=\"\$OP_DEPLOYER_ARTIFACTS_DIR\"
         export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
         export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}

@@ -30,6 +30,7 @@ contract DeployConfig is Script {
     uint256 public l2GenesisGraniteTimeOffset;
     uint256 public l2GenesisHoloceneTimeOffset;
     uint256 public l2GenesisJovianTimeOffset;
+    uint256 public l2GenesisKarstTimeOffset;
     address public p2pSequencerAddress;
     address public batchInboxAddress;
     address public batchSenderAddress;
@@ -92,6 +93,8 @@ contract DeployConfig is Script {
     uint256 public faultGameV2ClockExtension;
     uint256 public faultGameV2MaxClockDuration;
 
+    bool public useL2CM;
+
     bool public useInterop;
     bool public deploySoulGasToken;
     bool public isSoulBackedByNative;
@@ -123,6 +126,7 @@ contract DeployConfig is Script {
         l2GenesisGraniteTimeOffset = _readOr(_json, "$.l2GenesisGraniteTimeOffset", NULL_OFFSET);
         l2GenesisHoloceneTimeOffset = _readOr(_json, "$.l2GenesisHoloceneTimeOffset", NULL_OFFSET);
         l2GenesisJovianTimeOffset = _readOr(_json, "$.l2GenesisJovianTimeOffset", NULL_OFFSET);
+        l2GenesisKarstTimeOffset = _readOr(_json, "$.l2GenesisKarstTimeOffset", NULL_OFFSET);
 
         p2pSequencerAddress = stdJson.readAddress(_json, "$.p2pSequencerAddress");
         batchInboxAddress = stdJson.readAddress(_json, "$.batchInboxAddress");
@@ -182,6 +186,8 @@ contract DeployConfig is Script {
         daResolveWindow = _readOr(_json, "$.daResolveWindow", 1000);
         daBondSize = _readOr(_json, "$.daBondSize", 1000000000);
         daResolverRefundPercentage = _readOr(_json, "$.daResolverRefundPercentage", 0);
+
+        useL2CM = _readOr(_json, "$.useL2CM", false);
 
         useInterop = _readOr(_json, "$.useInterop", false);
         deploySoulGasToken = _readOr(_json, "$.deploySoulGasToken", false);
@@ -330,8 +336,15 @@ contract DeployConfig is Script {
         operatorFeeVaultWithdrawalNetwork = _operatorFeeVaultWithdrawalNetwork;
     }
 
+    /// @notice Allow the `useL2CM` config to be overridden in testing environments
+    function setUseL2CM(bool _useL2CM) public {
+        useL2CM = _useL2CM;
+    }
+
     function latestGenesisFork() internal view returns (Fork) {
-        if (l2GenesisJovianTimeOffset == 0) {
+        if (l2GenesisKarstTimeOffset == 0) {
+            return Fork.KARST;
+        } else if (l2GenesisJovianTimeOffset == 0) {
             return Fork.JOVIAN;
         } else if (l2GenesisHoloceneTimeOffset == 0) {
             return Fork.HOLOCENE;

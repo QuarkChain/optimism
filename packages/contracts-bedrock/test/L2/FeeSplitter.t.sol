@@ -11,13 +11,14 @@ import { RevertingRecipient } from "test/mocks/RevertingRecipient.sol";
 import { ReentrantMockFeeVault } from "test/mocks/ReentrantMockFeeVault.sol";
 
 // Libraries
+import { DeployUtils } from "scripts/libraries/DeployUtils.sol";
 import { Predeploys } from "src/libraries/Predeploys.sol";
 import { Types } from "src/libraries/Types.sol";
 
 // Interfaces
 import { IFeeSplitter } from "interfaces/L2/IFeeSplitter.sol";
 import { ISharesCalculator } from "interfaces/L2/ISharesCalculator.sol";
-import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
+import { IL2ProxyAdmin } from "interfaces/L2/IL2ProxyAdmin.sol";
 import { IFeeVault } from "interfaces/L2/IFeeVault.sol";
 
 /// @title FeeSplitter_TestInit
@@ -45,8 +46,8 @@ contract FeeSplitter_TestInit is CommonTest {
         super.enableRevenueShare();
         super.setUp();
 
-        // Get the owner from ProxyAdmin
-        _owner = IProxyAdmin(Predeploys.PROXY_ADMIN).owner();
+        // Get the owner from L2ProxyAdmin
+        _owner = IL2ProxyAdmin(Predeploys.PROXY_ADMIN).owner();
 
         // Initialize fee vaults array
         _feeVaults[0] = Predeploys.SEQUENCER_FEE_WALLET;
@@ -127,7 +128,7 @@ contract FeeSplitter_Initialize_Test is FeeSplitter_TestInit {
 
     /// @notice Test that the implementation contract disables initializers in the constructor
     function test_feeSplitterImplementation_constructorDisablesInitializers_succeeds() public {
-        bytes memory creationCode = vm.getCode("FeeSplitter.sol:FeeSplitter");
+        bytes memory creationCode = DeployUtils.getCode("FeeSplitter");
         address implementation;
 
         // Expect the Initialized event to be emitted

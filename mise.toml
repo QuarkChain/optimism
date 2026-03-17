@@ -1,11 +1,12 @@
 [tools]
 
 # Core dependencies
+bun = "1.2.5"
 go = "1.24.10"
-golangci-lint = "1.64.8"
+golangci-lint = "2.8.0"
 gotestsum = "1.12.3"
 mockery = "2.53.3"
-rust = "1.91.0"
+rust = "1.92.0"
 python = "3.12.0"
 uv = "0.5.5"
 jq = "1.7.1"
@@ -23,7 +24,7 @@ svm-rs = "0.5.19"
 
 # Python dependencies
 "pipx:slither-analyzer" = "0.10.2"
-"pipx:semgrep" = "1.90.0"
+"pipx:semgrep" = "1.137.0"
 "pipx:md_toc" = "9.0.0"
 
 # Foundry dependencies
@@ -40,8 +41,11 @@ codecov-uploader = "0.8.0"
 goreleaser-pro = "2.11.2"
 
 
+
 kurtosis = "1.11.1"
-op-acceptor = "op-acceptor/v3.8.1"
+op-acceptor = "op-acceptor/v3.10.1"
+git-cliff = "2.12.0"
+
 
 
 
@@ -52,7 +56,7 @@ op-acceptor = "op-acceptor/v3.8.1"
 kontrol = "1.0.90"
 binary_signer = "1.0.4"
 
-[alias]
+[tool_alias]
 forge = "ubi:foundry-rs/foundry[exe=forge]"
 cast = "ubi:foundry-rs/foundry[exe=cast]"
 anvil = "ubi:foundry-rs/foundry[exe=anvil]"

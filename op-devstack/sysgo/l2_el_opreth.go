@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -99,8 +100,8 @@ func (n *OpReth) Start() {
 		})
 		n.userRPC = "ws://" + n.userProxy.Addr()
 	}
-	logOut := logpipe.ToLogger(n.p.Logger().New("component", "op-reth", "src", "stdout"))
-	logErr := logpipe.ToLogger(n.p.Logger().New("component", "op-reth", "src", "stderr"))
+	logOut := logpipe.ToLogger(n.p.Logger().New("component", "op-reth", "src", "stdout", "id", n.id.String()))
+	logErr := logpipe.ToLogger(n.p.Logger().New("component", "op-reth", "src", "stderr", "id", n.id.String()))
 
 	authRPCChan := make(chan string, 1)
 	defer close(authRPCChan)
@@ -188,8 +189,9 @@ func WithOpReth(id stack.L2ELNodeID, opts ...L2ELOption) stack.Option[*Orchestra
 		p := orch.P().WithCtx(stack.ContextWithID(orch.P().Ctx(), id))
 		require := p.Require()
 
-		l2Net, ok := orch.l2Nets.Get(id.ChainID())
+		l2NetComponent, ok := orch.registry.Get(stack.ConvertL2NetworkID(stack.L2NetworkID(id.ChainID())).ComponentID)
 		require.True(ok, "L2 network required")
+		l2Net := l2NetComponent.(*L2Network)
 
 		cfg := DefaultL2ELConfig()
 		orch.l2ELOptions.Apply(p, id, cfg)       // apply global options
@@ -200,10 +202,10 @@ func WithOpReth(id stack.L2ELNodeID, opts ...L2ELOption) stack.Option[*Orchestra
 		useInterop := l2Net.genesis.Config.InteropTime != nil
 
 		supervisorRPC := ""
-		if useInterop {
-			require.NotNil(cfg.SupervisorID, "supervisor is required for interop")
-			sup, ok := orch.supervisors.Get(*cfg.SupervisorID)
+		if useInterop && cfg.SupervisorID != nil {
+			supComponent, ok := orch.registry.Get(stack.ConvertSupervisorID(*cfg.SupervisorID).ComponentID)
 			require.True(ok, "supervisor is required for interop")
+			sup := supComponent.(Supervisor)
 			supervisorRPC = sup.UserRPC()
 		}
 
@@ -274,6 +276,39 @@ func WithOpReth(id stack.L2ELNodeID, opts ...L2ELOption) stack.Option[*Orchestra
 			args = append(args, "--rollup.supervisor-http="+supervisorRPC)
 		}
 
+		// initialise op-reth
+		initArgs := []string{
+			"init",
+			"--datadir=" + dataDirPath,
+			"--chain=" + chainConfigPath,
+		}
+		err = exec.Command(execPath, initArgs...).Run()
+		p.Require().NoError(err, "must init op-reth node")
+
+		if cfg.ProofHistory {
+			proofHistoryDir := filepath.Join(tempDir, "proof-history")
+
+			// initialise proof history
+			initProofsArgs := []string{
+				"proofs",
+				"init",
+				"--datadir=" + dataDirPath,
+				"--chain=" + chainConfigPath,
+				"--proofs-history.storage-path=" + proofHistoryDir,
+			}
+			err = exec.Command(execPath, initProofsArgs...).Run()
+			p.Require().NoError(err, "must init op-reth proof history")
+
+			args = append(
+				args,
+				"--proofs-history",
+				// todo: make these configurable via env-vars (ethereum-optimism/optimism#18908)
+				"--proofs-history.window=200",
+				"--proofs-history.prune-interval=1m",
+				"--proofs-history.storage-path="+proofHistoryDir,
+			)
+		}
+
 		l2EL := &OpReth{
 			id:                 id,
 			jwtPath:            jwtPath,
@@ -291,6 +326,8 @@ func WithOpReth(id stack.L2ELNodeID, opts ...L2ELOption) stack.Option[*Orchestra
 		l2EL.Start()
 		p.Cleanup(l2EL.Stop)
 		p.Logger().Info("op-reth is ready", "userRPC", l2EL.userRPC, "authRPC", l2EL.authRPC)
-		require.True(orch.l2ELs.SetIfMissing(id, l2EL), "must be unique L2 EL node")
+		cid := stack.ConvertL2ELNodeID(id).ComponentID
+		require.False(orch.registry.Has(cid), "must be unique L2 EL node")
+		orch.registry.Register(cid, l2EL)
 	})
 }

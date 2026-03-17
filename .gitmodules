@@ -39,12 +39,12 @@
 	path = op-geth
 	url = https://github.com/QuarkChain/op-geth
 	branch = op-es
+[submodule "rust/kona/crates/protocol/registry/superchain-registry"]
+	path = rust/kona/crates/protocol/registry/superchain-registry
+	url = https://github.com/ethereum-optimism/superchain-registry
 [submodule "op-rbuilder"]
 	path = op-rbuilder
 	url = https://github.com/flashbots/op-rbuilder
 [submodule "rollup-boost"]
 	path = rollup-boost
 	url = https://github.com/flashbots/rollup-boost
-[submodule "kona"]
-	path = kona
-	url = https://github.com/op-rs/kona

@@ -28,6 +28,9 @@ interface IOPContractsManagerMigrator {
     /// @notice Thrown when the starting respected game type is not a valid super game type.
     error OPContractsManagerMigrator_InvalidStartingRespectedGameType();
 
+    /// @notice Thrown when the OPTIMISM_PORTAL_INTEROP dev feature is not enabled.
+    error OPContractsManagerMigrator_InteropNotEnabled();
+
     /// @notice Returns the container of blueprint and implementation contract addresses.
     function contractsContainer() external view returns (IOPContractsManagerContainer);
 
@@ -39,9 +42,5 @@ interface IOPContractsManagerMigrator {
     /// @param _input The input parameters for the migration.
     function migrate(MigrateInput calldata _input) external;
 
-    function __constructor__(
-        IOPContractsManagerContainer _contractsContainer,
-        IOPContractsManagerUtils _utils
-    )
-        external;
+    function __constructor__(IOPContractsManagerUtils _utils) external;
 }

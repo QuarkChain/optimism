@@ -22,11 +22,18 @@ type L2ELConfig struct {
 	P2PNodeKeyHex string
 	StaticPeers   []string
 	TrustedPeers  []string
+	ProofHistory  bool
 }
 
 func L2ELWithSupervisor(supervisorID stack.SupervisorID) L2ELOption {
 	return L2ELOptionFn(func(p devtest.P, id stack.L2ELNodeID, cfg *L2ELConfig) {
 		cfg.SupervisorID = &supervisorID
+	})
+}
+
+func L2ELWithProofHistory(enable bool) L2ELOption {
+	return L2ELOptionFn(func(p devtest.P, id stack.L2ELNodeID, cfg *L2ELConfig) {
+		cfg.ProofHistory = enable
 	})
 }
 
@@ -49,6 +56,7 @@ func DefaultL2ELConfig() *L2ELConfig {
 		P2PNodeKeyHex: "",
 		StaticPeers:   nil,
 		TrustedPeers:  nil,
+		ProofHistory:  false,
 	}
 }
 
@@ -105,6 +113,8 @@ func WithExtL2Node(id stack.L2ELNodeID, elRPCEndpoint string) stack.Option[*Orch
 			userRPC:  elRPCEndpoint,
 			readOnly: true,
 		}
-		require.True(orch.l2ELs.SetIfMissing(id, l2ELNode), "must not already exist")
+		cid := stack.ConvertL2ELNodeID(id).ComponentID
+		require.False(orch.registry.Has(cid), "must not already exist")
+		orch.registry.Register(cid, l2ELNode)
 	})
 }

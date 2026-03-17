@@ -142,8 +142,8 @@ func (ds *BlobDataSource) open(ctx context.Context) ([]blobOrCalldata, error) {
 		return data, nil
 	}
 
-	// download the actual blob bodies corresponding to the indexed blob hashes
-	blobs, err := ds.blobsFetcher.GetBlobs(ctx, ds.ref, hashes)
+	// download the actual blob bodies corresponding to the versioned hashes
+	blobs, err := ds.blobsFetcher.GetBlobsByHash(ctx, ds.ref.Time, hashes)
 	if errors.Is(err, ethereum.NotFound) {
 		// If the L1 block was available, then the blobs should be available too. The only
 		// exception is if the blob retention window has expired, which we will ultimately handle
@@ -164,16 +164,13 @@ func (ds *BlobDataSource) open(ctx context.Context) ([]blobOrCalldata, error) {
 // dataAndHashesFromTxs extracts calldata and datahashes from the input transactions and returns them. It
 // creates a placeholder blobOrCalldata element for each returned blob hash that must be populated
 // by fillBlobPointers after blob bodies are retrieved.
-func dataAndHashesFromTxs(txs types.Transactions, config *DataSourceConfig, batcherAddr common.Address, logger log.Logger, txSucceedMap map[common.Hash]bool) ([]blobOrCalldata, []eth.IndexedBlobHash) {
+func dataAndHashesFromTxs(txs types.Transactions, config *DataSourceConfig, batcherAddr common.Address, logger log.Logger, txSucceedMap map[common.Hash]bool) ([]blobOrCalldata, []common.Hash) {
 	data := []blobOrCalldata{}
-	var hashes []eth.IndexedBlobHash
-	blobIndex := 0 // index of each blob in the block's blob sidecar
+	var hashes []common.Hash
 	for _, tx := range txs {
 		// skip any non-batcher transactions or failed transactions
-		// blobIndex needs to be incremented for both invalid batch tx and failed tx
 		// if txSucceedMap is nil, it means no status check is needed.
-		if (!isValidBatchTx(tx, config.l1Signer, config.batchInboxAddress, batcherAddr, logger)) || (txSucceedMap != nil && !txSucceedMap[tx.Hash()]) {
-			blobIndex += len(tx.BlobHashes())
+		if !isValidBatchTx(tx, config.l1Signer, config.batchInboxAddress, batcherAddr, logger) || (txSucceedMap != nil && !txSucceedMap[tx.Hash()]) {
 			continue
 		}
 		// handle non-blob batcher transactions by extracting their calldata
@@ -187,13 +184,8 @@ func dataAndHashesFromTxs(txs types.Transactions, config *DataSourceConfig, batc
 			log.Warn("blob tx has calldata, which will be ignored", "txhash", tx.Hash())
 		}
 		for _, h := range tx.BlobHashes() {
-			idh := eth.IndexedBlobHash{
-				Index: uint64(blobIndex),
-				Hash:  h,
-			}
-			hashes = append(hashes, idh)
+			hashes = append(hashes, h)
 			data = append(data, blobOrCalldata{nil, nil}) // will fill in blob pointers after we download them below
-			blobIndex += 1
 		}
 	}
 	return data, hashes

@@ -108,7 +108,7 @@ func (s *Service) initFromConfig(ctx context.Context, cfg *config.Config) error 
 	if err := s.registerGameTypes(ctx, cfg); err != nil {
 		return fmt.Errorf("failed to register game types: %w", err)
 	}
-	if err := s.initBondClaims(); err != nil {
+	if err := s.initBondClaims(cfg); err != nil {
 		return fmt.Errorf("failed to init bond claiming: %w", err)
 	}
 	if err := s.initScheduler(cfg); err != nil {
@@ -211,8 +211,8 @@ func (s *Service) initFactoryContract(ctx context.Context, cfg *config.Config) e
 	return nil
 }
 
-func (s *Service) initBondClaims() error {
-	claimer := claims.NewBondClaimer(s.logger, s.metrics, s.registry.CreateBondContract, s.txSender, s.claimants...)
+func (s *Service) initBondClaims(cfg *config.Config) error {
+	claimer := claims.NewBondClaimer(s.logger, s.metrics, s.registry.CreateBondContract, s.txSender, cfg.SelectiveClaimResolution, s.claimants...)
 	s.claimer = claims.NewBondClaimScheduler(s.logger, s.metrics, claimer)
 	return nil
 }
@@ -268,16 +268,16 @@ func (s *Service) Stopped() bool {
 }
 
 func (s *Service) Stop(ctx context.Context) error {
-	s.logger.Info("stopping challenger game service")
+	s.logger.Info("Stopping challenger game service")
 
 	var result error
+	if s.monitor != nil {
+		s.monitor.StopMonitoring()
+	}
 	if s.sched != nil {
 		if err := s.sched.Close(); err != nil {
 			result = errors.Join(result, fmt.Errorf("failed to close scheduler: %w", err))
 		}
-	}
-	if s.monitor != nil {
-		s.monitor.StopMonitoring()
 	}
 	if s.claimer != nil {
 		if err := s.claimer.Close(); err != nil {
@@ -314,6 +314,6 @@ func (s *Service) Stop(ctx context.Context) error {
 		}
 	}
 	s.stopped.Store(true)
-	s.logger.Info("stopped challenger game service", "err", result)
+	s.logger.Info("Stopped challenger game service", "err", result)
 	return result
 }

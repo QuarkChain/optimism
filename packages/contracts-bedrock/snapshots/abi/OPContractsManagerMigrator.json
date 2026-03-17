@@ -2,11 +2,6 @@
   {
     "inputs": [
       {
-        "internalType": "contract IOPContractsManagerContainer",
-        "name": "_contractsContainer",
-        "type": "address"
-      },
-      {
         "internalType": "contract IOPContractsManagerUtils",
         "name": "_utils",
         "type": "address"
@@ -109,6 +104,11 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "OPContractsManagerMigrator_InteropNotEnabled",
+    "type": "error"
   },
   {
     "inputs": [],

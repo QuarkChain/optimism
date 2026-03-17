@@ -8,7 +8,7 @@ import (
 )
 
 func TestProposer(gt *testing.T) {
-	t := devtest.SerialT(gt)
+	t := devtest.ParallelT(gt)
 	sys := presets.NewSimpleInterop(t)
 
 	dgf := sys.DisputeGameFactory()
@@ -16,7 +16,5 @@ func TestProposer(gt *testing.T) {
 	newGame := dgf.WaitForGame()
 	rootClaim := newGame.RootClaim().Value()
 	l2SequenceNumber := newGame.L2SequenceNumber()
-
-	superRoot := sys.Supervisor.FetchSuperRootAtTimestamp(l2SequenceNumber)
-	t.Require().Equal(superRoot.SuperRoot[:], rootClaim[:])
+	sys.SuperRoots.AssertSuperRootAtTimestamp(l2SequenceNumber, rootClaim)
 }

@@ -37,21 +37,11 @@ type Orchestrator struct {
 	SyncTesterELOptions     SyncTesterELOptionBundle
 	deployerPipelineOptions []DeployerPipelineOption
 
-	superchains     locks.RWMap[stack.SuperchainID, *Superchain]
-	clusters        locks.RWMap[stack.ClusterID, *Cluster]
-	l1Nets          locks.RWMap[eth.ChainID, *L1Network]
-	l2Nets          locks.RWMap[eth.ChainID, *L2Network]
-	l1ELs           locks.RWMap[stack.L1ELNodeID, L1ELNode]
-	l1CLs           locks.RWMap[stack.L1CLNodeID, *L1CLNode]
-	l2ELs           locks.RWMap[stack.L2ELNodeID, L2ELNode]
-	l2CLs           locks.RWMap[stack.L2CLNodeID, L2CLNode]
-	supervisors     locks.RWMap[stack.SupervisorID, Supervisor]
-	testSequencers  locks.RWMap[stack.TestSequencerID, *TestSequencer]
-	batchers        locks.RWMap[stack.L2BatcherID, *L2Batcher]
-	challengers     locks.RWMap[stack.L2ChallengerID, *L2Challenger]
-	proposers       locks.RWMap[stack.L2ProposerID, *L2Proposer]
-	rollupBoosts    locks.RWMap[stack.RollupBoostNodeID, *RollupBoostNode]
-	oprbuilderNodes locks.RWMap[stack.OPRBuilderNodeID, *OPRBuilderNode]
+	// Unified component registry - replaces the 15 separate locks.RWMap fields
+	registry *stack.Registry
+
+	// supernodes is stored separately because SupernodeID cannot be converted to ComponentID
+	supernodes locks.RWMap[stack.SupernodeID, *SuperNode]
 
 	// service name => prometheus endpoints to scrape
 	l2MetricsEndpoints locks.RWMap[string, []PrometheusMetricsTarget]
@@ -75,7 +65,8 @@ func (o *Orchestrator) Type() compat.Type {
 }
 
 func (o *Orchestrator) ClusterForL2(chainID eth.ChainID) (*Cluster, bool) {
-	for _, cluster := range o.clusters.Values() {
+	clusters := stack.RegistryGetByKind[*Cluster](o.registry, stack.KindCluster)
+	for _, cluster := range clusters {
 		if cluster.DepSet() != nil && cluster.DepSet().HasChain(chainID) {
 			return cluster, true
 		}
@@ -93,33 +84,29 @@ func (o *Orchestrator) EnableTimeTravel() {
 	}
 }
 
-// GetL2EL attempts to find an L2 EL node by checking various collections of EL-like nodes.
-// It returns the L2ELNode interface if found in the standard L2ELs collection,
-// or the raw node object if found in other collections (e.g. RollupBoostNode).
+// GetL2EL retrieves an L2 EL node by its ID from the registry.
+// Supports polymorphic lookup: if the ID was converted from another L2EL-capable type
+// (e.g., OPRBuilderNodeID), searches across all L2EL-capable kinds using same key/chainID.
 func (o *Orchestrator) GetL2EL(id stack.L2ELNodeID) (L2ELNode, bool) {
-	if el, ok := o.l2ELs.Get(id); ok {
-		return el, true
+	for _, kind := range stack.L2ELCapableKinds() {
+		cid := stack.NewComponentID(kind, id.Key(), id.ChainID())
+		if component, ok := o.registry.Get(cid); ok {
+			if el, ok := component.(L2ELNode); ok {
+				return el, true
+			}
+		}
 	}
-
-	// Check RollupBoost
-	rbID := stack.NewRollupBoostNodeID(id.Key(), id.ChainID())
-	if rb, ok := o.rollupBoosts.Get(rbID); ok {
-		return rb, true
-	}
-
-	// Check op-rbuilder
-	oprbID := stack.NewOPRBuilderNodeID(id.Key(), id.ChainID())
-	if oprbuilder, ok := o.oprbuilderNodes.Get(oprbID); ok {
-		return oprbuilder, true
-	}
-
 	return nil, false
 }
 
 var _ stack.Orchestrator = (*Orchestrator)(nil)
 
 func NewOrchestrator(p devtest.P, hook stack.SystemHook) *Orchestrator {
-	o := &Orchestrator{p: p, sysHook: hook}
+	o := &Orchestrator{
+		p:        p,
+		sysHook:  hook,
+		registry: stack.NewRegistry(),
+	}
 	o.controlPlane = &ControlPlane{o: o}
 	return o
 }
@@ -147,21 +134,19 @@ func (o *Orchestrator) Hydrate(sys stack.ExtensibleSystem) {
 			ttSys.SetTimeTravelClock(o.timeTravelClock)
 		}
 	}
-	o.superchains.Range(rangeHydrateFn[stack.SuperchainID, *Superchain](sys))
-	o.clusters.Range(rangeHydrateFn[stack.ClusterID, *Cluster](sys))
-	o.l1Nets.Range(rangeHydrateFn[eth.ChainID, *L1Network](sys))
-	o.l2Nets.Range(rangeHydrateFn[eth.ChainID, *L2Network](sys))
-	o.l1ELs.Range(rangeHydrateFn[stack.L1ELNodeID, L1ELNode](sys))
-	o.l1CLs.Range(rangeHydrateFn[stack.L1CLNodeID, *L1CLNode](sys))
-	o.l2ELs.Range(rangeHydrateFn[stack.L2ELNodeID, L2ELNode](sys))
-	o.oprbuilderNodes.Range(rangeHydrateFn[stack.OPRBuilderNodeID, *OPRBuilderNode](sys))
-	o.rollupBoosts.Range(rangeHydrateFn[stack.RollupBoostNodeID, *RollupBoostNode](sys))
-	o.l2CLs.Range(rangeHydrateFn[stack.L2CLNodeID, L2CLNode](sys))
-	o.supervisors.Range(rangeHydrateFn[stack.SupervisorID, Supervisor](sys))
-	o.testSequencers.Range(rangeHydrateFn[stack.TestSequencerID, *TestSequencer](sys))
-	o.batchers.Range(rangeHydrateFn[stack.L2BatcherID, *L2Batcher](sys))
-	o.challengers.Range(rangeHydrateFn[stack.L2ChallengerID, *L2Challenger](sys))
-	o.proposers.Range(rangeHydrateFn[stack.L2ProposerID, *L2Proposer](sys))
+
+	// Hydrate all components in the unified registry.
+	for _, kind := range stack.HydrationComponentKindOrder() {
+		o.registry.RangeByKind(kind, func(id stack.ComponentID, component any) bool {
+			if h, ok := component.(hydrator); ok {
+				h.hydrate(sys)
+			}
+			return true
+		})
+	}
+
+	o.supernodes.Range(rangeHydrateFn[stack.SupernodeID, *SuperNode](sys))
+
 	if o.syncTester != nil {
 		o.syncTester.hydrate(sys)
 	}
@@ -175,6 +160,17 @@ func (o *Orchestrator) RegisterL2MetricsTargets(id stack.IDWithChain, endpoints 
 		existing, _ := o.l2MetricsEndpoints.Get(id.Key())
 		o.p.Logger().Warn("multiple endpoints registered with the same key", "key", id.Key(), "existing", existing, "new", endpoints)
 	}
+}
+
+// InteropTestControl returns the InteropTestControl for a given SupernodeID.
+// Returns nil if the supernode doesn't exist or doesn't implement the interface.
+// This function is for integration test control only.
+func (o *Orchestrator) InteropTestControl(id stack.SupernodeID) stack.InteropTestControl {
+	sn, ok := o.supernodes.Get(id)
+	if !ok {
+		return nil
+	}
+	return sn
 }
 
 type hydrator interface {

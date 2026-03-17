@@ -52,25 +52,36 @@ func WithProposerOption(opt ProposerOption) stack.Option[*Orchestrator] {
 func WithProposer(proposerID stack.L2ProposerID, l1ELID stack.L1ELNodeID,
 	l2CLID *stack.L2CLNodeID, supervisorID *stack.SupervisorID) stack.Option[*Orchestrator] {
 	return stack.AfterDeploy(func(orch *Orchestrator) {
-		WithProposerPostDeploy(orch, proposerID, l1ELID, l2CLID, supervisorID)
+		WithProposerPostDeploy(orch, proposerID, l1ELID, l2CLID, supervisorID, nil)
 	})
 }
 
 func WithSuperProposer(proposerID stack.L2ProposerID, l1ELID stack.L1ELNodeID,
 	supervisorID *stack.SupervisorID) stack.Option[*Orchestrator] {
 	return stack.Finally(func(orch *Orchestrator) {
-		WithProposerPostDeploy(orch, proposerID, l1ELID, nil, supervisorID)
+		WithProposerPostDeploy(orch, proposerID, l1ELID, nil, supervisorID, nil)
+	})
+}
+
+func WithSupernodeProposer(proposerID stack.L2ProposerID, l1ELID stack.L1ELNodeID,
+	supernodeID *stack.SupernodeID) stack.Option[*Orchestrator] {
+	return stack.Finally(func(orch *Orchestrator) {
+		WithProposerPostDeploy(orch, proposerID, l1ELID, nil, nil, supernodeID)
 	})
 }
 
 func WithProposerPostDeploy(orch *Orchestrator, proposerID stack.L2ProposerID, l1ELID stack.L1ELNodeID,
-	l2CLID *stack.L2CLNodeID, supervisorID *stack.SupervisorID) {
+	l2CLID *stack.L2CLNodeID, supervisorID *stack.SupervisorID, supernodeID *stack.SupernodeID) {
 	ctx := orch.P().Ctx()
 	ctx = stack.ContextWithID(ctx, proposerID)
 	p := orch.P().WithCtx(ctx)
 
 	require := p.Require()
-	require.False(orch.proposers.Has(proposerID), "proposer must not already exist")
+	proposerCID := stack.ConvertL2ProposerID(proposerID).ComponentID
+	require.False(orch.registry.Has(proposerCID), "proposer must not already exist")
+	if supervisorID != nil && supernodeID != nil {
+		require.Fail("cannot have both supervisorID and supernodeID set for proposer")
+	}
 
 	proposerSecret, err := orch.keys.Secret(devkeys.ProposerRole.Key(proposerID.ChainID().ToBig()))
 	require.NoError(err)
@@ -78,11 +89,13 @@ func WithProposerPostDeploy(orch *Orchestrator, proposerID stack.L2ProposerID, l
 	logger := p.Logger()
 	logger.Info("Proposer key acquired", "addr", crypto.PubkeyToAddress(proposerSecret.PublicKey))
 
-	l1EL, ok := orch.l1ELs.Get(l1ELID)
+	l1ELComponent, ok := orch.registry.Get(stack.ConvertL1ELNodeID(l1ELID).ComponentID)
 	require.True(ok)
+	l1EL := l1ELComponent.(L1ELNode)
 
-	l2Net, ok := orch.l2Nets.Get(proposerID.ChainID())
+	l2NetComponent, ok := orch.registry.Get(stack.ConvertL2NetworkID(stack.L2NetworkID(proposerID.ChainID())).ComponentID)
 	require.True(ok)
+	l2Net := l2NetComponent.(*L2Network)
 	disputeGameFactoryAddr := l2Net.deployment.DisputeGameFactoryProxyAddr()
 	disputeGameType := 1 // Permissioned game type is the only one currently deployed
 	if orch.wb.outInteropMigration != nil {
@@ -92,7 +105,6 @@ func WithProposerPostDeploy(orch *Orchestrator, proposerID stack.L2ProposerID, l
 
 	proposerCLIConfig := &ps.CLIConfig{
 		L1EthRpc:          l1EL.UserRPC(),
-		L2OOAddress:       "", // legacy, not used, fault-proofs support only for now.
 		PollInterval:      500 * time.Millisecond,
 		AllowNonFinalized: true,
 		TxMgrConfig:       setuputils.NewTxMgrConfig(endpoint.URL(l1EL.UserRPC()), proposerSecret),
@@ -115,16 +127,22 @@ func WithProposerPostDeploy(orch *Orchestrator, proposerID stack.L2ProposerID, l
 		opt(proposerID, proposerCLIConfig)
 	}
 
-	// If interop is scheduled, or if we cannot do the pre-interop connection, then set up with supervisor
-	if l2Net.genesis.Config.InteropTime != nil || l2CLID == nil {
-		require.NotNil(supervisorID, "need supervisor to connect to in interop")
-		supervisorNode, ok := orch.supervisors.Get(*supervisorID)
-		require.True(ok)
+	// If supervisor is available, use it. Otherwise, connect to L2 CL.
+	switch {
+	case supervisorID != nil:
+		supervisorComponent, ok := orch.registry.Get(stack.ConvertSupervisorID(*supervisorID).ComponentID)
+		require.True(ok, "supervisor not found")
+		supervisorNode := supervisorComponent.(Supervisor)
 		proposerCLIConfig.SupervisorRpcs = []string{supervisorNode.UserRPC()}
-	} else {
-		require.NotNil(l2CLID, "need L2 CL to connect to pre-interop")
-		l2CL, ok := orch.l2CLs.Get(*l2CLID)
-		require.True(ok)
+	case supernodeID != nil:
+		supernode, ok := orch.supernodes.Get(*supernodeID)
+		require.True(ok, "supernode not found")
+		proposerCLIConfig.SuperNodeRpcs = []string{supernode.UserRPC()}
+	default:
+		require.NotNil(l2CLID, "need L2 CL to connect to when no supervisor")
+		l2CLComponent, ok := orch.registry.Get(stack.ConvertL2CLNodeID(*l2CLID).ComponentID)
+		require.True(ok, "L2 CL not found")
+		l2CL := l2CLComponent.(L2CLNode)
 		proposerCLIConfig.RollupRpc = l2CL.UserRPC()
 	}
 
@@ -145,5 +163,5 @@ func WithProposerPostDeploy(orch *Orchestrator, proposerID stack.L2ProposerID, l
 		service: proposer,
 		userRPC: proposer.HTTPEndpoint(),
 	}
-	orch.proposers.Set(proposerID, prop)
+	orch.registry.Register(stack.ConvertL2ProposerID(proposerID).ComponentID, prop)
 }

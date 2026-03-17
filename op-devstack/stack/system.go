@@ -9,6 +9,7 @@ import (
 // System represents a collection of L1 and L2 chains, any superchains or clusters, and any peripherals.
 type System interface {
 	Common
+	ComponentRegistry
 
 	Superchain(m SuperchainMatcher) Superchain
 	Cluster(m ClusterMatcher) Cluster
@@ -18,6 +19,7 @@ type System interface {
 	Network(id eth.ChainID) Network
 
 	Supervisor(m SupervisorMatcher) Supervisor
+	Supernode(m SupernodeMatcher) Supernode
 	TestSequencer(id TestSequencerMatcher) TestSequencer
 
 	SuperchainIDs() []SuperchainID
@@ -31,6 +33,7 @@ type System interface {
 	L1Networks() []L1Network
 	L2Networks() []L2Network
 	Supervisors() []Supervisor
+	Supernodes() []Supernode
 	TestSequencers() []TestSequencer
 }
 
@@ -44,6 +47,7 @@ type ExtensibleSystem interface {
 	AddL1Network(v L1Network)
 	AddL2Network(v L2Network)
 	AddSupervisor(v Supervisor)
+	AddSupernode(v Supernode)
 	AddTestSequencer(v TestSequencer)
 	AddSyncTester(v SyncTester)
 }

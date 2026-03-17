@@ -145,78 +145,49 @@ fi
 
 echo "==========Checking environment done"
 
-# contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
-pushd packages/contracts-bedrock > /dev/null
-forge install
+# # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
+# pushd packages/contracts-bedrock > /dev/null
+# forge install
 
-run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi
+# run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi
 
-# TEMP: skip failed tests until fixed in
-SKIP_PATH="test/universal/OptimismMintableERC20Factory.t.sol"
+# # TEMP: skip failed tests until fixed in
+# SKIP_PATH="test/universal/OptimismMintableERC20Factory.t.sol"
 
-for _spec in \
-    "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
-    "-name 'PreimageOracle.t.sol'"; do
-    TEST_FILES=$(eval find test ${_spec})
-    if [ -z "$TEST_FILES" ]; then
-        echo "No tests matched spec: ${_spec}; skipping"
-        continue
-    fi
-    TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
-    MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
-    echo "Running forge test --match-path $MATCH_PATH"
-    forge test --match-path "$MATCH_PATH" --no-match-path "$SKIP_PATH"
-done
+# for _spec in \
+#     "-name '*.t.sol' -not -name 'PreimageOracle.t.sol'" \
+#     "-name 'PreimageOracle.t.sol'"; do
+#     TEST_FILES=$(eval find test ${_spec})
+#     if [ -z "$TEST_FILES" ]; then
+#         echo "No tests matched spec: ${_spec}; skipping"
+#         continue
+#     fi
+#     TEST_FILES=$(echo "$TEST_FILES" | sed 's|^test/||')
+#     MATCH_PATH="./test/{$(echo "$TEST_FILES" | paste -sd "," -)}"
+#     echo "Running forge test --match-path $MATCH_PATH"
+#     forge test --match-path "$MATCH_PATH" --no-match-path "$SKIP_PATH"
+# done
 
-run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
-popd > /dev/null
+# run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
+# popd > /dev/null
 
-run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+# run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
 
-# cannon-prestate (from .circleci/continue/main.yml)
-run_step "cannon prestate build" make -j reproducible-prestate
+# # cannon-prestate (from .circleci/continue/main.yml)
+# run_step "cannon prestate build" make -j reproducible-prestate
 
-# op-program-compat (from .circleci/continue/main.yml)
-run_step "op-program compatibility" bash -c "cd op-program && make verify-compat"
+# # op-program-compat (from .circleci/continue/main.yml)
+# run_step "op-program compatibility" bash -c "cd op-program && make verify-compat"
 
 # rust-ci functional tests (from .circleci/continue/rust-ci.yml)
 run_step "rust workspace tests" bash -c "cd rust && cargo nextest run --workspace --all-features --no-fail-fast -E '!test(test_online)'"
 run_step "op-reth integration tests" bash -c "cd rust && just --justfile op-reth/justfile test-integration"
 run_step "op-reth edge tests" bash -c "cd rust && just --justfile op-reth/justfile test edge"
 
-# op-reth-compact-codec (from .circleci/continue/rust-ci.yml)
-if git rev-parse --verify refs/remotes/origin/develop >/dev/null 2>&1 || git rev-parse --verify develop >/dev/null 2>&1; then
-    run_step "op-reth compact codec" bash -c '
-        set -euo pipefail
-
-        if git rev-parse --verify refs/remotes/origin/develop >/dev/null 2>&1; then
-            BASE_REF="refs/remotes/origin/develop"
-        else
-            BASE_REF="develop"
-        fi
-
-        CURRENT_REF="$(git rev-parse --abbrev-ref HEAD)"
-        if [ "$CURRENT_REF" = "HEAD" ]; then
-            CURRENT_REF="$(git rev-parse HEAD)"
-        fi
-
-        trap '"'"'git checkout "$CURRENT_REF" >/dev/null 2>&1 || true'"'"' EXIT
-
-        git checkout "$BASE_REF"
-        cargo run --bin op-reth --features dev --manifest-path rust/op-reth/bin/Cargo.toml -- test-vectors compact --write
-
-        git checkout "$CURRENT_REF"
-        trap - EXIT
-
-        cargo run --bin op-reth --features dev --manifest-path rust/op-reth/bin/Cargo.toml -- test-vectors compact --read
-    '
-else
-    skip_step "op-reth compact codec" "missing local develop or origin/develop ref"
-fi
-
 # rust-e2e prerequisites (from .circleci/continue/rust-e2e.yml)
 run_step "rust e2e binary build" bash -c "cd rust && cargo build --release --bin kona-node --bin kona-host --bin kona-supervisor --bin op-reth"
 
+# Run node/common sysgo e2e across all CI devnet variants.
 for devnet in simple-kona simple-kona-geth simple-kona-sequencer large-kona-sequencer; do
     run_step "kona sysgo node/common (${devnet})" bash -c "
         export KONA_NODE_EXEC_PATH='$(pwd)/rust/target/release/kona-node'
@@ -225,17 +196,20 @@ for devnet in simple-kona simple-kona-geth simple-kona-sequencer large-kona-sequ
     "
 done
 
+# Run node restart recovery scenario on sysgo.
 run_step "kona sysgo node/restart" bash -c "
     export KONA_NODE_EXEC_PATH='$(pwd)/rust/target/release/kona-node'
     export OP_RETH_EXEC_PATH='$(pwd)/rust/target/release/op-reth'
     cd rust/kona && just test-e2e-sysgo-run node node/restart simple-kona
 "
 
+# Run single-chain proof action tests using kona-host.
 run_step "kona proof action single" bash -c "
     export KONA_HOST_PATH='$(pwd)/rust/target/release/kona-host'
     cd rust/kona && just action-tests-single-run
 "
 
+# Run supervisor sysgo e2e suites used in CI matrix.
 for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
     run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}

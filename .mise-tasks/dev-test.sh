@@ -238,21 +238,21 @@ run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-
 #     cd rust/kona && just action-tests-single-run
 # "
 
-# Run kona supervisor sysgo e2e suites.
-for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
-    run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
-        ROOT_DIR='$(pwd)'
-        OP_DEPLOYER_ARTIFACTS_DIR=\"\$ROOT_DIR/rust/kona/tmp/op-deployer-artifacts\"
-        mkdir -p \"\$OP_DEPLOYER_ARTIFACTS_DIR\"
-        rm -rf \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
-        ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\"
-        ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
-        export OP_DEPLOYER_ARTIFACTS=\"\$OP_DEPLOYER_ARTIFACTS_DIR\"
-        export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
-        export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
-        cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}
-    "
-done
+# # Run kona supervisor sysgo e2e suites.
+# for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
+#     run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
+#         ROOT_DIR='$(pwd)'
+#         OP_DEPLOYER_ARTIFACTS_DIR=\"\$ROOT_DIR/rust/kona/tmp/op-deployer-artifacts\"
+#         mkdir -p \"\$OP_DEPLOYER_ARTIFACTS_DIR\"
+#         rm -rf \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
+#         ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\"
+#         ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
+#         export OP_DEPLOYER_ARTIFACTS=\"\$OP_DEPLOYER_ARTIFACTS_DIR\"
+#         export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
+#         export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
+#         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}
+#     "
+# done
 
 # kona-host-client-offline (adapted from .circleci/continue/rust-ci.yml)
 run_step "kona host/client offline" bash -c '

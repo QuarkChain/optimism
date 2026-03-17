@@ -157,7 +157,7 @@ cleanup_kona_tmp
 trap cleanup_kona_tmp EXIT
 
 # # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
-# pushd packages/contracts-bedrock > /dev/null
+pushd packages/contracts-bedrock > /dev/null
 # forge install
 
 # run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi
@@ -182,7 +182,8 @@ trap cleanup_kona_tmp EXIT
 # run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
 # popd > /dev/null
 
-# run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+# required for op-deployer tests and supervisor e2e tests
+run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
 
 # # cannon-prestate (from .circleci/continue/main.yml)
 # run_step "cannon prestate build" make -j reproducible-prestate
@@ -241,10 +242,6 @@ trap cleanup_kona_tmp EXIT
 for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
     run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
         export OP_DEPLOYER_ARTIFACTS='$(pwd)/packages/contracts-bedrock/forge-artifacts'
-        if [ ! -d \"\$OP_DEPLOYER_ARTIFACTS/src\" ]; then
-            echo \"OP_DEPLOYER_ARTIFACTS/src not found at: \$OP_DEPLOYER_ARTIFACTS/src\" >&2
-            exit 1
-        fi
         export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
         export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}

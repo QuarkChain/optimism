@@ -157,7 +157,7 @@ cleanup_kona_tmp
 trap cleanup_kona_tmp EXIT
 
 # # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
-pushd packages/contracts-bedrock > /dev/null
+# pushd packages/contracts-bedrock > /dev/null
 # forge install
 
 # run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi

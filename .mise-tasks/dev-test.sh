@@ -105,6 +105,13 @@ int main(void){return 0;}'
     fi
 }
 
+cleanup_kona_tmp() {
+    if [ -d "rust/kona/tmp" ]; then
+        rm -rf rust/kona/tmp
+        echo "==========Cleaned rust/kona/tmp"
+    fi
+}
+
 # Environment verify
 echo "==========Checking environment..."
 require_command mise "Install mise first so dev-test.sh can provision repo-managed tools."
@@ -144,6 +151,10 @@ if ! cargo nextest --version >/dev/null 2>&1; then
 fi
 
 echo "==========Checking environment done"
+
+# Clean kona temp dir before running tests and on script exit.
+cleanup_kona_tmp
+trap cleanup_kona_tmp EXIT
 
 # # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
 # pushd packages/contracts-bedrock > /dev/null

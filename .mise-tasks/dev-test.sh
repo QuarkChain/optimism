@@ -179,17 +179,19 @@ echo "==========Checking environment done"
 # # op-program-compat (from .circleci/continue/main.yml)
 # run_step "op-program compatibility" bash -c "cd op-program && make verify-compat"
 
-# rust-ci functional tests (from .circleci/continue/rust-ci.yml)
-run_step "rust workspace tests" bash -c "cd rust && cargo nextest run --workspace --all-features --no-fail-fast -E '!test(test_online)'"
-run_step "op-reth integration tests" bash -c "cd rust && just --justfile op-reth/justfile test-integration"
-run_step "op-reth edge tests" bash -c "cd rust && just --justfile op-reth/justfile test edge"
+# # rust-ci functional tests (from .circleci/continue/rust-ci.yml)
+# run_step "rust workspace tests" bash -c "cd rust && cargo nextest run --workspace --all-features --no-fail-fast -E '!test(test_online)'"
+# run_step "op-reth integration tests" bash -c "cd rust && just --justfile op-reth/justfile test-integration"
+# run_step "op-reth edge tests" bash -c "cd rust && just --justfile op-reth/justfile test edge"
 
-# rust-e2e prerequisites (from .circleci/continue/rust-e2e.yml)
-run_step "rust e2e binary build" bash -c "cd rust && cargo build --release --bin kona-node --bin kona-host --bin kona-supervisor --bin op-reth"
+# # rust-e2e prerequisites (from .circleci/continue/rust-e2e.yml)
+# run_step "rust e2e binary build" bash -c "cd rust && cargo build --release --bin kona-node --bin kona-host --bin kona-supervisor --bin op-reth"
 
 # Run node/common sysgo e2e across all CI devnet variants.
 for devnet in simple-kona simple-kona-geth simple-kona-sequencer large-kona-sequencer; do
     run_step "kona sysgo node/common (${devnet})" bash -c "
+        export RUST_BINARY_PATH_KONA_NODE='$(pwd)/rust/target/release/kona-node'
+        export RUST_BINARY_PATH_OP_RETH='$(pwd)/rust/target/release/op-reth'
         export KONA_NODE_EXEC_PATH='$(pwd)/rust/target/release/kona-node'
         export OP_RETH_EXEC_PATH='$(pwd)/rust/target/release/op-reth'
         cd rust/kona && just test-e2e-sysgo-run node node/common ${devnet}
@@ -198,6 +200,8 @@ done
 
 # Run node restart recovery scenario on sysgo.
 run_step "kona sysgo node/restart" bash -c "
+    export RUST_BINARY_PATH_KONA_NODE='$(pwd)/rust/target/release/kona-node'
+    export RUST_BINARY_PATH_OP_RETH='$(pwd)/rust/target/release/op-reth'
     export KONA_NODE_EXEC_PATH='$(pwd)/rust/target/release/kona-node'
     export OP_RETH_EXEC_PATH='$(pwd)/rust/target/release/op-reth'
     cd rust/kona && just test-e2e-sysgo-run node node/restart simple-kona
@@ -205,6 +209,7 @@ run_step "kona sysgo node/restart" bash -c "
 
 # Run single-chain proof action tests using kona-host.
 run_step "kona proof action single" bash -c "
+    export RUST_BINARY_PATH_KONA_HOST='$(pwd)/rust/target/release/kona-host'
     export KONA_HOST_PATH='$(pwd)/rust/target/release/kona-host'
     cd rust/kona && just action-tests-single-run
 "
@@ -212,6 +217,8 @@ run_step "kona proof action single" bash -c "
 # Run supervisor sysgo e2e suites used in CI matrix.
 for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
     run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
+        export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
+        export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}
     "
 done

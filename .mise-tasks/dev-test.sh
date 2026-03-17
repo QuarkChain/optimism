@@ -24,8 +24,8 @@ halt() {
     echo "Execution time: ${SECONDS} seconds"
     # remove ERR trap to avoid double messaging
     trap - ERR
-    # If sourced use return, else exit with success code (0) to not signal failure
-    return 0 2>/dev/null || exit 0
+    # If sourced, return non-zero; otherwise exit non-zero.
+    return 1 2>/dev/null || exit 1
 }
 
 run_step() {
@@ -85,6 +85,7 @@ fi
 # Only check dependencies not managed by mise.toml.
 require_command m4 "m4 is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
 require_command clang "clang is a system dependency not managed in mise.toml. Install it manually before running dev-test.sh."
+require_command docker "docker is required by cannon prestate and several rust e2e steps. Install/start Docker before running dev-test.sh."
 require_clang_c_headers
 if ! cargo nextest --version >/dev/null 2>&1; then
     halt "Missing cargo-nextest. Ensure it is installed via mise and available in PATH."

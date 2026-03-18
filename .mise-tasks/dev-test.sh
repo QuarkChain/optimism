@@ -182,8 +182,8 @@ forge install
 run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
 popd > /dev/null
 
-# required for kona supervisor sysgo e2e artifact resolution
-run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+## required for kona supervisor sysgo e2e artifact resolution
+# run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
 
 # # cannon-prestate (from .circleci/continue/main.yml)
 # run_step "cannon prestate build" make -j reproducible-prestate
@@ -239,50 +239,50 @@ run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-
 # "
 
 # # Run kona supervisor sysgo e2e suites.
-# for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
-#     run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
-#         ROOT_DIR='$(pwd)'
-#         OP_DEPLOYER_ARTIFACTS_DIR=\"\$ROOT_DIR/rust/kona/tmp/op-deployer-artifacts\"
-#         mkdir -p \"\$OP_DEPLOYER_ARTIFACTS_DIR\"
-#         rm -rf \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
-#         ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\"
-#         ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
-#         export OP_DEPLOYER_ARTIFACTS=\"\$OP_DEPLOYER_ARTIFACTS_DIR\"
-#         export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
-#         export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
-#         cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}
-#     "
-# done
+for supervisor_pkg in /supervisor/pre_interop /supervisor/l1reorg/sysgo; do
+    run_step "kona supervisor e2e (${supervisor_pkg})" bash -c "
+        ROOT_DIR='$(pwd)'
+        OP_DEPLOYER_ARTIFACTS_DIR=\"\$ROOT_DIR/rust/kona/tmp/op-deployer-artifacts\"
+        mkdir -p \"\$OP_DEPLOYER_ARTIFACTS_DIR\"
+        rm -rf \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
+        ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/src\"
+        ln -s \"\$ROOT_DIR/packages/contracts-bedrock/forge-artifacts\" \"\$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts\"
+        export OP_DEPLOYER_ARTIFACTS=\"\$OP_DEPLOYER_ARTIFACTS_DIR\"
+        export RUST_BINARY_PATH_KONA_SUPERVISOR='$(pwd)/rust/target/release/kona-supervisor'
+        export KONA_SUPERVISOR_EXEC_PATH='$(pwd)/rust/target/release/kona-supervisor'
+        cd rust/kona && just test-e2e-sysgo supervisor ${supervisor_pkg}
+    "
+done
 
-# kona-host-client-offline (adapted from .circleci/continue/rust-ci.yml)
-run_step "kona host/client offline" bash -c '
-    set -euo pipefail
+# # kona-host-client-offline (adapted from .circleci/continue/rust-ci.yml)
+# run_step "kona host/client offline" bash -c '
+#     set -euo pipefail
 
-    ROOT_DIR="$(pwd)"
-    WITNESS_TAR_NAME="holocene-op-sepolia-26215604-witness.tar.zst"
+#     ROOT_DIR="$(pwd)"
+#     WITNESS_TAR_NAME="holocene-op-sepolia-26215604-witness.tar.zst"
 
-    export BLOCK_NUMBER=26215604
-    export L2_CLAIM=0x7415d942f80a34f77d344e4bccb7050f14e593f5ea33669d27ea01dce273d72d
-    export L2_OUTPUT_ROOT=0xaa34b62993bd888d7a2ad8541935374e39948576fce12aa8179a0aa5b5bc787b
-    export L2_HEAD=0xf4adf5790bad1ffc9eee315dc163df9102473c5726a2743da27a8a10dc16b473
-    export L1_HEAD=0x010cfdb22eaa13e8cdfbf66403f8de2a026475e96a6635d53c31f853a0e3ae25
-    export L2_CHAIN_ID=11155420
+#     export BLOCK_NUMBER=26215604
+#     export L2_CLAIM=0x7415d942f80a34f77d344e4bccb7050f14e593f5ea33669d27ea01dce273d72d
+#     export L2_OUTPUT_ROOT=0xaa34b62993bd888d7a2ad8541935374e39948576fce12aa8179a0aa5b5bc787b
+#     export L2_HEAD=0xf4adf5790bad1ffc9eee315dc163df9102473c5726a2743da27a8a10dc16b473
+#     export L1_HEAD=0x010cfdb22eaa13e8cdfbf66403f8de2a026475e96a6635d53c31f853a0e3ae25
+#     export L2_CHAIN_ID=11155420
 
-    cd cannon && make
-    export PATH="$ROOT_DIR/cannon/bin:$PATH"
+#     cd cannon && make
+#     export PATH="$ROOT_DIR/cannon/bin:$PATH"
 
-    cd "$ROOT_DIR/rust/kona"
-    tar --zstd -xvf "./bin/client/testdata/$WITNESS_TAR_NAME" -C .
+#     cd "$ROOT_DIR/rust/kona"
+#     tar --zstd -xvf "./bin/client/testdata/$WITNESS_TAR_NAME" -C .
 
-    cd "$ROOT_DIR/rust/kona/bin/client"
-    just run-client-cannon-offline \
-        "$BLOCK_NUMBER" \
-        "$L2_CLAIM" \
-        "$L2_OUTPUT_ROOT" \
-        "$L2_HEAD" \
-        "$L1_HEAD" \
-        "$L2_CHAIN_ID"
-'
+#     cd "$ROOT_DIR/rust/kona/bin/client"
+#     just run-client-cannon-offline \
+#         "$BLOCK_NUMBER" \
+#         "$L2_CLAIM" \
+#         "$L2_OUTPUT_ROOT" \
+#         "$L2_HEAD" \
+#         "$L1_HEAD" \
+#         "$L2_CHAIN_ID"
+# '
 
 
 echo "Execution time: $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s)"

@@ -35,6 +35,8 @@ pub static BASE_MAINNET: LazyLock<Arc<OpChainSpec>> = LazyLock::new(|| {
             ),
             ..Default::default()
         },
+        sgt_activation_timestamp: None,
+        sgt_is_native_backed: true,
     }
     .into()
 });

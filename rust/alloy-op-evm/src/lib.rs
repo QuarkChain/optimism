@@ -33,6 +33,9 @@ use revm::{
 pub mod block;
 pub use block::{OpBlockExecutionCtx, OpBlockExecutor, OpBlockExecutorFactory};
 
+pub mod sgt;
+pub use sgt::{SgtConfig, sgt_balance_slot, SGT_CONTRACT, SGT_BALANCE_SLOT};
+
 /// OP EVM implementation.
 ///
 /// This is a wrapper type around the `revm` evm with optional [`Inspector`] (tracing)
@@ -148,6 +151,21 @@ where
             &mut self.inner.0.inspector,
             &mut self.inner.0.precompiles,
         )
+    }
+
+    fn configure_sgt(&mut self, enabled: bool, is_native_backed: bool) {
+        OpEvm::configure_sgt(self, enabled, is_native_backed);
+    }
+}
+
+impl<DB: Database, I, P> OpEvm<DB, I, P> {
+    /// Set SGT configuration on the OP EVM context.
+    ///
+    /// This initializes the SGT configuration in L1BlockInfo before transaction execution.
+    /// The handler will read and preserve these values when fetching L1 block info from storage.
+    pub fn configure_sgt(&mut self, enabled: bool, is_native_backed: bool) {
+        self.ctx_mut().chain.sgt_enabled = enabled;
+        self.ctx_mut().chain.sgt_is_native_backed = is_native_backed;
     }
 }
 

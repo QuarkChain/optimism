@@ -670,3 +670,19 @@ op-alloy-rpc-types = { path = "op-alloy/crates/rpc-types" }
 op-alloy = { path = "op-alloy/crates/op-alloy" }
 # Duplicated by: alloy-evm (crates.io)
 alloy-op-hardforks = { path = "alloy-op-hardforks/" }
+
+# Forked revm with SGT support (based on revm 34.0.0)
+revm = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-bytecode = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-database = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-state = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-primitives = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-interpreter = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-context = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-handler = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-precompile = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-inspector = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-context-interface = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+revm-database-interface = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+op-revm = { git = "https://github.com/blockchaindevsh/revm", branch = "op-revm-sgt-support" }
+alloy-evm = { git = "https://github.com/blockchaindevsh/evm", branch = "op-fork-0.27.2" }

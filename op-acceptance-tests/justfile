@@ -17,6 +17,9 @@ interop:
 cgt:
     @just acceptance-test "" cgt
 
+sgt:
+    @just acceptance-test "" sgt
+
 
 # Run acceptance tests with mise-managed binary
 # Usage: just acceptance-test [devnet] [gate]

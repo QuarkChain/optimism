@@ -34,6 +34,8 @@ pub static OP_SEPOLIA: LazyLock<Arc<OpChainSpec>> = LazyLock::new(|| {
             prune_delete_limit: 10000,
             ..Default::default()
         },
+        sgt_activation_timestamp: None,
+        sgt_is_native_backed: true,
     }
     .into()
 });

@@ -29,6 +29,8 @@ pub static OP_DEV: LazyLock<Arc<OpChainSpec>> = LazyLock::new(|| {
             base_fee_params: BaseFeeParamsKind::Constant(BaseFeeParams::ethereum()),
             ..Default::default()
         },
+        sgt_activation_timestamp: None,
+        sgt_is_native_backed: true,
     }
     .into()
 });

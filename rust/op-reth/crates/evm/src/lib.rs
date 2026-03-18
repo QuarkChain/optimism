@@ -22,6 +22,7 @@ use reth_chainspec::EthChainSpec;
 use reth_evm::{
     ConfigureEvm, EvmEnv, TransactionEnv, eth::NextEvmEnvAttributes, precompiles::PrecompilesMap,
 };
+use tracing::debug;
 use reth_optimism_chainspec::OpChainSpec;
 use reth_optimism_forks::OpHardforks;
 use reth_optimism_primitives::{DepositReceipt, OpPrimitives};
@@ -120,6 +121,19 @@ where
     pub const fn chain_spec(&self) -> &Arc<ChainSpec> {
         self.executor_factory.spec()
     }
+
+    /// Extract SGT configuration for a given timestamp.
+    fn extract_sgt_config(&self, timestamp: u64) -> alloy_op_evm::sgt::SgtConfig {
+        let chain_spec = self.chain_spec();
+        let enabled = chain_spec.is_sgt_active_at_timestamp(timestamp);
+        let is_native_backed = chain_spec.is_sgt_native_backed();
+
+        if enabled {
+            debug!(target: "evm", timestamp, is_native_backed, "SGT enabled for block");
+        }
+
+        alloy_op_evm::sgt::SgtConfig { enabled, is_native_backed }
+    }
 }
 
 impl<ChainSpec, N, R, EvmF> ConfigureEvm for OpEvmConfig<ChainSpec, N, R, EvmF>
@@ -186,10 +200,14 @@ where
         &self,
         block: &'_ SealedBlock<N::Block>,
     ) -> Result<OpBlockExecutionCtx, Self::Error> {
+        let sgt_config =
+            self.extract_sgt_config(block.header().timestamp());
+
         Ok(OpBlockExecutionCtx {
             parent_hash: block.header().parent_hash(),
             parent_beacon_block_root: block.header().parent_beacon_block_root(),
             extra_data: block.header().extra_data().clone(),
+            sgt_config,
         })
     }
 
@@ -198,10 +216,13 @@ where
         parent: &SealedHeader<N::BlockHeader>,
         attributes: Self::NextBlockEnvCtx,
     ) -> Result<OpBlockExecutionCtx, Self::Error> {
+        let sgt_config = self.extract_sgt_config(attributes.timestamp);
+
         Ok(OpBlockExecutionCtx {
             parent_hash: parent.hash(),
             parent_beacon_block_root: attributes.parent_beacon_block_root,
             extra_data: attributes.extra_data,
+            sgt_config,
         })
     }
 }
@@ -263,10 +284,14 @@ where
         &self,
         payload: &'a OpExecutionData,
     ) -> Result<ExecutionCtxFor<'a, Self>, Self::Error> {
+        let sgt_config =
+            self.extract_sgt_config(payload.payload.timestamp());
+
         Ok(OpBlockExecutionCtx {
             parent_hash: payload.parent_hash(),
             parent_beacon_block_root: payload.sidecar.parent_beacon_block_root(),
             extra_data: payload.payload.as_v1().extra_data.clone(),
+            sgt_config,
         })
     }
 
@@ -337,7 +362,7 @@ mod tests {
         // Use the `OpEvmConfig` to create the `cfg_env` and `block_env` based on the ChainSpec,
         // Header, and total difficulty
         let EvmEnv { cfg_env, .. } =
-            OpEvmConfig::optimism(Arc::new(OpChainSpec { inner: chain_spec.clone() }))
+            OpEvmConfig::optimism(Arc::new(OpChainSpec::new(chain_spec.clone())))
                 .evm_env(&header)
                 .unwrap();
 

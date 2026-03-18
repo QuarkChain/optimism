@@ -80,6 +80,7 @@ url.workspace = true
 humantime.workspace = true
 futures-util.workspace = true
 tracing.workspace = true
+jsonrpsee = { workspace = true, features = ["server"] }
 
 # test-utils dependencies
 reth-e2e-test-utils = { workspace = true, optional = true }

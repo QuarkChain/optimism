@@ -10,7 +10,7 @@ use reth_primitives_traits::{
     Block, BlockBody, BlockTy, GotExpected, SealedBlock,
     transaction::error::InvalidTransactionError,
 };
-use reth_storage_api::{AccountInfoReader, BlockReaderIdExt, StateProviderFactory};
+use reth_storage_api::{AccountInfoReader, BlockReaderIdExt, StateProvider, StateProviderFactory};
 use reth_transaction_pool::{
     EthPoolTransaction, EthTransactionValidator, TransactionOrigin, TransactionValidationOutcome,
     TransactionValidator, error::InvalidPoolTransactionError,
@@ -251,12 +251,19 @@ where
             };
             let cost = valid_tx.transaction().cost().saturating_add(cost_addition);
 
+            // Check combined balance (native + SGT) only when SGT is active
+            let effective_balance = if self.chain_spec().is_sgt_active_at_timestamp(self.block_timestamp()) {
+                balance.saturating_add(self.read_sgt_balance(valid_tx.transaction().sender()))
+            } else {
+                balance
+            };
+
             // Checks for max cost
-            if cost > balance {
+            if cost > effective_balance {
                 return TransactionValidationOutcome::Invalid(
                     valid_tx.into_transaction(),
                     InvalidTransactionError::InsufficientFunds(
-                        GotExpected { got: balance, expected: cost }.into(),
+                        GotExpected { got: effective_balance, expected: cost }.into(),
                     )
                     .into(),
                 );
@@ -272,6 +279,37 @@ where
             };
         }
         outcome
+    }
+
+    /// Reads the SGT balance for an account.
+    ///
+    /// Returns the SGT balance from storage, or 0 if unavailable.
+    fn read_sgt_balance(&self, address: alloy_primitives::Address) -> alloy_primitives::U256
+    where
+        Client: StateProviderFactory,
+    {
+        use alloy_primitives::{address, keccak256, U256};
+
+        // Calculate storage slot for account's SGT balance
+        // Formula: keccak256(abi.encode(account, 51))
+        let mut data = [0u8; 64];
+        data[12..32].copy_from_slice(address.as_slice());
+        data[32..64].copy_from_slice(&U256::from(51u64).to_be_bytes::<32>());
+        let slot = keccak256(data);
+
+        // SGT contract address
+        let sgt_contract = address!("4200000000000000000000000000000000000800");
+
+        // Read from state
+        let state_provider = match self.inner.client().latest() {
+            Ok(provider) => provider,
+            Err(_) => return U256::ZERO,
+        };
+
+        match state_provider.storage(sgt_contract, slot.into()) {
+            Ok(Some(value)) => value,
+            _ => U256::ZERO,
+        }
     }
 
     /// Wrapper for is valid cross tx

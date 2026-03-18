@@ -106,11 +106,18 @@ int main(void){return 0;}'
 }
 
 cleanup_kona_tmp() {
+    # Known local artifacts from kona sysgo/action tests.
+    rm -f rust/kona/out.bin.gz
+    rm -f rust/kona/._*
+
     if [ -d "rust/kona/tmp" ]; then
         rm -rf rust/kona/tmp
         echo "==========Cleaned rust/kona/tmp"
     fi
 }
+
+# Always cleanup kona ephemeral artifacts on script exit.
+trap cleanup_kona_tmp EXIT
 
 # Environment verify
 echo "==========Checking environment..."
@@ -152,9 +159,8 @@ fi
 
 echo "==========Checking environment done"
 
-# Clean kona temp dir before running tests and on script exit.
+# Clean kona temp dir again before running tests.
 cleanup_kona_tmp
-trap cleanup_kona_tmp EXIT
 
 # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
 pushd packages/contracts-bedrock > /dev/null

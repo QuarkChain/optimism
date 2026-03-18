@@ -182,8 +182,8 @@ forge install
 run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
 popd > /dev/null
 
-## required for kona supervisor sysgo e2e artifact resolution
-# run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+# required for kona supervisor sysgo e2e artifact resolution
+run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
 
 # # cannon-prestate (from .circleci/continue/main.yml)
 # run_step "cannon prestate build" make -j reproducible-prestate

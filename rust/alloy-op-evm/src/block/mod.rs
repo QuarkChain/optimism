@@ -55,8 +55,6 @@ pub struct OpBlockExecutionCtx {
     pub parent_beacon_block_root: Option<B256>,
     /// The block's extra data.
     pub extra_data: Bytes,
-    /// SGT configuration for this block.
-    pub sgt_config: crate::sgt::SgtConfig,
 }
 
 /// The result of executing an OP transaction.
@@ -462,16 +460,13 @@ where
 
     fn create_executor<'a, DB, I>(
         &'a self,
-        mut evm: EvmF::Evm<&'a mut State<DB>, I>,
+        evm: EvmF::Evm<&'a mut State<DB>, I>,
         ctx: Self::ExecutionCtx<'a>,
     ) -> impl BlockExecutorFor<'a, Self, DB, I>
     where
         DB: Database + 'a,
         I: Inspector<EvmF::Context<&'a mut State<DB>>> + 'a,
     {
-        // Configure SGT settings for OP Stack
-        evm.configure_sgt(ctx.sgt_config.enabled, ctx.sgt_config.is_native_backed);
-
         OpBlockExecutor::new(evm, ctx, &self.spec, &self.receipt_builder)
     }
 }

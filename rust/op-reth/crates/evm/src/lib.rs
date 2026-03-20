@@ -174,7 +174,11 @@ where
     }
 
     fn evm_env(&self, header: &Header) -> Result<EvmEnv<OpSpecId>, Self::Error> {
-        Ok(EvmEnv::for_op_block(header, self.chain_spec(), self.chain_spec().chain().id()))
+        let mut env = EvmEnv::for_op_block(header, self.chain_spec(), self.chain_spec().chain().id());
+        let sgt_config = self.extract_sgt_config(header.timestamp());
+        env.cfg_env.sgt_enabled = sgt_config.enabled;
+        env.cfg_env.sgt_is_native_backed = sgt_config.is_native_backed;
+        Ok(env)
     }
 
     fn next_evm_env(
@@ -182,7 +186,7 @@ where
         parent: &Header,
         attributes: &Self::NextBlockEnvCtx,
     ) -> Result<EvmEnv<OpSpecId>, Self::Error> {
-        Ok(EvmEnv::for_op_next_block(
+        let mut env = EvmEnv::for_op_next_block(
             parent,
             NextEvmEnvAttributes {
                 timestamp: attributes.timestamp,
@@ -193,21 +197,21 @@ where
             self.chain_spec().next_block_base_fee(parent, attributes.timestamp).unwrap_or_default(),
             self.chain_spec(),
             self.chain_spec().chain().id(),
-        ))
+        );
+        let sgt_config = self.extract_sgt_config(attributes.timestamp);
+        env.cfg_env.sgt_enabled = sgt_config.enabled;
+        env.cfg_env.sgt_is_native_backed = sgt_config.is_native_backed;
+        Ok(env)
     }
 
     fn context_for_block(
         &self,
         block: &'_ SealedBlock<N::Block>,
     ) -> Result<OpBlockExecutionCtx, Self::Error> {
-        let sgt_config =
-            self.extract_sgt_config(block.header().timestamp());
-
         Ok(OpBlockExecutionCtx {
             parent_hash: block.header().parent_hash(),
             parent_beacon_block_root: block.header().parent_beacon_block_root(),
             extra_data: block.header().extra_data().clone(),
-            sgt_config,
         })
     }
 
@@ -216,13 +220,10 @@ where
         parent: &SealedHeader<N::BlockHeader>,
         attributes: Self::NextBlockEnvCtx,
     ) -> Result<OpBlockExecutionCtx, Self::Error> {
-        let sgt_config = self.extract_sgt_config(attributes.timestamp);
-
         Ok(OpBlockExecutionCtx {
             parent_hash: parent.hash(),
             parent_beacon_block_root: attributes.parent_beacon_block_root,
             extra_data: attributes.extra_data,
-            sgt_config,
         })
     }
 }
@@ -251,9 +252,12 @@ where
 
         let spec = revm_spec_by_timestamp_after_bedrock(self.chain_spec(), timestamp);
 
-        let cfg_env = CfgEnv::new()
+        let sgt_config = self.extract_sgt_config(timestamp);
+        let mut cfg_env = CfgEnv::new()
             .with_chain_id(self.chain_spec().chain().id())
             .with_spec_and_mainnet_gas_params(spec);
+        cfg_env.sgt_enabled = sgt_config.enabled;
+        cfg_env.sgt_is_native_backed = sgt_config.is_native_backed;
 
         let blob_excess_gas_and_price = spec
             .into_eth_spec()
@@ -284,14 +288,10 @@ where
         &self,
         payload: &'a OpExecutionData,
     ) -> Result<ExecutionCtxFor<'a, Self>, Self::Error> {
-        let sgt_config =
-            self.extract_sgt_config(payload.payload.timestamp());
-
         Ok(OpBlockExecutionCtx {
             parent_hash: payload.parent_hash(),
             parent_beacon_block_root: payload.sidecar.parent_beacon_block_root(),
             extra_data: payload.payload.as_v1().extra_data.clone(),
-            sgt_config,
         })
     }
 

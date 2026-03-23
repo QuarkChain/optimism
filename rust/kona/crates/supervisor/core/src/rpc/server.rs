@@ -245,6 +245,7 @@ where
                 for (id, status) in &mut chains {
                     let head = match self.supervisor.super_head(*id) {
                         Ok(head) => head,
+                        Err(SupervisorError::SpecError(SpecError::Uninitialized)) |
                         Err(SupervisorError::SpecError(SpecError::ErrorNotInSpec)) => {
                             uninitialized_chain_db_count += 1;
                             continue;
@@ -280,7 +281,7 @@ where
                 if uninitialized_chain_db_count == chains.len() {
                     warn!(target: "supervisor::rpc", "No chain db initialized");
                     return Err(ErrorObject::from(SupervisorError::SpecError(
-                        SpecError::ErrorNotInSpec,
+                        SpecError::Uninitialized,
                     )));
                 }
 

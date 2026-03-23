@@ -99,6 +99,10 @@ pub enum SpecError {
     /// Error not in spec.
     #[error("error not in spec")]
     ErrorNotInSpec,
+
+    /// Chain database is not initialized.
+    #[error("chain database is not initialized")]
+    Uninitialized,
 }
 
 impl SpecError {
@@ -108,6 +112,7 @@ impl SpecError {
         match self {
             Self::SuperchainDAError(e) => *e as i32,
             Self::ErrorNotInSpec => -321300,
+            Self::Uninitialized => -320400,
         }
     }
 }
@@ -145,6 +150,7 @@ impl From<StorageError> for SpecError {
             StorageError::EntryNotFound(_) => Self::from(SuperchainDAError::MissedData),
             StorageError::ConflictError => Self::from(SuperchainDAError::ConflictingData),
             StorageError::BlockOutOfOrder => Self::from(SuperchainDAError::OutOfOrder),
+            StorageError::DatabaseNotInitialised => Self::Uninitialized,
             _ => Self::ErrorNotInSpec,
         }
     }
@@ -159,7 +165,7 @@ mod test {
     #[test]
     fn test_storage_error_conversion() {
         let test_err = SpecError::from(StorageError::DatabaseNotInitialised);
-        let expected_err = SpecError::ErrorNotInSpec;
+        let expected_err = SpecError::Uninitialized;
 
         assert_eq!(test_err, expected_err);
     }

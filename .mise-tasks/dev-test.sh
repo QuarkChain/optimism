@@ -163,8 +163,8 @@ echo "==========Checking environment done"
 # cleanup_kona_tmp
 
 # # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
-# pushd packages/contracts-bedrock > /dev/null
-# forge install
+pushd packages/contracts-bedrock > /dev/null
+forge install
 
 # # run_step "contracts-bedrock tests setup (go-ffi)" just build-go-ffi
 
@@ -185,11 +185,8 @@ echo "==========Checking environment done"
 #     forge test --match-path "$MATCH_PATH" --no-match-path "$SKIP_PATH"
 # done
 
-# run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
-# popd > /dev/null
-
-# required for kona supervisor sysgo e2e artifact resolution
-run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
+popd > /dev/null
 
 # # cannon-prestate (from .circleci/continue/main.yml)
 # run_step "cannon prestate build" make -j reproducible-prestate
@@ -250,7 +247,6 @@ OP_DEPLOYER_ARTIFACTS_DIR="$ROOT_DIR/rust/kona/tmp/op-deployer-artifacts"
 mkdir -p "$OP_DEPLOYER_ARTIFACTS_DIR"
 rm -rf "$OP_DEPLOYER_ARTIFACTS_DIR/src" "$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts"
 ln -s "$ROOT_DIR/packages/contracts-bedrock/forge-artifacts" "$OP_DEPLOYER_ARTIFACTS_DIR/src"
-ln -s "$ROOT_DIR/packages/contracts-bedrock/forge-artifacts" "$OP_DEPLOYER_ARTIFACTS_DIR/forge-artifacts"
 
 export OP_DEPLOYER_ARTIFACTS="$OP_DEPLOYER_ARTIFACTS_DIR"
 export RUST_BINARY_PATH_KONA_SUPERVISOR="$ROOT_DIR/rust/target/release/kona-supervisor"

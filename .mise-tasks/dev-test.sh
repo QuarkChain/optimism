@@ -182,6 +182,9 @@ run_step "rust workspace tests" bash -c "cd rust && cargo nextest run --workspac
 run_step "op-reth integration tests" bash -c "cd rust && just --justfile op-reth/justfile test-integration"
 run_step "op-reth edge tests" bash -c "cd rust && just --justfile op-reth/justfile test edge"
 
+# rust-e2e prerequisites (from .circleci/continue/rust-e2e.yml)
+run_step "rust e2e binary build" bash -c "cd rust && cargo build --release --bin kona-node --bin kona-host --bin kona-supervisor --bin op-reth"
+
 # Run node/common sysgo e2e across all CI devnet variants.
 for devnet in simple-kona simple-kona-geth simple-kona-sequencer large-kona-sequencer; do
     run_step "kona sysgo node/common (${devnet})" bash -c "

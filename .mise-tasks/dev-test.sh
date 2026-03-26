@@ -126,6 +126,9 @@ if [ -z "${MISE_SHELL:-}" ]; then
     fi
 fi
 
+# Required by justfiles using unstable `[script]` recipes.
+export JUST_UNSTABLE=1
+
 echo "Current branch: $(git rev-parse --abbrev-ref HEAD)" >&2
 if [ -n "$(git status --porcelain)" ]; then
   echo "WARN: Working tree not clean. Commit/stash changes first." >&2

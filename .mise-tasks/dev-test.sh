@@ -53,6 +53,12 @@ require_command() {
 
 install_system_package() {
     local pkg="$1"
+    local install_hint=""
+
+    case "$pkg" in
+        docker) install_hint="docker.io (or docker)" ;;
+        *) install_hint="$pkg" ;;
+    esac
 
     case "$(uname -s)" in
         Darwin)
@@ -66,24 +72,33 @@ install_system_package() {
             fi
             ;;
         Linux)
-            if command -v apt-get >/dev/null 2>&1; then
-                apt-get update
-                if [ "$pkg" = "docker" ]; then
-                    apt-get install -y docker.io
+            local SUDO=""
+            if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+                if command -v sudo >/dev/null 2>&1; then
+                    SUDO="sudo -E"
                 else
-                    apt-get install -y "$pkg"
+                    halt "Need to install '$install_hint' but current user is not root and 'sudo' is unavailable. Please install it manually, then rerun dev-test.sh."
+                fi
+            fi
+
+            if command -v apt-get >/dev/null 2>&1; then
+                ${SUDO} apt-get update
+                if [ "$pkg" = "docker" ]; then
+                    ${SUDO} apt-get install -y docker.io
+                else
+                    ${SUDO} apt-get install -y "$pkg"
                 fi
             elif command -v dnf >/dev/null 2>&1; then
                 if [ "$pkg" = "docker" ]; then
-                    dnf install -y docker
+                    ${SUDO} dnf install -y docker
                 else
-                    dnf install -y "$pkg"
+                    ${SUDO} dnf install -y "$pkg"
                 fi
             elif command -v apk >/dev/null 2>&1; then
                 if [ "$pkg" = "docker" ]; then
-                    apk add --no-cache docker
+                    ${SUDO} apk add --no-cache docker
                 else
-                    apk add --no-cache "$pkg"
+                    ${SUDO} apk add --no-cache "$pkg"
                 fi
             else
                 halt "No supported package manager found to install $pkg."

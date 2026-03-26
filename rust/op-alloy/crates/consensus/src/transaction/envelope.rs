@@ -4,7 +4,7 @@ use crate::{
 };
 use alloy_consensus::{
     EthereumTxEnvelope, Extended, Sealable, Sealed, SignableTransaction, Signed,
-    TransactionEnvelope, TxEip1559, TxEip2930, TxEip7702, TxEnvelope, TxLegacy,
+    TransactionEnvelope, TxEip1559, TxEip2930, TxEip4844, TxEip7702, TxEnvelope, TxLegacy,
     error::ValueError,
     transaction::{TransactionInfo, TxHashRef},
 };
@@ -34,6 +34,9 @@ pub enum OpTxEnvelope {
     /// A [`TxEip1559`] tagged with type 2.
     #[envelope(ty = 2)]
     Eip1559(Signed<TxEip1559>),
+    /// A [`TxEip4844`] tagged with type 3.
+    #[envelope(ty = 3)]
+    Eip4844(Signed<TxEip4844>),
     /// A [`TxEip7702`] tagged with type 4.
     #[envelope(ty = 4)]
     Eip7702(Signed<TxEip7702>),
@@ -41,6 +44,29 @@ pub enum OpTxEnvelope {
     #[envelope(ty = 126)]
     #[serde(serialize_with = "crate::serde_deposit_tx_rpc")]
     Deposit(Sealed<TxDeposit>),
+}
+
+impl OpTxEnvelope {
+    /// Converts this envelope into an [`OpPooledTransaction`] by attaching a blob sidecar.
+    ///
+    /// Returns an error if this is not an EIP-4844 transaction.
+    pub fn try_into_pooled_eip4844(
+        self,
+        sidecar: alloy_eips::eip7594::BlobTransactionSidecarVariant,
+    ) -> Result<OpPooledTransaction, alloy_consensus::error::ValueError<Self>> {
+        match self {
+            Self::Eip4844(tx) => {
+                let (inner, sig, hash) = tx.into_parts();
+                let with_sidecar =
+                    alloy_consensus::TxEip4844WithSidecar::from_tx_and_sidecar(inner, sidecar);
+                Ok(OpPooledTransaction::Eip4844(Signed::new_unchecked(with_sidecar, sig, hash)))
+            }
+            this => Err(alloy_consensus::error::ValueError::new_static(
+                this,
+                "Expected 4844 transaction",
+            )),
+        }
+    }
 }
 
 /// Represents an Optimism transaction envelope.
@@ -108,6 +134,12 @@ impl From<Signed<TxEip1559>> for OpTxEnvelope {
     }
 }
 
+impl From<Signed<TxEip4844>> for OpTxEnvelope {
+    fn from(v: Signed<TxEip4844>) -> Self {
+        Self::Eip4844(v)
+    }
+}
+
 impl From<Signed<TxEip7702>> for OpTxEnvelope {
     fn from(v: Signed<TxEip7702>) -> Self {
         Self::Eip7702(v)
@@ -135,6 +167,10 @@ impl From<Signed<OpTypedTransaction>> for OpTxEnvelope {
             OpTypedTransaction::Eip1559(tx_eip1559) => {
                 let tx = Signed::new_unchecked(tx_eip1559, sig, hash);
                 Self::Eip1559(tx)
+            }
+            OpTypedTransaction::Eip4844(tx_eip4844) => {
+                let tx = Signed::new_unchecked(tx_eip4844, sig, hash);
+                Self::Eip4844(tx)
             }
             OpTypedTransaction::Eip7702(tx_eip7702) => {
                 let tx = Signed::new_unchecked(tx_eip7702, sig, hash);
@@ -185,6 +221,7 @@ impl From<OpTxEnvelope> for alloy_rpc_types_eth::TransactionRequest {
         match value {
             OpTxEnvelope::Eip2930(tx) => tx.into_parts().0.into(),
             OpTxEnvelope::Eip1559(tx) => tx.into_parts().0.into(),
+            OpTxEnvelope::Eip4844(tx) => tx.into_parts().0.into(),
             OpTxEnvelope::Eip7702(tx) => tx.into_parts().0.into(),
             OpTxEnvelope::Deposit(tx) => tx.into_inner().into(),
             OpTxEnvelope::Legacy(tx) => tx.into_parts().0.into(),
@@ -248,6 +285,9 @@ impl OpTxEnvelope {
             Self::Legacy(tx) => Ok(tx.into()),
             Self::Eip2930(tx) => Ok(tx.into()),
             Self::Eip1559(tx) => Ok(tx.into()),
+            Self::Eip4844(tx) => {
+                Err(ValueError::new(tx.into(), "EIP-4844 transactions without sidecar cannot be pooled"))
+            }
             Self::Eip7702(tx) => Ok(tx.into()),
             Self::Deposit(tx) => {
                 Err(ValueError::new(tx.into(), "Deposit transactions cannot be pooled"))
@@ -273,6 +313,7 @@ impl OpTxEnvelope {
             Self::Legacy(tx) => Ok(tx.into()),
             Self::Eip2930(tx) => Ok(tx.into()),
             Self::Eip1559(tx) => Ok(tx.into()),
+            Self::Eip4844(tx) => Ok(tx.into()),
             Self::Eip7702(tx) => Ok(tx.into()),
             tx @ Self::Deposit(_) => Err(ValueError::new(
                 tx,
@@ -322,6 +363,7 @@ impl OpTxEnvelope {
             Self::Eip1559(tx) => &mut tx.tx_mut().input,
             Self::Eip2930(tx) => &mut tx.tx_mut().input,
             Self::Legacy(tx) => &mut tx.tx_mut().input,
+            Self::Eip4844(tx) => &mut tx.tx_mut().input,
             Self::Eip7702(tx) => &mut tx.tx_mut().input,
             Self::Deposit(tx) => &mut tx.inner_mut().input,
         }
@@ -397,6 +439,7 @@ impl OpTxEnvelope {
             Self::Legacy(tx) => Some(tx.signature()),
             Self::Eip2930(tx) => Some(tx.signature()),
             Self::Eip1559(tx) => Some(tx.signature()),
+            Self::Eip4844(tx) => Some(tx.signature()),
             Self::Eip7702(tx) => Some(tx.signature()),
             Self::Deposit(_) => None,
         }
@@ -408,6 +451,7 @@ impl OpTxEnvelope {
             Self::Legacy(_) => OpTxType::Legacy,
             Self::Eip2930(_) => OpTxType::Eip2930,
             Self::Eip1559(_) => OpTxType::Eip1559,
+            Self::Eip4844(_) => OpTxType::Eip4844,
             Self::Eip7702(_) => OpTxType::Eip7702,
             Self::Deposit(_) => OpTxType::Deposit,
         }
@@ -419,6 +463,7 @@ impl OpTxEnvelope {
             Self::Legacy(tx) => tx.hash(),
             Self::Eip1559(tx) => tx.hash(),
             Self::Eip2930(tx) => tx.hash(),
+            Self::Eip4844(tx) => tx.hash(),
             Self::Eip7702(tx) => tx.hash(),
             Self::Deposit(tx) => tx.hash_ref(),
         }
@@ -435,6 +480,7 @@ impl OpTxEnvelope {
             Self::Legacy(t) => t.eip2718_encoded_length(),
             Self::Eip2930(t) => t.eip2718_encoded_length(),
             Self::Eip1559(t) => t.eip2718_encoded_length(),
+            Self::Eip4844(t) => t.eip2718_encoded_length(),
             Self::Eip7702(t) => t.eip2718_encoded_length(),
             Self::Deposit(t) => t.eip2718_encoded_length(),
         }
@@ -456,6 +502,7 @@ impl alloy_consensus::transaction::SignerRecoverable for OpTxEnvelope {
             Self::Legacy(tx) => tx.signature_hash(),
             Self::Eip2930(tx) => tx.signature_hash(),
             Self::Eip1559(tx) => tx.signature_hash(),
+            Self::Eip4844(tx) => tx.signature_hash(),
             Self::Eip7702(tx) => tx.signature_hash(),
             // Optimism's Deposit transaction does not have a signature. Directly return the
             // `from` address.
@@ -465,6 +512,7 @@ impl alloy_consensus::transaction::SignerRecoverable for OpTxEnvelope {
             Self::Legacy(tx) => tx.signature(),
             Self::Eip2930(tx) => tx.signature(),
             Self::Eip1559(tx) => tx.signature(),
+            Self::Eip4844(tx) => tx.signature(),
             Self::Eip7702(tx) => tx.signature(),
             Self::Deposit(_) => unreachable!("Deposit transactions should not be handled here"),
         };
@@ -478,6 +526,7 @@ impl alloy_consensus::transaction::SignerRecoverable for OpTxEnvelope {
             Self::Legacy(tx) => tx.signature_hash(),
             Self::Eip2930(tx) => tx.signature_hash(),
             Self::Eip1559(tx) => tx.signature_hash(),
+            Self::Eip4844(tx) => tx.signature_hash(),
             Self::Eip7702(tx) => tx.signature_hash(),
             // Optimism's Deposit transaction does not have a signature. Directly return the
             // `from` address.
@@ -487,6 +536,7 @@ impl alloy_consensus::transaction::SignerRecoverable for OpTxEnvelope {
             Self::Legacy(tx) => tx.signature(),
             Self::Eip2930(tx) => tx.signature(),
             Self::Eip1559(tx) => tx.signature(),
+            Self::Eip4844(tx) => tx.signature(),
             Self::Eip7702(tx) => tx.signature(),
             Self::Deposit(_) => unreachable!("Deposit transactions should not be handled here"),
         };
@@ -505,6 +555,9 @@ impl alloy_consensus::transaction::SignerRecoverable for OpTxEnvelope {
                 alloy_consensus::transaction::SignerRecoverable::recover_unchecked_with_buf(tx, buf)
             }
             Self::Eip1559(tx) => {
+                alloy_consensus::transaction::SignerRecoverable::recover_unchecked_with_buf(tx, buf)
+            }
+            Self::Eip4844(tx) => {
                 alloy_consensus::transaction::SignerRecoverable::recover_unchecked_with_buf(tx, buf)
             }
             Self::Eip7702(tx) => {
@@ -551,6 +604,13 @@ pub mod serde_bincode_compat {
             /// Borrowed EIP-1559 transaction data.
             transaction: TxEip1559<'a>,
         },
+        /// EIP-4844 variant.
+        Eip4844 {
+            /// Transaction signature.
+            signature: Signature,
+            /// EIP-4844 transaction data.
+            transaction: alloy_consensus::TxEip4844,
+        },
         /// EIP-7702 variant.
         Eip7702 {
             /// Transaction signature.
@@ -582,6 +642,10 @@ pub mod serde_bincode_compat {
                     signature: *signed_1559.signature(),
                     transaction: signed_1559.tx().into(),
                 },
+                super::OpTxEnvelope::Eip4844(signed_4844) => Self::Eip4844 {
+                    signature: *signed_4844.signature(),
+                    transaction: signed_4844.tx().clone(),
+                },
                 super::OpTxEnvelope::Eip7702(signed_7702) => Self::Eip7702 {
                     signature: *signed_7702.signature(),
                     transaction: signed_7702.tx().into(),
@@ -605,6 +669,9 @@ pub mod serde_bincode_compat {
                 }
                 OpTxEnvelope::Eip1559 { signature, transaction } => {
                     Self::Eip1559(Signed::new_unhashed(transaction.into(), signature))
+                }
+                OpTxEnvelope::Eip4844 { signature, transaction } => {
+                    Self::Eip4844(Signed::new_unhashed(transaction, signature))
                 }
                 OpTxEnvelope::Eip7702 { signature, transaction } => {
                     Self::Eip7702(Signed::new_unhashed(transaction.into(), signature))

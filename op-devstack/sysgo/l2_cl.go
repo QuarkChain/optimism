@@ -38,6 +38,9 @@ type L2CLConfig struct {
 	NoDiscovery bool
 
 	FollowSource string
+
+	// DACUrls is the list of DAC server URLs for the sequencer (required when l2BlobTime is set).
+	DACUrls []string
 }
 
 func L2CLSequencer() L2CLOption {
@@ -49,6 +52,12 @@ func L2CLSequencer() L2CLOption {
 func L2CLIndexing() L2CLOption {
 	return L2CLOptionFn(func(p devtest.P, id stack.L2CLNodeID, cfg *L2CLConfig) {
 		cfg.IndexingMode = true
+	})
+}
+
+func L2CLDACUrls(urls []string) L2CLOption {
+	return L2CLOptionFn(func(p devtest.P, id stack.L2CLNodeID, cfg *L2CLConfig) {
+		cfg.DACUrls = urls
 	})
 }
 

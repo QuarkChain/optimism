@@ -129,7 +129,10 @@ where
         // In Jovian, the blob gas used computation has changed. We are moving the blob base fee
         // validation to post-execution since the DA footprint calculation is stateful.
         // Pre-execution we only validate that the blob gas used is present in the header.
-        if self.chain_spec.is_jovian_active_at_timestamp(block.timestamp()) {
+        // For L2 Blob, blob gas is validated post-execution (actual blob gas from transactions).
+        if self.chain_spec.is_l2_blob_active_at_timestamp(block.timestamp()) ||
+            self.chain_spec.is_jovian_active_at_timestamp(block.timestamp())
+        {
             block.blob_gas_used().ok_or(ConsensusError::BlobGasUsedMissing)?;
         } else if self.chain_spec.is_ecotone_active_at_timestamp(block.timestamp()) {
             validate_cancun_gas(block)?;
@@ -206,11 +209,14 @@ where
         // In the op-stack, the excess blob gas is always 0 for all blocks after ecotone.
         // The blob gas used and the excess blob gas should both be set after ecotone.
         // After Jovian, the blob gas used contains the current DA footprint.
+        // After L2 Blob activation, excess_blob_gas is calculated using the EIP-4844 formula
+        // and blob_gas_used reflects actual blob gas consumption.
         if self.chain_spec.is_ecotone_active_at_timestamp(header.timestamp()) {
             let blob_gas_used = header.blob_gas_used().ok_or(ConsensusError::BlobGasUsedMissing)?;
 
-            // Before Jovian and after ecotone, the blob gas used should be 0.
+            // Before Jovian/L2Blob and after ecotone, the blob gas used should be 0.
             if !self.chain_spec.is_jovian_active_at_timestamp(header.timestamp()) &&
+                !self.chain_spec.is_l2_blob_active_at_timestamp(header.timestamp()) &&
                 blob_gas_used != 0
             {
                 return Err(ConsensusError::BlobGasUsedDiff(GotExpected {
@@ -221,7 +227,11 @@ where
 
             let excess_blob_gas =
                 header.excess_blob_gas().ok_or(ConsensusError::ExcessBlobGasMissing)?;
-            if excess_blob_gas != 0 {
+            // When L2 Blob is active, excess_blob_gas is calculated from parent using
+            // the EIP-4844 formula (matching op-geth), so it may be non-zero.
+            if !self.chain_spec.is_l2_blob_active_at_timestamp(header.timestamp()) &&
+                excess_blob_gas != 0
+            {
                 return Err(ConsensusError::ExcessBlobGasDiff {
                     diff: GotExpected { got: excess_blob_gas, expected: 0 },
                     parent_excess_blob_gas: parent.excess_blob_gas().unwrap_or(0),

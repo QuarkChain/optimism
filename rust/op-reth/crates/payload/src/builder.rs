@@ -37,7 +37,7 @@ use reth_revm::{
     witness::ExecutionWitnessRecord,
 };
 use reth_storage_api::{StateProvider, StateProviderFactory, errors::ProviderError};
-use reth_transaction_pool::{BestTransactionsAttributes, PoolTransaction, TransactionPool};
+use reth_transaction_pool::{BestTransactionsAttributes, EthBlobTransactionSidecar, EthPoolTransaction, PoolTransaction, TransactionPool};
 use revm::context::{Block, BlockEnv};
 use std::{marker::PhantomData, sync::Arc};
 use tracing::{debug, trace, warn};
@@ -153,7 +153,7 @@ impl<Pool, Client, Evm, Txs, Attrs> OpPayloadBuilder<Pool, Client, Evm, Txs, Att
 
 impl<Pool, Client, Evm, N, T, Attrs> OpPayloadBuilder<Pool, Client, Evm, T, Attrs>
 where
-    Pool: TransactionPool<Transaction: OpPooledTx<Consensus = N::SignedTx>>,
+    Pool: TransactionPool<Transaction: OpPooledTx<Consensus = N::SignedTx> + EthPoolTransaction>,
     Client: StateProviderFactory + ChainSpecProvider<ChainSpec: OpHardforks>,
     N: OpPayloadPrimitives,
     Evm: ConfigureEvm<
@@ -177,7 +177,7 @@ where
     ) -> Result<BuildOutcome<OpBuiltPayload<N>>, PayloadBuilderError>
     where
         Txs:
-            PayloadTransactions<Transaction: PoolTransaction<Consensus = N::SignedTx> + OpPooledTx>,
+            PayloadTransactions<Transaction: PoolTransaction<Consensus = N::SignedTx> + OpPooledTx + EthPoolTransaction>,
     {
         let BuildArguments { mut cached_reads, config, cancel, best_payload } = args;
 
@@ -239,7 +239,7 @@ impl<Pool, Client, Evm, N, Txs, Attrs> PayloadBuilder
 where
     N: OpPayloadPrimitives,
     Client: StateProviderFactory + ChainSpecProvider<ChainSpec: OpHardforks> + Clone,
-    Pool: TransactionPool<Transaction: OpPooledTx<Consensus = N::SignedTx>>,
+    Pool: TransactionPool<Transaction: OpPooledTx<Consensus = N::SignedTx> + EthPoolTransaction>,
     Evm: ConfigureEvm<
             Primitives = N,
             NextBlockEnvCtx: BuildNextEnv<Attrs, N::BlockHeader, Client::ChainSpec>,
@@ -330,7 +330,7 @@ impl<Txs> OpBuilder<'_, Txs> {
         ChainSpec: EthChainSpec + OpHardforks,
         N: OpPayloadPrimitives,
         Txs:
-            PayloadTransactions<Transaction: PoolTransaction<Consensus = N::SignedTx> + OpPooledTx>,
+            PayloadTransactions<Transaction: PoolTransaction<Consensus = N::SignedTx> + OpPooledTx + EthPoolTransaction>,
         Attrs: OpAttributes<Transaction = N::SignedTx>,
     {
         let Self { best } = self;
@@ -388,8 +388,9 @@ impl<Txs> OpBuilder<'_, Txs> {
 
         let no_tx_pool = ctx.attributes().no_tx_pool();
 
-        let payload =
+        let mut payload =
             OpBuiltPayload::new(ctx.payload_id(), sealed_block, info.total_fees, Some(executed));
+        payload.sidecars = info.blob_sidecars;
 
         if no_tx_pool {
             // if `no_tx_pool` is set only transactions from the payload attributes will be included
@@ -488,12 +489,14 @@ pub struct ExecutionInfo {
     pub cumulative_da_bytes_used: u64,
     /// Tracks fees from executed mempool transactions
     pub total_fees: U256,
+    /// Collected blob sidecars from EIP-4844 transactions
+    pub blob_sidecars: Vec<alloy_eips::eip7594::BlobTransactionSidecarVariant>,
 }
 
 impl ExecutionInfo {
     /// Create a new instance with allocated slots.
     pub const fn new() -> Self {
-        Self { cumulative_gas_used: 0, cumulative_da_bytes_used: 0, total_fees: U256::ZERO }
+        Self { cumulative_gas_used: 0, cumulative_da_bytes_used: 0, total_fees: U256::ZERO, blob_sidecars: Vec::new() }
     }
 
     /// Returns true if the transaction would exceed the block limits:
@@ -625,8 +628,12 @@ where
         let mut info = ExecutionInfo::new();
 
         for sequencer_tx in self.attributes().sequencer_transactions() {
-            // A sequencer's block should never contain blob transactions.
-            if sequencer_tx.value().is_eip4844() {
+            // A sequencer's block should never contain blob transactions unless L2 blob is active.
+            if sequencer_tx.value().is_eip4844()
+                && !self
+                    .chain_spec
+                    .is_l2_blob_active_at_timestamp(self.attributes().timestamp())
+            {
                 return Err(PayloadBuilderError::other(
                     OpPayloadBuilderError::BlobTransactionRejected,
                 ));
@@ -670,7 +677,7 @@ where
         info: &mut ExecutionInfo,
         builder: &mut Builder,
         mut best_txs: impl PayloadTransactions<
-            Transaction: PoolTransaction<Consensus = TxTy<Evm::Primitives>> + OpPooledTx,
+            Transaction: PoolTransaction<Consensus = TxTy<Evm::Primitives>> + OpPooledTx + EthPoolTransaction,
         >,
     ) -> Result<Option<()>, PayloadBuilderError>
     where
@@ -687,9 +694,11 @@ where
         let tx_da_limit = self.builder_config.da_config.max_da_tx_size();
         let base_fee = builder.evm_mut().block().basefee();
 
-        while let Some(tx) = best_txs.next(()) {
+        while let Some(mut tx) = best_txs.next(()) {
             let interop = tx.interop_deadline();
             let tx_da_size = tx.estimated_da_size();
+            // Extract blob sidecar before converting to consensus (which strips it).
+            let blob_sidecar = tx.take_blob();
             let tx = tx.into_consensus();
 
             let da_footprint_gas_scalar = self
@@ -716,8 +725,14 @@ where
                 continue;
             }
 
-            // A sequencer's block should never contain blob or deposit transactions from the pool.
-            if tx.is_eip4844() || tx.is_deposit() {
+            // A sequencer's block should never contain deposit transactions from the pool.
+            // Blob transactions are also rejected unless L2 blob is active.
+            if tx.is_deposit()
+                || (tx.is_eip4844()
+                    && !self
+                        .chain_spec
+                        .is_l2_blob_active_at_timestamp(self.attributes().timestamp()))
+            {
                 best_txs.mark_invalid(tx.signer(), tx.nonce());
                 continue;
             }
@@ -763,6 +778,11 @@ where
             info.cumulative_gas_used += gas_used;
             info.cumulative_da_bytes_used += tx_da_size;
 
+            // Collect blob sidecar for the payload response
+            if let EthBlobTransactionSidecar::Present(sidecar) = blob_sidecar {
+                info.blob_sidecars.push(sidecar);
+            }
+
             // update and add to total fees
             let miner_fee = tx
                 .effective_tip_per_gas(base_fee)
@@ -773,3 +793,4 @@ where
         Ok(None)
     }
 }
+

@@ -267,6 +267,15 @@ pub trait OpHardforks: EthereumHardforks {
     fn is_sgt_native_backed(&self) -> bool {
         true
     }
+
+    /// Returns `true` if L2 Blob support is active at given block timestamp.
+    ///
+    /// L2 Blob enables EIP-4844 blob transactions on L2 chains.
+    /// Default implementation returns `false`. Override in chain-specific implementations
+    /// (e.g., `OpChainSpec`) to enable L2 Blob based on configuration.
+    fn is_l2_blob_active_at_timestamp(&self, _timestamp: u64) -> bool {
+        false
+    }
 }
 
 /// A type allowing to configure activation [`ForkCondition`]s for a given list of

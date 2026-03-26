@@ -259,10 +259,23 @@ where
         cfg_env.sgt_enabled = sgt_config.enabled;
         cfg_env.sgt_is_native_backed = sgt_config.is_native_backed;
 
-        let blob_excess_gas_and_price = spec
-            .into_eth_spec()
-            .is_enabled_in(SpecId::CANCUN)
-            .then_some(BlobExcessGasAndPrice { excess_blob_gas: 0, blob_gasprice: 1 });
+        let blob_excess_gas_and_price =
+            if self.chain_spec().is_l2_blob_active_at_timestamp(timestamp) {
+                // When L2 blob is active, derive blob gas price from the payload's
+                // excess_blob_gas using the EIP-4844 formula, matching op-geth behavior.
+                let blob_params = self.chain_spec().blob_params_at_timestamp(timestamp);
+                payload.payload.excess_blob_gas().map(|excess_blob_gas| {
+                    let blob_gasprice = blob_params
+                        .map(|params| params.calc_blob_fee(excess_blob_gas))
+                        .unwrap_or(1);
+                    BlobExcessGasAndPrice { excess_blob_gas, blob_gasprice }
+                })
+            } else {
+                // Standard OP-stack: no blob base fee market, excess is always 0.
+                spec.into_eth_spec()
+                    .is_enabled_in(SpecId::CANCUN)
+                    .then_some(BlobExcessGasAndPrice { excess_blob_gas: 0, blob_gasprice: 1 })
+            };
 
         let block_env = BlockEnv {
             number: U256::from(block_number),

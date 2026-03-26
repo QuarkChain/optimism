@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 use alloy_consensus::{
-    Block, BlockBody, EMPTY_OMMER_ROOT_HASH, Header, TxReceipt, constants::EMPTY_WITHDRAWALS,
-    proofs,
+    Block, BlockBody, BlockHeader, EMPTY_OMMER_ROOT_HASH, Header, TxReceipt,
+    constants::EMPTY_WITHDRAWALS, proofs,
 };
 use alloy_eips::{eip7685::EMPTY_REQUESTS_HASH, merge::BEACON_NONCE};
 use alloy_evm::block::BlockExecutorFactory;
@@ -11,6 +11,7 @@ use reth_evm::execute::{BlockAssembler, BlockAssemblerInput};
 use reth_execution_errors::BlockExecutionError;
 use reth_execution_types::BlockExecutionResult;
 use reth_optimism_consensus::{calculate_receipt_root_no_memo_optimism, isthmus};
+use reth_chainspec::EthChainSpec;
 use reth_optimism_forks::OpHardforks;
 use reth_optimism_primitives::DepositReceipt;
 use reth_primitives_traits::{Receipt, SignedTransaction};
@@ -29,7 +30,7 @@ impl<ChainSpec> OpBlockAssembler<ChainSpec> {
     }
 }
 
-impl<ChainSpec: OpHardforks> OpBlockAssembler<ChainSpec> {
+impl<ChainSpec: OpHardforks + EthChainSpec> OpBlockAssembler<ChainSpec> {
     /// Builds a block for `input` without any bounds on header `H`.
     pub fn assemble_block<
         F: for<'a> BlockExecutorFactory<
@@ -37,7 +38,7 @@ impl<ChainSpec: OpHardforks> OpBlockAssembler<ChainSpec> {
                 Transaction: SignedTransaction,
                 Receipt: Receipt + DepositReceipt,
             >,
-        H,
+        H: BlockHeader,
     >(
         &self,
         input: BlockAssemblerInput<'_, '_, F, H>,
@@ -45,6 +46,7 @@ impl<ChainSpec: OpHardforks> OpBlockAssembler<ChainSpec> {
         let BlockAssemblerInput {
             evm_env,
             execution_ctx: ctx,
+            parent,
             transactions,
             output: BlockExecutionResult { receipts, gas_used, blob_gas_used, requests: _ },
             bundle_state,
@@ -80,7 +82,21 @@ impl<ChainSpec: OpHardforks> OpBlockAssembler<ChainSpec> {
         };
 
         let (excess_blob_gas, blob_gas_used) =
-            if self.chain_spec.is_jovian_active_at_timestamp(timestamp) {
+            if self.chain_spec.is_l2_blob_active_at_timestamp(timestamp) {
+                // When L2 blob is active, calculate excess_blob_gas using the EIP-4844 formula
+                // from parent header, matching op-geth behavior for blob base fee market on L2.
+                let blob_params = self.chain_spec.blob_params_at_timestamp(timestamp);
+                let excess = if parent.header().excess_blob_gas().is_some() {
+                    parent
+                        .header()
+                        .maybe_next_block_excess_blob_gas(blob_params)
+                        .unwrap_or(0)
+                } else {
+                    // First block after L2 blob activation: parent has no blob gas fields
+                    0
+                };
+                (Some(excess), Some(*blob_gas_used))
+            } else if self.chain_spec.is_jovian_active_at_timestamp(timestamp) {
                 // In jovian, we're using the blob gas used field to store the current da
                 // footprint's value.
                 (Some(0), Some(*blob_gas_used))
@@ -136,7 +152,7 @@ impl<ChainSpec> Clone for OpBlockAssembler<ChainSpec> {
 
 impl<F, ChainSpec> BlockAssembler<F> for OpBlockAssembler<ChainSpec>
 where
-    ChainSpec: OpHardforks,
+    ChainSpec: OpHardforks + EthChainSpec,
     F: for<'a> BlockExecutorFactory<
             ExecutionCtx<'a> = OpBlockExecutionCtx,
             Transaction: SignedTransaction,

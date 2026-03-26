@@ -43,6 +43,7 @@ impl From<OpTxEnvelope> for OpTypedTransaction {
             OpTxEnvelope::Legacy(tx) => Self::Legacy(tx.strip_signature()),
             OpTxEnvelope::Eip2930(tx) => Self::Eip2930(tx.strip_signature()),
             OpTxEnvelope::Eip1559(tx) => Self::Eip1559(tx.strip_signature()),
+            OpTxEnvelope::Eip4844(tx) => Self::Eip4844(tx.strip_signature()),
             OpTxEnvelope::Eip7702(tx) => Self::Eip7702(tx.strip_signature()),
             OpTxEnvelope::Deposit(tx) => Self::Deposit(tx.into_inner()),
         }
@@ -64,6 +65,7 @@ impl From<OpTypedTransaction> for alloy_rpc_types_eth::TransactionRequest {
             OpTypedTransaction::Legacy(tx) => tx.into(),
             OpTypedTransaction::Eip2930(tx) => tx.into(),
             OpTypedTransaction::Eip1559(tx) => tx.into(),
+            OpTypedTransaction::Eip4844(tx) => tx.into(),
             OpTypedTransaction::Eip7702(tx) => tx.into(),
             OpTypedTransaction::Deposit(tx) => tx.into(),
         }
@@ -77,6 +79,7 @@ impl OpTypedTransaction {
             Self::Legacy(_) => OpTxType::Legacy,
             Self::Eip2930(_) => OpTxType::Eip2930,
             Self::Eip1559(_) => OpTxType::Eip1559,
+            Self::Eip4844(_) => OpTxType::Eip4844,
             Self::Eip7702(_) => OpTxType::Eip7702,
             Self::Deposit(_) => OpTxType::Deposit,
         }
@@ -90,6 +93,7 @@ impl OpTypedTransaction {
             Self::Legacy(tx) => Some(tx.signature_hash()),
             Self::Eip2930(tx) => Some(tx.signature_hash()),
             Self::Eip1559(tx) => Some(tx.signature_hash()),
+            Self::Eip4844(tx) => Some(tx.signature_hash()),
             Self::Eip7702(tx) => Some(tx.signature_hash()),
             Self::Deposit(_) => None,
         }
@@ -140,6 +144,7 @@ impl OpTypedTransaction {
             Self::Legacy(tx) => tx.tx_hash(signature),
             Self::Eip2930(tx) => tx.tx_hash(signature),
             Self::Eip1559(tx) => tx.tx_hash(signature),
+            Self::Eip4844(tx) => tx.tx_hash(signature),
             Self::Eip7702(tx) => tx.tx_hash(signature),
             Self::Deposit(tx) => tx.tx_hash(),
         }
@@ -171,6 +176,10 @@ impl OpTypedTransaction {
             Self::Legacy(tx) => Ok(tx.into()),
             Self::Eip2930(tx) => Ok(tx.into()),
             Self::Eip1559(tx) => Ok(tx.into()),
+            tx @ Self::Eip4844(_) => Err(ValueError::new(
+                tx,
+                "EIP-4844 transactions cannot be converted to ethereum typed transaction without blob data",
+            )),
             Self::Eip7702(tx) => Ok(tx.into()),
             tx @ Self::Deposit(_) => Err(ValueError::new(
                 tx,
@@ -186,6 +195,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.rlp_encoded_fields_length(),
             Self::Eip2930(tx) => tx.rlp_encoded_fields_length(),
             Self::Eip1559(tx) => tx.rlp_encoded_fields_length(),
+            Self::Eip4844(tx) => tx.rlp_encoded_fields_length(),
             Self::Eip7702(tx) => tx.rlp_encoded_fields_length(),
             Self::Deposit(tx) => tx.rlp_encoded_fields_length(),
         }
@@ -196,6 +206,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.rlp_encode_fields(out),
             Self::Eip2930(tx) => tx.rlp_encode_fields(out),
             Self::Eip1559(tx) => tx.rlp_encode_fields(out),
+            Self::Eip4844(tx) => tx.rlp_encode_fields(out),
             Self::Eip7702(tx) => tx.rlp_encode_fields(out),
             Self::Deposit(tx) => tx.rlp_encode_fields(out),
         }
@@ -206,6 +217,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.eip2718_encode_with_type(signature, tx.ty(), out),
             Self::Eip2930(tx) => tx.eip2718_encode_with_type(signature, tx.ty(), out),
             Self::Eip1559(tx) => tx.eip2718_encode_with_type(signature, tx.ty(), out),
+            Self::Eip4844(tx) => tx.eip2718_encode_with_type(signature, tx.ty(), out),
             Self::Eip7702(tx) => tx.eip2718_encode_with_type(signature, tx.ty(), out),
             Self::Deposit(tx) => tx.encode_2718(out),
         }
@@ -216,6 +228,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.eip2718_encode(signature, out),
             Self::Eip2930(tx) => tx.eip2718_encode(signature, out),
             Self::Eip1559(tx) => tx.eip2718_encode(signature, out),
+            Self::Eip4844(tx) => tx.eip2718_encode(signature, out),
             Self::Eip7702(tx) => tx.eip2718_encode(signature, out),
             Self::Deposit(tx) => tx.encode_2718(out),
         }
@@ -226,6 +239,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.network_encode_with_type(signature, tx.ty(), out),
             Self::Eip2930(tx) => tx.network_encode_with_type(signature, tx.ty(), out),
             Self::Eip1559(tx) => tx.network_encode_with_type(signature, tx.ty(), out),
+            Self::Eip4844(tx) => tx.network_encode_with_type(signature, tx.ty(), out),
             Self::Eip7702(tx) => tx.network_encode_with_type(signature, tx.ty(), out),
             Self::Deposit(tx) => tx.network_encode(out),
         }
@@ -236,6 +250,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.network_encode(signature, out),
             Self::Eip2930(tx) => tx.network_encode(signature, out),
             Self::Eip1559(tx) => tx.network_encode(signature, out),
+            Self::Eip4844(tx) => tx.network_encode(signature, out),
             Self::Eip7702(tx) => tx.network_encode(signature, out),
             Self::Deposit(tx) => tx.network_encode(out),
         }
@@ -246,6 +261,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.tx_hash_with_type(signature, tx.ty()),
             Self::Eip2930(tx) => tx.tx_hash_with_type(signature, tx.ty()),
             Self::Eip1559(tx) => tx.tx_hash_with_type(signature, tx.ty()),
+            Self::Eip4844(tx) => tx.tx_hash_with_type(signature, tx.ty()),
             Self::Eip7702(tx) => tx.tx_hash_with_type(signature, tx.ty()),
             Self::Deposit(tx) => tx.tx_hash(),
         }
@@ -256,6 +272,7 @@ impl RlpEcdsaEncodableTx for OpTypedTransaction {
             Self::Legacy(tx) => tx.tx_hash(signature),
             Self::Eip2930(tx) => tx.tx_hash(signature),
             Self::Eip1559(tx) => tx.tx_hash(signature),
+            Self::Eip4844(tx) => tx.tx_hash(signature),
             Self::Eip7702(tx) => tx.tx_hash(signature),
             Self::Deposit(tx) => tx.tx_hash(),
         }
@@ -268,6 +285,7 @@ impl SignableTransaction<Signature> for OpTypedTransaction {
             Self::Legacy(tx) => tx.set_chain_id(chain_id),
             Self::Eip2930(tx) => tx.set_chain_id(chain_id),
             Self::Eip1559(tx) => tx.set_chain_id(chain_id),
+            Self::Eip4844(tx) => tx.set_chain_id(chain_id),
             Self::Eip7702(tx) => tx.set_chain_id(chain_id),
             Self::Deposit(_) => {}
         }
@@ -278,6 +296,7 @@ impl SignableTransaction<Signature> for OpTypedTransaction {
             Self::Legacy(tx) => tx.encode_for_signing(out),
             Self::Eip2930(tx) => tx.encode_for_signing(out),
             Self::Eip1559(tx) => tx.encode_for_signing(out),
+            Self::Eip4844(tx) => tx.encode_for_signing(out),
             Self::Eip7702(tx) => tx.encode_for_signing(out),
             Self::Deposit(_) => {}
         }
@@ -288,6 +307,7 @@ impl SignableTransaction<Signature> for OpTypedTransaction {
             Self::Legacy(tx) => tx.payload_len_for_signature(),
             Self::Eip2930(tx) => tx.payload_len_for_signature(),
             Self::Eip1559(tx) => tx.payload_len_for_signature(),
+            Self::Eip4844(tx) => tx.payload_len_for_signature(),
             Self::Eip7702(tx) => tx.payload_len_for_signature(),
             Self::Deposit(_) => 0,
         }

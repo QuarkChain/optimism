@@ -171,6 +171,16 @@ done
 run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
 popd > /dev/null
 
+# go fuzz jobs (from .circleci/continue/main.yml)
+for fuzz_pkg in op-challenger op-node op-service op-chain-ops; do
+    run_step "fuzz-golang (${fuzz_pkg})" bash -c "cd ${fuzz_pkg} && make fuzz"
+done
+run_step "fuzz-golang (cannon)" bash -c "cd cannon && make fuzz"
+run_step "fuzz-golang (op-e2e)" bash -c "cd op-e2e && make fuzz"
+
+# full go tests (from .circleci/continue/main.yml go-tests-full -> go-tests-ci)
+run_step "go tests full (go-tests-ci)" make go-tests-ci
+
 # cannon-prestate (from .circleci/continue/main.yml)
 run_step "cannon prestate build" make -j reproducible-prestate
 

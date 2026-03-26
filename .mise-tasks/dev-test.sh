@@ -123,6 +123,7 @@ int main(void){return 0;}'
 cleanup_test_artifacts() {
     rm -rf rust/kona/._data
     rm -f rust/kona/out.bin.gz
+    rm -rf tmp
 }
 
 trap 'cleanup_test_artifacts' EXIT

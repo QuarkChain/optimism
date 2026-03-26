@@ -105,6 +105,13 @@ int main(void){return 0;}'
     fi
 }
 
+cleanup_test_artifacts() {
+    rm -rf rust/kona/._data
+    rm -f rust/kona/out.bin.gz
+}
+
+trap 'cleanup_test_artifacts' EXIT
+
 # Environment verify
 echo "==========Checking environment..."
 require_command mise "Install mise first so dev-test.sh can provision repo-managed tools."

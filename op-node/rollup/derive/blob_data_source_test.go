@@ -137,8 +137,9 @@ func TestBlockWithFailedBlobTx(t *testing.T) {
 	// mark the first blob tx as failed
 	txSucceedMap := map[common.Hash]bool{txs[1].Hash(): true}
 	_, blobHashes := dataAndHashesFromTxs(txs, &config, batcherAddr, logger, txSucceedMap)
-	// check the returned blob index is 1
-	require.True(t, len(blobHashes) == 1 && blobHashes[0].Index == 1)
+	// check only the second tx's blob hash is returned (first tx was filtered out)
+	require.Equal(t, 1, len(blobHashes))
+	require.Equal(t, txs[1].BlobHashes()[0], blobHashes[0])
 }
 
 func TestFillBlobPointers(t *testing.T) {

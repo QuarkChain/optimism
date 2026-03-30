@@ -288,17 +288,10 @@ where
     where
         Client: StateProviderFactory,
     {
-        use alloy_primitives::{address, keccak256, U256};
+        use alloy_primitives::U256;
+        use op_revm::sgt::{sgt_balance_slot, SGT_CONTRACT};
 
-        // Calculate storage slot for account's SGT balance
-        // Formula: keccak256(abi.encode(account, 51))
-        let mut data = [0u8; 64];
-        data[12..32].copy_from_slice(address.as_slice());
-        data[32..64].copy_from_slice(&U256::from(51u64).to_be_bytes::<32>());
-        let slot = keccak256(data);
-
-        // SGT contract address
-        let sgt_contract = address!("4200000000000000000000000000000000000800");
+        let slot = sgt_balance_slot(address);
 
         // Read from state
         let state_provider = match self.inner.client().latest() {
@@ -306,7 +299,7 @@ where
             Err(_) => return U256::ZERO,
         };
 
-        match state_provider.storage(sgt_contract, slot.into()) {
+        match state_provider.storage(SGT_CONTRACT, slot.into()) {
             Ok(Some(value)) => value,
             _ => U256::ZERO,
         }

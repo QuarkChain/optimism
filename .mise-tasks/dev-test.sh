@@ -36,87 +36,16 @@ run_step() {
     echo "===================${label} done."
 }
 
-skip_step() {
-    local label="$1"
-    local reason="$2"
-    echo "==========Skipping ${label}: ${reason}"
-}
-
-require_command() {
-    local cmd="$1"
-    local help_msg="$2"
-
-    if ! command -v "$cmd" >/dev/null 2>&1; then
-        halt "Missing required command: $cmd. ${help_msg}"
-    fi
-}
-
-install_system_package() {
-    local pkg="$1"
-
-    case "$(uname -s)" in
-        Darwin)
-            if ! command -v brew >/dev/null 2>&1; then
-                halt "Homebrew is required to install $pkg on macOS."
-            fi
-            if [ "$pkg" = "docker" ]; then
-                brew install --cask docker
-            else
-                brew install "$pkg"
-            fi
-            ;;
-        Linux)
-            if command -v apt-get >/dev/null 2>&1; then
-                apt-get update
-                if [ "$pkg" = "docker" ]; then
-                    apt-get install -y docker.io
-                else
-                    apt-get install -y "$pkg"
-                fi
-            elif command -v dnf >/dev/null 2>&1; then
-                if [ "$pkg" = "docker" ]; then
-                    dnf install -y docker
-                else
-                    dnf install -y "$pkg"
-                fi
-            elif command -v apk >/dev/null 2>&1; then
-                if [ "$pkg" = "docker" ]; then
-                    apk add --no-cache docker
-                else
-                    apk add --no-cache "$pkg"
-                fi
-            else
-                halt "No supported package manager found to install $pkg."
-            fi
-            ;;
-        *)
-            halt "Unsupported OS for automatic installation: $(uname -s)"
-            ;;
-    esac
-}
-
-require_clang_c_headers() {
-    local probe='#include <stdarg.h>
-#include <stdbool.h>
-int main(void){return 0;}'
-
-    if ! printf "%s\n" "$probe" | clang -x c - -fsyntax-only >/dev/null 2>&1; then
-        halt "Missing C toolchain headers for clang (stdarg.h/stdbool.h). Install system deps manually (e.g. Ubuntu/Debian: build-essential clang libc6-dev libclang-dev)."
-    fi
-}
-
 cleanup_test_artifacts() {
     rm -rf rust/kona/._data
     rm -f rust/kona/out.bin.gz
+    rm -rf tmp
 }
 
 trap 'cleanup_test_artifacts' EXIT
 
 # Environment verify
 echo "==========Checking environment..."
-require_command mise "Install mise first so dev-test.sh can provision repo-managed tools."
-
-run_step "mise install" mise install
 
 if [ -z "${MISE_SHELL:-}" ]; then
     if [ -n "${ZSH_VERSION:-}" ]; then
@@ -133,24 +62,17 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-# Only check dependencies not managed by mise.toml.
-command -v m4 >/dev/null 2>&1 || install_system_package m4
-command -v m4 >/dev/null 2>&1 || halt "Failed to install m4."
-
-command -v clang >/dev/null 2>&1 || install_system_package clang
-command -v clang >/dev/null 2>&1 || halt "Failed to install clang."
-
-command -v docker >/dev/null 2>&1 || install_system_package docker
-command -v docker >/dev/null 2>&1 || halt "Failed to install docker."
-
-require_clang_c_headers
-command -v cargo-binstall >/dev/null 2>&1 || cargo install cargo-binstall --locked
-command -v cargo-nextest >/dev/null 2>&1 || cargo binstall --no-confirm cargo-nextest
-if ! cargo nextest --version >/dev/null 2>&1; then
-    halt "Failed to install cargo-nextest."
-fi
+for var in SEPOLIA_RPC_URL MAINNET_RPC_URL; do
+    if [ -z "${!var}" ]; then
+        echo "Error: $var is not set."
+        return 0 2>/dev/null || exit 0
+    fi
+done
 
 echo "==========Checking environment done"
+
+# Required by justfiles using unstable `[script]` recipes.
+export JUST_UNSTABLE=1
 
 # contracts-bedrock-tests / contracts-bedrock-build (from .circleci/continue/main.yml)
 pushd packages/contracts-bedrock > /dev/null
@@ -180,13 +102,10 @@ popd > /dev/null
 
 # go fuzz jobs (from .circleci/continue/main.yml)
 for fuzz_pkg in op-challenger op-node op-service op-chain-ops; do
-    run_step "fuzz-golang (${fuzz_pkg})" bash -c "cd ${fuzz_pkg} && make fuzz"
+    run_step "fuzz-golang (${fuzz_pkg})" bash -c "cd ${fuzz_pkg} && just fuzz"
 done
 run_step "fuzz-golang (cannon)" bash -c "cd cannon && make fuzz"
 run_step "fuzz-golang (op-e2e)" bash -c "cd op-e2e && make fuzz"
-
-# full go tests (from .circleci/continue/main.yml go-tests-full -> go-tests-ci)
-run_step "go tests full (go-tests-ci)" make go-tests-ci
 
 # cannon-prestate (from .circleci/continue/main.yml)
 run_step "cannon prestate build" make -j reproducible-prestate
@@ -270,5 +189,9 @@ run_step "kona host/client offline" bash -c '
         "$L1_HEAD" \
         "$L2_CHAIN_ID"
 '
+
+# full go tests (from .circleci/continue/main.yml go-tests-full -> go-tests-ci)
+# Run at the end since this suite is the most failure-prone.
+run_step "go tests full (go-tests-ci)" bash -c "TEST_TIMEOUT=90m make go-tests-ci"
 
 echo "Execution time: $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s)"

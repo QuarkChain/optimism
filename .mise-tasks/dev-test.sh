@@ -143,9 +143,9 @@ run_step "kona sysgo node/restart" bash -c "
 
 # Run single-chain proof action tests using kona-host.
 run_step "kona proof action single" bash -c "
-    export RUST_BINARY_PATH_KONA_HOST='$(pwd)/rust/target/release/kona-host'
     export KONA_HOST_PATH='$(pwd)/rust/target/release/kona-host'
-    # Fix "/run/user/0/just/just-HqgZ35/action-tests-single-run: line 212: cd: /root/dl/optimism/rust/kona/tests/../../op-e2e/actions/proofs: No such file or directory"
+    # Fix "action-tests-single-run: line 212: No such file or directory"
+    # No soft link needed if `cd {{SOURCE}}/../../../op-e2e/actions/proofs`
     CREATED_RUST_OP_E2E_LINK=0
     if [ ! -e 'rust/op-e2e' ]; then
         ln -s ../op-e2e rust/op-e2e

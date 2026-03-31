@@ -153,7 +153,7 @@ pub struct RollupArgs {
     pub http_sgt_addr: Option<String>,
 
     /// HTTP server port for SGT-enabled eth_getBalance endpoint
-    #[arg(long = "http.sgt.port", value_name = "SGT_HTTP_PORT", default_value_t = 8546)]
+    #[arg(long = "http.sgt.port", value_name = "SGT_HTTP_PORT", default_value_t = 8645)]
     pub http_sgt_port: u16,
 }
 
@@ -178,7 +178,7 @@ impl Default for RollupArgs {
             proofs_history_prune_interval: Duration::from_secs(15),
             proofs_history_verification_interval: 0,
             http_sgt_addr: None,
-            http_sgt_port: 8546,
+            http_sgt_port: 8645,
         }
     }
 }

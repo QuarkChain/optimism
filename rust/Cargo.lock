@@ -8024,6 +8024,7 @@ dependencies = [
 [[package]]
 name = "op-revm"
 version = "15.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "auto_impl",
  "revm",
@@ -12724,6 +12725,7 @@ dependencies = [
 [[package]]
 name = "revm"
 version = "34.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "revm-bytecode",
  "revm-context",
@@ -12741,6 +12743,7 @@ dependencies = [
 [[package]]
 name = "revm-bytecode"
 version = "8.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "bitvec",
  "phf",
@@ -12751,6 +12754,7 @@ dependencies = [
 [[package]]
 name = "revm-context"
 version = "13.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "bitvec",
  "cfg-if",
@@ -12766,6 +12770,7 @@ dependencies = [
 [[package]]
 name = "revm-context-interface"
 version = "14.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "alloy-eip2930",
  "alloy-eip7702",
@@ -12780,6 +12785,7 @@ dependencies = [
 [[package]]
 name = "revm-database"
 version = "10.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "alloy-eips",
  "revm-bytecode",
@@ -12792,6 +12798,7 @@ dependencies = [
 [[package]]
 name = "revm-database-interface"
 version = "9.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "auto_impl",
  "either",
@@ -12804,6 +12811,7 @@ dependencies = [
 [[package]]
 name = "revm-handler"
 version = "15.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "auto_impl",
  "derive-where",
@@ -12821,6 +12829,7 @@ dependencies = [
 [[package]]
 name = "revm-inspector"
 version = "15.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "auto_impl",
  "either",
@@ -12857,6 +12866,7 @@ dependencies = [
 [[package]]
 name = "revm-interpreter"
 version = "32.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "revm-bytecode",
  "revm-context-interface",
@@ -12868,6 +12878,7 @@ dependencies = [
 [[package]]
 name = "revm-precompile"
 version = "32.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "ark-bls12-381",
  "ark-bn254",
@@ -12891,6 +12902,7 @@ dependencies = [
 [[package]]
 name = "revm-primitives"
 version = "22.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "alloy-primitives",
  "num_enum",
@@ -12901,6 +12913,7 @@ dependencies = [
 [[package]]
 name = "revm-state"
 version = "9.0.0"
+source = "git+https://github.com/QuarkChain/revm?rev=e78df8a4f4066e5885c1a4500093eadfba83b80c#e78df8a4f4066e5885c1a4500093eadfba83b80c"
 dependencies = [
  "alloy-eip7928",
  "bitflags 2.10.0",

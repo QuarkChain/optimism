@@ -672,16 +672,16 @@ op-alloy = { path = "op-alloy/crates/op-alloy" }
 alloy-op-hardforks = { path = "alloy-op-hardforks/" }
 
 # Forked revm with SGT support (based on revm 34.0.0)
-revm = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-bytecode = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-database = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-state = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-primitives = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-interpreter = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-context = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-handler = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-precompile = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-inspector = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-context-interface = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-revm-database-interface = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
-op-revm = { git = "https://github.com/QuarkChain/revm", rev = "b1a98a95454867e9bd6a58d08e085b6e1c20df34" }
+revm = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-bytecode = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-database = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-state = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-primitives = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-interpreter = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-context = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-handler = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-precompile = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-inspector = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-context-interface = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+revm-database-interface = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }
+op-revm = { git = "https://github.com/QuarkChain/revm", rev = "3f5854a11ac1cbcf8883a2ac7b19bbdfd2a036ca" }

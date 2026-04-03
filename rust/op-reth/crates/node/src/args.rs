@@ -8,6 +8,9 @@ use reth_optimism_txpool::supervisor::DEFAULT_SUPERVISOR_URL;
 use std::{path::PathBuf, time::Duration};
 use url::Url;
 
+/// Default port for the SGT HTTP RPC server.
+pub const DEFAULT_SGT_HTTP_PORT: u16 = 8645;
+
 /// Parameters for rollup configuration
 #[derive(Debug, Clone, PartialEq, Eq, clap::Args)]
 #[command(next_help_heading = "Rollup")]
@@ -153,7 +156,7 @@ pub struct RollupArgs {
     pub http_sgt_addr: Option<String>,
 
     /// HTTP server port for SGT-enabled eth_getBalance endpoint
-    #[arg(long = "http.sgt.port", value_name = "SGT_HTTP_PORT", default_value_t = 8645)]
+    #[arg(long = "http.sgt.port", value_name = "SGT_HTTP_PORT", default_value_t = DEFAULT_SGT_HTTP_PORT)]
     pub http_sgt_port: u16,
 }
 
@@ -178,7 +181,7 @@ impl Default for RollupArgs {
             proofs_history_prune_interval: Duration::from_secs(15),
             proofs_history_verification_interval: 0,
             http_sgt_addr: None,
-            http_sgt_port: 8645,
+            http_sgt_port: DEFAULT_SGT_HTTP_PORT,
         }
     }
 }

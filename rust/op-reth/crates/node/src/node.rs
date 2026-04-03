@@ -790,7 +790,7 @@ impl<NetworkT> Default for OpAddOnsBuilder<NetworkT> {
             flashblocks_url: None,
             flashblock_consensus: false,
             http_sgt_addr: None,
-            http_sgt_port: 8546,
+            http_sgt_port: crate::args::DEFAULT_SGT_HTTP_PORT,
         }
     }
 }

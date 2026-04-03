@@ -667,20 +667,18 @@ where
                     module.merge(sgt_eth_api.into_rpc())
                         .map_err(|e| eyre::eyre!("Failed to merge SGT eth RPC methods: {}", e))?;
 
-                    let socket_for_log = socket;
+                    // Bind eagerly so failures surface at node startup.
+                    let listener = std::net::TcpListener::bind(socket)
+                        .map_err(|e| eyre::eyre!("Failed to bind SGT HTTP server on {}: {}", socket, e))?;
+                    let sgt_server = jsonrpsee::server::ServerBuilder::default()
+                        .build_from_tcp(listener)
+                        .map_err(|e| eyre::eyre!("Failed to build SGT HTTP server: {}", e))?;
+
+                    info!(target: "reth::cli", sgt_addr = %socket, "SGT HTTP RPC server started");
                     tokio::spawn(async move {
-                        match jsonrpsee::server::ServerBuilder::default().build(socket).await {
-                            Ok(server) => {
-                                info!(target: "reth::cli", %socket_for_log, "SGT HTTP RPC server started");
-                                let handle = server.start(module);
-                                handle.stopped().await;
-                                info!(target: "reth::cli", "SGT HTTP RPC server stopped");
-                            }
-                            Err(e) => {
-                                tracing::error!(target: "reth::cli", %socket_for_log, error = %e,
-                                               "Failed to start SGT HTTP server");
-                            }
-                        }
+                        let handle = sgt_server.start(module);
+                        handle.stopped().await;
+                        info!(target: "reth::cli", "SGT HTTP RPC server stopped");
                     });
                 }
 

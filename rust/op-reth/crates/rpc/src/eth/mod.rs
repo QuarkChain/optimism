@@ -82,11 +82,18 @@ pub struct OpEthApi<N: RpcNodeCore, Rpc: RpcConvert> {
     /// SGT mode flag (per-instance, not shared).
     /// When true, eth_getBalance returns native + SGT combined balance.
     sgt_mode: bool,
+    /// SGT activation timestamp, cached from chain spec at SGT server creation.
+    /// Used to gate balance queries so pre-activation blocks return native-only.
+    sgt_activation_timestamp: Option<u64>,
 }
 
 impl<N: RpcNodeCore, Rpc: RpcConvert> Clone for OpEthApi<N, Rpc> {
     fn clone(&self) -> Self {
-        Self { inner: self.inner.clone(), sgt_mode: self.sgt_mode }
+        Self {
+            inner: self.inner.clone(),
+            sgt_mode: self.sgt_mode,
+            sgt_activation_timestamp: self.sgt_activation_timestamp,
+        }
     }
 }
 
@@ -98,11 +105,17 @@ impl<N: RpcNodeCore, Rpc: RpcConvert> Clone for OpEthApi<N, Rpc> {
 pub trait EthApiWithSgtMode: Clone {
     /// Creates a clone of this API with the specified SGT mode.
     fn clone_with_sgt_mode(&self, sgt_mode: bool) -> Self;
+    /// Sets the SGT activation timestamp for block-gated balance queries.
+    fn set_sgt_activation_timestamp(&mut self, timestamp: Option<u64>);
 }
 
 impl<N: RpcNodeCore, Rpc: RpcConvert> EthApiWithSgtMode for OpEthApi<N, Rpc> {
     fn clone_with_sgt_mode(&self, sgt_mode: bool) -> Self {
         self.with_sgt_mode_changed(sgt_mode)
+    }
+
+    fn set_sgt_activation_timestamp(&mut self, timestamp: Option<u64>) {
+        self.sgt_activation_timestamp = timestamp;
     }
 }
 
@@ -121,12 +134,17 @@ impl<N: RpcNodeCore, Rpc: RpcConvert> OpEthApi<N, Rpc> {
             min_suggested_priority_fee,
             flashblocks,
         });
-        Self { inner, sgt_mode }
+        Self { inner, sgt_mode, sgt_activation_timestamp: None }
     }
 
     /// Returns whether SGT mode is enabled.
     pub fn sgt_mode(&self) -> bool {
         self.sgt_mode
+    }
+
+    /// Sets the SGT activation timestamp (cached from chain spec).
+    pub fn set_sgt_activation_timestamp(&mut self, timestamp: Option<u64>) {
+        self.sgt_activation_timestamp = timestamp;
     }
 
     /// Build a [`OpEthApi`] using [`OpEthApiBuilder`].
@@ -146,7 +164,7 @@ impl<N: RpcNodeCore, Rpc: RpcConvert> OpEthApi<N, Rpc> {
 
     /// Creates a new `OpEthApi` instance sharing the same underlying components but with different sgt_mode.
     pub fn with_sgt_mode_changed(&self, sgt_mode: bool) -> Self {
-        Self { inner: self.inner.clone(), sgt_mode }
+        Self { inner: self.inner.clone(), sgt_mode, sgt_activation_timestamp: self.sgt_activation_timestamp }
     }
 
     /// Returns a cloned pending block receiver, if any.
@@ -411,6 +429,7 @@ where
         block_id: Option<alloy_rpc_types_eth::BlockId>,
     ) -> impl std::future::Future<Output = Result<U256, Self::Error>> + Send {
         let sgt_mode = self.sgt_mode();
+        let sgt_activation = self.sgt_activation_timestamp;
 
         self.spawn_blocking_io_fut(move |this| async move {
             let state = this.state_at_block_id_or_latest(block_id).await?;
@@ -422,6 +441,24 @@ where
 
             if !sgt_mode {
                 return Ok(native_balance);
+            }
+
+            // Check if SGT is active at the queried block's timestamp.
+            // Skip SGT balance for pre-activation blocks to avoid over-reporting.
+            if let Some(activation) = sgt_activation {
+                use reth_storage_api::{BlockNumReader, HeaderProvider};
+                use alloy_consensus::BlockHeader as _;
+                let block_number = this.provider()
+                    .last_block_number()
+                    .map_err(Self::Error::from_eth_err)?;
+                if let Some(header) = this.provider()
+                    .header_by_number(block_number)
+                    .map_err(Self::Error::from_eth_err)?
+                {
+                    if header.timestamp() < activation {
+                        return Ok(native_balance);
+                    }
+                }
             }
 
             // SGT mode: return native + SGT combined

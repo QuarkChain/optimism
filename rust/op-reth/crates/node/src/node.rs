@@ -610,6 +610,7 @@ where
         );
 
         let sgt_config = http_sgt_addr.map(|addr| (addr, http_sgt_port));
+        let sgt_activation_timestamp = ctx.node.provider().chain_spec().sgt_activation_timestamp();
 
         rpc_add_ons
             .launch_add_ons_with(ctx, move |container| {
@@ -659,7 +660,8 @@ where
                         .map_err(|e| eyre::eyre!("Invalid SGT socket address: {}", e))?;
 
                     let standard_eth_api = registry.eth_api();
-                    let sgt_eth_api = standard_eth_api.clone_with_sgt_mode(true);
+                    let mut sgt_eth_api = standard_eth_api.clone_with_sgt_mode(true);
+                    sgt_eth_api.set_sgt_activation_timestamp(sgt_activation_timestamp);
 
                     let mut module = RpcModule::new(());
                     module.merge(sgt_eth_api.into_rpc())

@@ -371,6 +371,10 @@ impl OpHardforks for OpChainSpec {
         self.fork(fork)
     }
 
+    fn sgt_activation_timestamp(&self) -> Option<u64> {
+        self.sgt_activation_timestamp
+    }
+
     fn is_sgt_active_at_timestamp(&self, timestamp: u64) -> bool {
         self.sgt_activation_timestamp
             .map(|activation| timestamp >= activation)

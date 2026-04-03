@@ -251,8 +251,9 @@ where
             };
             let cost = valid_tx.transaction().cost().saturating_add(cost_addition);
 
-            // Check combined balance (native + SGT) only when SGT is active
-            let effective_balance = if self.chain_spec().is_sgt_active_at_timestamp(self.block_timestamp()) {
+            // Check combined balance (native + SGT) only when SGT will be active at the
+            // next block. Use head.Time + 2 to match op-geth's next-block estimation.
+            let effective_balance = if self.chain_spec().is_sgt_active_at_timestamp(self.block_timestamp() + 2) {
                 balance.saturating_add(self.read_sgt_balance(valid_tx.transaction().sender()))
             } else {
                 balance

@@ -218,10 +218,13 @@ impl OpChainSpecBuilder {
         inner.genesis_header =
             SealedHeader::seal_slow(make_op_genesis_header(&inner.genesis, &inner.hardforks));
 
+        let (sgt_activation_timestamp, sgt_is_native_backed) =
+            parse_sgt_config(&inner.genesis);
+
         OpChainSpec {
             inner,
-            sgt_activation_timestamp: None,
-            sgt_is_native_backed: true,
+            sgt_activation_timestamp,
+            sgt_is_native_backed,
         }
     }
 }
@@ -236,6 +239,24 @@ pub struct OpChainSpec {
     pub sgt_activation_timestamp: Option<u64>,
     /// Whether SGT is backed by native (from config.optimism.isSoulBackedByNative)
     pub sgt_is_native_backed: bool,
+}
+
+/// Parse SGT config from genesis extra fields (config.optimism.soulGasTokenTime / isSoulBackedByNative).
+fn parse_sgt_config(genesis: &Genesis) -> (Option<u64>, bool) {
+    genesis
+        .config
+        .extra_fields
+        .get("optimism")
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            let timestamp = obj.get("soulGasTokenTime").and_then(|v| v.as_u64());
+            let native_backed = obj
+                .get("isSoulBackedByNative")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
+            (timestamp, native_backed)
+        })
+        .unwrap_or((None, true))
 }
 
 impl OpChainSpec {
@@ -447,20 +468,7 @@ impl From<Genesis> for OpChainSpec {
         let genesis_header = SealedHeader::seal_slow(make_op_genesis_header(&genesis, &hardforks));
 
         // Parse SGT config from optimism extra field (same as op-geth genesis format)
-        let (sgt_activation_timestamp, sgt_is_native_backed) = genesis
-            .config
-            .extra_fields
-            .get("optimism")
-            .and_then(|v| v.as_object())
-            .map(|obj| {
-                let timestamp = obj.get("soulGasTokenTime").and_then(|v| v.as_u64());
-                let native_backed = obj
-                    .get("isSoulBackedByNative")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(true);
-                (timestamp, native_backed)
-            })
-            .unwrap_or((None, true));
+        let (sgt_activation_timestamp, sgt_is_native_backed) = parse_sgt_config(&genesis);
 
         Self {
             inner: ChainSpec {

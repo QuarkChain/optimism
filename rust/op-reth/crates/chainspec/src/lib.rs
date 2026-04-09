@@ -494,7 +494,9 @@ impl From<Genesis> for OpChainSpec {
 
 impl From<ChainSpec> for OpChainSpec {
     fn from(value: ChainSpec) -> Self {
-        Self { inner: value, sgt_activation_timestamp: None, sgt_is_native_backed: true }
+        let (sgt_activation_timestamp, sgt_is_native_backed) =
+            parse_sgt_config(&value.genesis);
+        Self { inner: value, sgt_activation_timestamp, sgt_is_native_backed }
     }
 }
 

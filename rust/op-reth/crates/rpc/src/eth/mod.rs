@@ -445,12 +445,32 @@ where
 
             // Check if SGT is active at the queried block's timestamp.
             // Skip SGT balance for pre-activation blocks to avoid over-reporting.
-            if let Some(activation) = sgt_activation {
-                use reth_storage_api::{BlockNumReader, HeaderProvider};
+            // If sgt_activation_timestamp is None, SGT is not configured — return native only.
+            let Some(activation) = sgt_activation else {
+                return Ok(native_balance);
+            };
+            {
+                use reth_storage_api::{BlockIdReader, BlockNumReader, HeaderProvider};
                 use alloy_consensus::BlockHeader as _;
+                use alloy_rpc_types_eth::BlockNumberOrTag;
+                // Resolve the queried block's number, defaulting to latest.
+                let num_or_tag = match block_id {
+                    Some(alloy_rpc_types_eth::BlockId::Number(n)) => n,
+                    Some(alloy_rpc_types_eth::BlockId::Hash(h)) => {
+                        match this.provider().block_number(h.block_hash)
+                            .map_err(Self::Error::from_eth_err)?
+                        {
+                            Some(n) => BlockNumberOrTag::Number(n),
+                            None => return Ok(native_balance),
+                        }
+                    }
+                    None => BlockNumberOrTag::Latest,
+                };
                 let block_number = this.provider()
-                    .last_block_number()
-                    .map_err(Self::Error::from_eth_err)?;
+                    .convert_block_number(num_or_tag)
+                    .map_err(Self::Error::from_eth_err)?
+                    .unwrap_or(this.provider().last_block_number()
+                        .map_err(Self::Error::from_eth_err)?);
                 if let Some(header) = this.provider()
                     .header_by_number(block_number)
                     .map_err(Self::Error::from_eth_err)?

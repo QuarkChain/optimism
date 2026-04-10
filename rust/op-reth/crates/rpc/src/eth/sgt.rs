@@ -3,6 +3,7 @@
 use alloy_op_evm::sgt::{sgt_balance_slot, SGT_CONTRACT};
 use alloy_primitives::{Address, U256};
 use reth_provider::{ProviderError, StateProvider};
+use reth_storage_api::StateProviderFactory;
 
 /// Read SGT balance for an account from contract storage.
 ///
@@ -18,4 +19,18 @@ where
     let value = state.storage(SGT_CONTRACT, slot.into())?
         .unwrap_or_default();
     Ok(value)
+}
+
+/// Read SGT balance using a [`StateProviderFactory`] (gets latest state).
+///
+/// Returns 0 on any error.
+pub fn read_sgt_balance_from_provider<F>(client: &F, address: Address) -> U256
+where
+    F: StateProviderFactory,
+{
+    client
+        .latest()
+        .ok()
+        .and_then(|state| read_sgt_balance(&state, address).ok())
+        .unwrap_or_default()
 }

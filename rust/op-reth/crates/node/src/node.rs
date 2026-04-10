@@ -1111,6 +1111,17 @@ where
             .with_validator(validator)
             .build_and_spawn_maintenance_task(blob_store, final_pool_config)?;
 
+        // When SGT is configured, provide the pool with an additional balance provider
+        // so that pool maintenance uses native + SGT for the ENOUGH_BALANCE check.
+        if ctx.chain_spec().sgt_activation_timestamp().is_some() {
+            let client = ctx.provider().clone();
+            transaction_pool.set_additional_balance_provider(std::sync::Arc::new(
+                move |addr| {
+                    reth_optimism_rpc::eth::sgt::read_sgt_balance_from_provider(&client, addr)
+                },
+            ));
+        }
+
         info!(target: "reth::cli", "Transaction pool initialized");
         debug!(target: "reth::cli", "Spawned txpool maintenance task");
 

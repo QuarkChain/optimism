@@ -1077,7 +1077,7 @@ where
             .await;
 
         let blob_store = reth_node_builder::components::create_blob_store(ctx)?;
-        let validator =
+        let mut builder =
             TransactionValidationTaskExecutor::eth_builder(ctx.provider().clone(), evm_config)
                 .no_eip4844()
                 .with_max_tx_input_bytes(ctx.config().txpool.max_tx_input_bytes)
@@ -1089,7 +1089,13 @@ where
                     pool_config_overrides
                         .additional_validation_tasks
                         .unwrap_or_else(|| ctx.config().txpool.additional_validation_tasks),
-                )
+                );
+        // When SGT is configured, skip the inner balance check —
+        // apply_op_checks handles combined (native + SGT) balance validation.
+        if ctx.chain_spec().sgt_activation_timestamp().is_some() {
+            builder = builder.disable_balance_check();
+        }
+        let validator = builder
                 .build_with_tasks(ctx.task_executor().clone(), blob_store.clone())
                 .map(|validator| {
                     OpTransactionValidator::new(validator)

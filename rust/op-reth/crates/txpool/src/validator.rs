@@ -254,7 +254,15 @@ where
             // Check combined balance (native + SGT) only when SGT will be active at the
             // next block. Use head.Time + 2 to match op-geth's next-block estimation.
             let effective_balance = if self.chain_spec().is_sgt_active_at_timestamp(self.block_timestamp() + 2) {
-                balance.saturating_add(self.read_sgt_balance(valid_tx.transaction().sender()))
+                match self.read_sgt_balance(valid_tx.transaction().sender()) {
+                    Ok(sgt_balance) => balance.saturating_add(sgt_balance),
+                    Err(err) => {
+                        return TransactionValidationOutcome::Error(
+                            *valid_tx.hash(),
+                            err,
+                        );
+                    }
+                }
             } else {
                 balance
             };
@@ -285,25 +293,17 @@ where
     /// Reads the SGT balance for an account.
     ///
     /// Returns the SGT balance from storage, or 0 if unavailable.
-    fn read_sgt_balance(&self, address: alloy_primitives::Address) -> alloy_primitives::U256
+    fn read_sgt_balance(&self, address: alloy_primitives::Address) -> Result<alloy_primitives::U256, Box<dyn core::error::Error + Send + Sync>>
     where
         Client: StateProviderFactory,
     {
-        use alloy_primitives::U256;
         use op_revm::sgt::{sgt_balance_slot, SGT_CONTRACT};
 
         let slot = sgt_balance_slot(address);
-
-        // Read from state
-        let state_provider = match self.inner.client().latest() {
-            Ok(provider) => provider,
-            Err(_) => return U256::ZERO,
-        };
-
-        match state_provider.storage(SGT_CONTRACT, slot.into()) {
-            Ok(Some(value)) => value,
-            _ => U256::ZERO,
-        }
+        let state_provider = self.inner.client().latest()?;
+        let value = state_provider.storage(SGT_CONTRACT, slot.into())?
+            .unwrap_or_default();
+        Ok(value)
     }
 
     /// Wrapper for is valid cross tx

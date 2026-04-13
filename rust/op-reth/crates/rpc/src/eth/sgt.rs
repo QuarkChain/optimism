@@ -22,15 +22,10 @@ where
 }
 
 /// Read SGT balance using a [`StateProviderFactory`] (gets latest state).
-///
-/// Returns 0 on any error.
-pub fn read_sgt_balance_from_provider<F>(client: &F, address: Address) -> U256
+pub fn read_sgt_balance_from_provider<F>(client: &F, address: Address) -> Result<U256, ProviderError>
 where
     F: StateProviderFactory,
 {
-    client
-        .latest()
-        .ok()
-        .and_then(|state| read_sgt_balance(&state, address).ok())
-        .unwrap_or_default()
+    let state = client.latest()?;
+    read_sgt_balance(&state, address)
 }

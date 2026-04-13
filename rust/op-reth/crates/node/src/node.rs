@@ -1118,6 +1118,7 @@ where
             transaction_pool.set_additional_balance_provider(std::sync::Arc::new(
                 move |addr| {
                     reth_optimism_rpc::eth::sgt::read_sgt_balance_from_provider(&client, addr)
+                        .map_err(|e| Box::new(e) as Box<dyn core::error::Error + Send + Sync>)
                 },
             ));
         }

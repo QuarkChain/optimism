@@ -110,6 +110,7 @@ fi
 command -v m4 >/dev/null 2>&1 || install_system_package m4
 command -v clang >/dev/null 2>&1 || install_system_package clang
 command -v docker >/dev/null 2>&1 || install_system_package docker
+command -v zstd >/dev/null 2>&1 || install_system_package zstd
 require_clang_c_headers
 
 command -v cargo-binstall >/dev/null 2>&1 || cargo install cargo-binstall --locked

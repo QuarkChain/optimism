@@ -104,6 +104,10 @@ popd > /dev/null
 for fuzz_pkg in op-challenger op-node op-service op-chain-ops; do
     run_step "fuzz-golang (${fuzz_pkg})" bash -c "cd ${fuzz_pkg} && just fuzz"
 done
+
+# Required for op-deployer packages in go-tests-ci that use embedded contract artifacts.
+run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+
 run_step "fuzz-golang (cannon)" bash -c "cd cannon && make fuzz"
 run_step "fuzz-golang (op-e2e)" bash -c "cd op-e2e && make fuzz"
 

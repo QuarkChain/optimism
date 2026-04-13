@@ -103,6 +103,9 @@ done
 run_step "contracts-bedrock build" bash -c "just clean && just forge-build --deny-warnings --skip test"
 popd > /dev/null
 
+# Required for op-deployer packages in go-tests-ci that use embedded contract artifacts.
+run_step "op-deployer artifact sync" just -f op-deployer/justfile copy-contract-artifacts
+
 # go fuzz jobs (from .circleci/continue/main.yml)
 for fuzz_pkg in op-challenger op-node op-service op-chain-ops; do
     run_step "fuzz-golang (${fuzz_pkg})" bash -c "cd ${fuzz_pkg} && just fuzz"

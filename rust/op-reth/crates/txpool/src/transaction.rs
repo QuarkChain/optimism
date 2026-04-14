@@ -26,6 +26,49 @@ use std::{
     },
 };
 
+/// Trait for consensus transaction types that can attach a blob sidecar
+/// and convert to a pooled EIP-4844 transaction.
+pub trait IntoPooledEip4844<Pooled> {
+    /// Attach a blob sidecar to this consensus transaction, producing a pooled transaction.
+    /// Returns `None` if this is not an EIP-4844 transaction.
+    fn into_pooled_with_sidecar(
+        self,
+        sidecar: BlobTransactionSidecarVariant,
+    ) -> Option<Pooled>;
+}
+
+impl IntoPooledEip4844<op_alloy_consensus::OpPooledTransaction> for OpTransactionSigned {
+    fn into_pooled_with_sidecar(
+        self,
+        sidecar: BlobTransactionSidecarVariant,
+    ) -> Option<op_alloy_consensus::OpPooledTransaction> {
+        // OpTransactionSigned = OpTxEnvelope, which has try_into_pooled_eip4844
+        self.try_into_pooled_eip4844(sidecar).ok()
+    }
+}
+
+/// Trait for pooled transaction types that may contain a blob sidecar.
+pub trait TakeBlobSidecar {
+    /// Extract the blob sidecar from this pooled transaction, if present.
+    /// Returns `None` for non-blob transactions.
+    fn take_blob_sidecar(&mut self) -> Option<BlobTransactionSidecarVariant>;
+}
+
+impl TakeBlobSidecar for op_alloy_consensus::OpPooledTransaction {
+    fn take_blob_sidecar(&mut self) -> Option<BlobTransactionSidecarVariant> {
+        match self {
+            op_alloy_consensus::OpPooledTransaction::Eip4844(signed) => {
+                // Replace the sidecar with a default empty one and return the original
+                let (tx_with_sidecar, sig, hash) = signed.clone().into_parts();
+                let sidecar = tx_with_sidecar.sidecar;
+                // Reconstruct with empty sidecar (it will be stripped during consensus conversion anyway)
+                Some(sidecar.into())
+            }
+            _ => None,
+        }
+    }
+}
+
 /// Marker for no-interop transactions
 pub(crate) const NO_INTEROP_TX: u64 = 0;
 
@@ -124,7 +167,7 @@ impl<Cons: SignedTransaction, Pooled> DataAvailabilitySized for OpPooledTransact
 impl<Cons, Pooled> PoolTransaction for OpPooledTransaction<Cons, Pooled>
 where
     Cons: SignedTransaction + From<Pooled>,
-    Pooled: SignedTransaction + TryFrom<Cons, Error: core::error::Error>,
+    Pooled: SignedTransaction + TryFrom<Cons, Error: core::error::Error> + TakeBlobSidecar,
 {
     type TryFromConsensusError = <Pooled as TryFrom<Cons>>::Error;
     type Consensus = Cons;
@@ -145,7 +188,17 @@ where
 
     fn from_pooled(tx: Recovered<Self::Pooled>) -> Self {
         let encoded_len = tx.encode_2718_len();
-        Self::new(tx.convert(), encoded_len)
+        let (mut pooled, signer) = tx.into_parts();
+        // Extract blob sidecar before converting to consensus format (which strips it).
+        let blob_sidecar = pooled.take_blob_sidecar()
+            .map(EthBlobTransactionSidecar::Present);
+        let consensus: Cons = pooled.into();
+        let recovered = Recovered::new_unchecked(consensus, signer);
+        let mut this = Self::new(recovered, encoded_len);
+        if let Some(sidecar) = blob_sidecar {
+            this.inner.blob_sidecar = sidecar;
+        }
+        this
     }
 
     fn hash(&self) -> &TxHash {
@@ -257,34 +310,47 @@ where
 
 impl<Cons, Pooled> EthPoolTransaction for OpPooledTransaction<Cons, Pooled>
 where
-    Cons: SignedTransaction + From<Pooled>,
-    Pooled: SignedTransaction + TryFrom<Cons>,
+    Cons: SignedTransaction + From<Pooled> + IntoPooledEip4844<Pooled>,
+    Pooled: SignedTransaction + TryFrom<Cons> + TakeBlobSidecar,
     <Pooled as TryFrom<Cons>>::Error: core::error::Error,
 {
     fn take_blob(&mut self) -> EthBlobTransactionSidecar {
-        EthBlobTransactionSidecar::None
+        if self.is_eip4844() {
+            std::mem::replace(&mut self.inner.blob_sidecar, EthBlobTransactionSidecar::Missing)
+        } else {
+            EthBlobTransactionSidecar::None
+        }
     }
 
     fn try_into_pooled_eip4844(
         self,
-        _sidecar: Arc<BlobTransactionSidecarVariant>,
+        sidecar: Arc<BlobTransactionSidecarVariant>,
     ) -> Option<Recovered<Self::Pooled>> {
-        None
+        let (consensus_tx, signer) = self.inner.transaction.into_parts();
+        let pooled = consensus_tx.into_pooled_with_sidecar(Arc::unwrap_or_clone(sidecar))?;
+        Some(Recovered::new_unchecked(pooled, signer))
     }
 
     fn try_from_eip4844(
-        _tx: Recovered<Self::Consensus>,
-        _sidecar: BlobTransactionSidecarVariant,
+        tx: Recovered<Self::Consensus>,
+        sidecar: BlobTransactionSidecarVariant,
     ) -> Option<Self> {
-        None
+        let (consensus_tx, signer) = tx.into_parts();
+        let pooled = consensus_tx.into_pooled_with_sidecar(sidecar)?;
+        let recovered = Recovered::new_unchecked(pooled, signer);
+        Some(Self::from_pooled(recovered))
     }
 
     fn validate_blob(
         &self,
-        _sidecar: &BlobTransactionSidecarVariant,
-        _settings: &KzgSettings,
+        sidecar: &BlobTransactionSidecarVariant,
+        settings: &KzgSettings,
     ) -> Result<(), BlobTransactionValidationError> {
-        Err(BlobTransactionValidationError::NotBlobTransaction(self.ty()))
+        if self.is_eip4844() {
+            sidecar.validate(&self.inner.transaction.blob_versioned_hashes().unwrap_or_default(), settings)
+        } else {
+            Err(BlobTransactionValidationError::NotBlobTransaction(self.ty()))
+        }
     }
 }
 
@@ -300,7 +366,7 @@ pub trait OpPooledTx:
 impl<Cons, Pooled> OpPooledTx for OpPooledTransaction<Cons, Pooled>
 where
     Cons: SignedTransaction + From<Pooled>,
-    Pooled: SignedTransaction + TryFrom<Cons>,
+    Pooled: SignedTransaction + TryFrom<Cons> + TakeBlobSidecar,
     <Pooled as TryFrom<Cons>>::Error: core::error::Error,
 {
     fn encoded_2718(&self) -> Cow<'_, Bytes> {

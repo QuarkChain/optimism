@@ -221,6 +221,7 @@ impl NetworkWallet<Optimism> for EthereumWallet {
             OpTypedTransaction::Legacy(tx) => TypedTransaction::Legacy(tx),
             OpTypedTransaction::Eip2930(tx) => TypedTransaction::Eip2930(tx),
             OpTypedTransaction::Eip1559(tx) => TypedTransaction::Eip1559(tx),
+            OpTypedTransaction::Eip4844(tx) => TypedTransaction::Eip4844(alloy_consensus::TxEip4844Variant::TxEip4844(tx)),
             OpTypedTransaction::Eip7702(tx) => TypedTransaction::Eip7702(tx),
             OpTypedTransaction::Deposit(_) => {
                 return Err(alloy_signer::Error::other("not implemented for deposit tx"));

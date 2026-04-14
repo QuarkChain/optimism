@@ -18,7 +18,10 @@ cgt:
     @just acceptance-test "" cgt
 
 sgt:
-    @just acceptance-test "" sgt
+    DEVSTACK_L2EL_KIND=op-reth OP_RETH_EXEC_PATH={{REPO_ROOT}}/rust/target/release/op-reth just acceptance-test "" sgt
+
+l2blob:
+    DEVSTACK_L2EL_KIND=op-reth OP_RETH_EXEC_PATH={{REPO_ROOT}}/rust/target/release/op-reth just acceptance-test "" l2blob
 
 
 # Run acceptance tests with mise-managed binary

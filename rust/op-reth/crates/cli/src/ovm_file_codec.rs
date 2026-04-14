@@ -244,6 +244,9 @@ impl Encodable2718 for OvmTransactionSigned {
             OpTypedTransaction::Eip1559(dynamic_fee_tx) => {
                 dynamic_fee_tx.eip2718_encoded_length(&self.signature)
             }
+            OpTypedTransaction::Eip4844(blob_tx) => {
+                blob_tx.eip2718_encoded_length(&self.signature)
+            }
             OpTypedTransaction::Eip7702(set_code_tx) => {
                 set_code_tx.eip2718_encoded_length(&self.signature)
             }
@@ -267,6 +270,11 @@ impl Decodable2718 for OvmTransactionSigned {
             OpTxType::Eip1559 => {
                 let (tx, signature, hash) = TxEip1559::rlp_decode_signed(buf)?.into_parts();
                 Ok(Self { transaction: OpTypedTransaction::Eip1559(tx), signature, hash })
+            }
+            OpTxType::Eip4844 => {
+                let (tx, signature, hash) =
+                    alloy_consensus::TxEip4844::rlp_decode_signed(buf)?.into_parts();
+                Ok(Self { transaction: OpTypedTransaction::Eip4844(tx), signature, hash })
             }
             OpTxType::Eip7702 => {
                 let (tx, signature, hash) = TxEip7702::rlp_decode_signed(buf)?.into_parts();

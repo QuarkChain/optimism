@@ -191,6 +191,12 @@ gates:
       - package: github.com/ethereum-optimism/optimism/op-acceptance-tests/tests/sgt
         timeout: 10m
 
+  - id: l2blob
+    description: "L2 blob (EIP-4844) transaction tests."
+    tests:
+      - package: github.com/ethereum-optimism/optimism/op-acceptance-tests/tests/l2blob
+        timeout: 10m
+
   - id: supernode
     description: "Supernode tests - tests for the op-supernode multi-chain consensus layer."
     tests:

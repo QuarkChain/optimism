@@ -1078,8 +1078,12 @@ where
 
         let blob_store = reth_node_builder::components::create_blob_store(ctx)?;
         let mut builder =
-            TransactionValidationTaskExecutor::eth_builder(ctx.provider().clone(), evm_config)
-                .no_eip4844()
+            TransactionValidationTaskExecutor::eth_builder(ctx.provider().clone(), evm_config);
+        // Disable EIP-4844 blob transactions unless L2 blob is active
+        if !ctx.chain_spec().is_l2_blob_active_at_timestamp(ctx.head().timestamp) {
+            builder = builder.no_eip4844();
+        }
+        builder = builder
                 .with_max_tx_input_bytes(ctx.config().txpool.max_tx_input_bytes)
                 .kzg_settings(ctx.kzg_settings()?)
                 .set_tx_fee_cap(ctx.config().rpc.rpc_tx_fee_cap)

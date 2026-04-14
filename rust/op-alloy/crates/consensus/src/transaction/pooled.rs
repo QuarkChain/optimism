@@ -3,8 +3,8 @@
 
 use crate::OpTxEnvelope;
 use alloy_consensus::{
-    Extended, SignableTransaction, Signed, TransactionEnvelope, TxEip7702, TxEnvelope,
-    error::ValueError,
+    Extended, SignableTransaction, Signed, TransactionEnvelope, TxEip4844WithSidecar, TxEip7702,
+    TxEnvelope, error::ValueError,
     transaction::{TxEip1559, TxEip2930, TxHashRef, TxLegacy},
 };
 use alloy_eips::eip2718::Encodable2718;
@@ -13,7 +13,7 @@ use core::hash::Hash;
 
 /// All possible transactions that can be included in a response to `GetPooledTransactions`.
 /// A response to `GetPooledTransactions`. This can include a typed signed transaction, but cannot
-/// include a deposit transaction or EIP-4844 transaction.
+/// include a deposit transaction.
 ///
 /// The difference between this and the [`OpTxEnvelope`] is that this type does not have the deposit
 /// transaction variant, which is not expected to be pooled.
@@ -29,6 +29,9 @@ pub enum OpPooledTransaction {
     /// A [`TxEip1559`] transaction tagged with type 2.
     #[envelope(ty = 2)]
     Eip1559(Signed<TxEip1559>),
+    /// A [`TxEip4844WithSidecar`] transaction tagged with type 3.
+    #[envelope(ty = 3)]
+    Eip4844(Signed<TxEip4844WithSidecar>),
     /// A [`TxEip7702`] transaction tagged with type 4.
     #[envelope(ty = 4)]
     Eip7702(Signed<TxEip7702>),
@@ -42,6 +45,7 @@ impl OpPooledTransaction {
             Self::Legacy(tx) => tx.signature_hash(),
             Self::Eip2930(tx) => tx.signature_hash(),
             Self::Eip1559(tx) => tx.signature_hash(),
+            Self::Eip4844(tx) => tx.signature_hash(),
             Self::Eip7702(tx) => tx.signature_hash(),
         }
     }
@@ -52,16 +56,18 @@ impl OpPooledTransaction {
             Self::Legacy(tx) => tx.hash(),
             Self::Eip2930(tx) => tx.hash(),
             Self::Eip1559(tx) => tx.hash(),
+            Self::Eip4844(tx) => tx.hash(),
             Self::Eip7702(tx) => tx.hash(),
         }
     }
 
     /// Returns the signature of the transaction.
-    pub const fn signature(&self) -> &Signature {
+    pub fn signature(&self) -> &Signature {
         match self {
             Self::Legacy(tx) => tx.signature(),
             Self::Eip2930(tx) => tx.signature(),
             Self::Eip1559(tx) => tx.signature(),
+            Self::Eip4844(tx) => tx.signature(),
             Self::Eip7702(tx) => tx.signature(),
         }
     }
@@ -73,6 +79,7 @@ impl OpPooledTransaction {
             Self::Legacy(tx) => tx.tx().encode_for_signing(out),
             Self::Eip2930(tx) => tx.tx().encode_for_signing(out),
             Self::Eip1559(tx) => tx.tx().encode_for_signing(out),
+            Self::Eip4844(tx) => tx.tx().encode_for_signing(out),
             Self::Eip7702(tx) => tx.tx().encode_for_signing(out),
         }
     }
@@ -83,6 +90,10 @@ impl OpPooledTransaction {
             Self::Legacy(tx) => tx.into(),
             Self::Eip2930(tx) => tx.into(),
             Self::Eip1559(tx) => tx.into(),
+            Self::Eip4844(tx) => {
+                let (inner, sig, hash) = tx.into_parts();
+                Signed::new_unchecked(inner.tx, sig, hash).into()
+            }
             Self::Eip7702(tx) => tx.into(),
         }
     }
@@ -93,6 +104,10 @@ impl OpPooledTransaction {
             Self::Legacy(tx) => tx.into(),
             Self::Eip2930(tx) => tx.into(),
             Self::Eip1559(tx) => tx.into(),
+            Self::Eip4844(tx) => {
+                let (inner, sig, hash) = tx.into_parts();
+                OpTxEnvelope::Eip4844(Signed::new_unchecked(inner.tx, sig, hash))
+            }
             Self::Eip7702(tx) => tx.into(),
         }
     }
@@ -148,6 +163,12 @@ impl From<Signed<TxEip1559>> for OpPooledTransaction {
     }
 }
 
+impl From<Signed<TxEip4844WithSidecar>> for OpPooledTransaction {
+    fn from(v: Signed<TxEip4844WithSidecar>) -> Self {
+        Self::Eip4844(v)
+    }
+}
+
 impl From<Signed<TxEip7702>> for OpPooledTransaction {
     fn from(v: Signed<TxEip7702>) -> Self {
         Self::Eip7702(v)
@@ -160,6 +181,7 @@ impl From<OpPooledTransaction> for alloy_consensus::transaction::PooledTransacti
             OpPooledTransaction::Legacy(tx) => tx.into(),
             OpPooledTransaction::Eip2930(tx) => tx.into(),
             OpPooledTransaction::Eip1559(tx) => tx.into(),
+            OpPooledTransaction::Eip4844(tx) => tx.into(),
             OpPooledTransaction::Eip7702(tx) => tx.into(),
         }
     }
@@ -202,6 +224,9 @@ impl alloy_consensus::transaction::SignerRecoverable for OpPooledTransaction {
                 alloy_consensus::transaction::SignerRecoverable::recover_unchecked_with_buf(tx, buf)
             }
             Self::Eip1559(tx) => {
+                alloy_consensus::transaction::SignerRecoverable::recover_unchecked_with_buf(tx, buf)
+            }
+            Self::Eip4844(tx) => {
                 alloy_consensus::transaction::SignerRecoverable::recover_unchecked_with_buf(tx, buf)
             }
             Self::Eip7702(tx) => {

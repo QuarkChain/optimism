@@ -174,7 +174,7 @@ where
     ///
     /// This behaves the same as [`EthTransactionValidator::validate_one_with_state`], but in
     /// addition applies OP validity checks:
-    /// - ensures tx is not eip4844
+    /// - ensures tx is not eip4844 (unless L2 blob is active)
     /// - ensures cross chain transactions are valid wrt locally configured safety level
     /// - ensures that the account has enough balance to cover the L1 gas cost
     pub async fn validate_one_with_state(
@@ -183,7 +183,9 @@ where
         transaction: Tx,
         state: &mut Option<Box<dyn AccountInfoReader + Send>>,
     ) -> TransactionValidationOutcome<Tx> {
-        if transaction.is_eip4844() {
+        if transaction.is_eip4844()
+            && !self.chain_spec().is_l2_blob_active_at_timestamp(self.block_timestamp())
+        {
             return TransactionValidationOutcome::Invalid(
                 transaction,
                 InvalidTransactionError::TxTypeNotSupported.into(),

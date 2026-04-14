@@ -66,6 +66,8 @@ pub struct OpTxResult<H, T> {
     pub is_deposit: bool,
     /// The sender of the transaction.
     pub sender: Address,
+    /// Actual blob gas used by this transaction (from EIP-4844 blob_gas_used).
+    pub actual_blob_gas: u64,
 }
 
 impl<H, T> TxResult for OpTxResult<H, T> {
@@ -96,6 +98,8 @@ pub struct OpBlockExecutor<Evm, R: OpReceiptBuilder, Spec> {
     /// This is only set for blocks post-Jovian activation.
     /// See [DA footprint block limit spec](https://github.com/ethereum-optimism/specs/blob/main/specs/protocol/jovian/exec-engine.md#da-footprint-block-limit)
     pub da_footprint_used: u64,
+    /// Actual blob gas used by EIP-4844 transactions.
+    pub blob_gas_used: u64,
     /// Whether Regolith hardfork is active.
     pub is_regolith: bool,
     /// Utility to call system smart contracts.
@@ -120,6 +124,7 @@ where
             receipts: Vec::new(),
             gas_used: 0,
             da_footprint_used: 0,
+            blob_gas_used: 0,
             ctx,
         }
     }
@@ -268,6 +273,7 @@ where
             BlockExecutionError::evm(err, hash)
         })?;
 
+        let actual_blob_gas = tx.tx().blob_gas_used().unwrap_or_default();
         Ok(OpTxResult {
             inner: EthTxResult {
                 result,
@@ -276,6 +282,7 @@ where
             },
             is_deposit,
             sender: *tx.signer(),
+            actual_blob_gas,
         })
     }
 
@@ -284,6 +291,7 @@ where
             inner: EthTxResult { result: ResultAndState { result, state }, blob_gas_used, tx_type },
             is_deposit,
             sender,
+            actual_blob_gas,
         } = output;
 
         // Fetch the depositor account from the database for the deposit nonce.
@@ -309,6 +317,9 @@ where
             // Add to DA footprint used
             self.da_footprint_used = self.da_footprint_used.saturating_add(blob_gas_used);
         }
+
+        // Accumulate actual blob gas from EIP-4844 transactions
+        self.blob_gas_used += actual_blob_gas;
 
         self.receipts.push(
             match self.receipt_builder.build_receipt(ReceiptBuilderCtx {
@@ -380,7 +391,9 @@ where
                 receipts: self.receipts,
                 requests: Default::default(),
                 gas_used: legacy_gas_used,
-                blob_gas_used: self.da_footprint_used,
+                // da_footprint_used tracks Jovian DA footprint; blob_gas_used tracks actual
+                // EIP-4844 blob gas. They are mutually exclusive in our fork.
+                blob_gas_used: self.da_footprint_used.saturating_add(self.blob_gas_used),
             },
         ))
     }

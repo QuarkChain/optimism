@@ -179,6 +179,7 @@ impl From<OpTypedTransaction> for OpTransactionRequest {
             OpTypedTransaction::Legacy(tx) => Self(tx.into()),
             OpTypedTransaction::Eip2930(tx) => Self(tx.into()),
             OpTypedTransaction::Eip1559(tx) => Self(tx.into()),
+            OpTypedTransaction::Eip4844(tx) => Self(tx.into()),
             OpTypedTransaction::Eip7702(tx) => Self(tx.into()),
             OpTypedTransaction::Deposit(tx) => tx.into(),
         }

@@ -218,13 +218,14 @@ impl OpChainSpecBuilder {
         inner.genesis_header =
             SealedHeader::seal_slow(make_op_genesis_header(&inner.genesis, &inner.hardforks));
 
-        let (sgt_activation_timestamp, sgt_is_native_backed) =
-            parse_sgt_config(&inner.genesis);
+        let (sgt_activation_timestamp, sgt_is_native_backed, l2_blob_activation_timestamp) =
+            parse_optimism_genesis_config(&inner.genesis);
 
         OpChainSpec {
             inner,
             sgt_activation_timestamp,
             sgt_is_native_backed,
+            l2_blob_activation_timestamp,
         }
     }
 }
@@ -239,30 +240,41 @@ pub struct OpChainSpec {
     pub sgt_activation_timestamp: Option<u64>,
     /// Whether SGT is backed by native (from config.optimism.isSoulBackedByNative)
     pub sgt_is_native_backed: bool,
+    /// L2 Blob activation timestamp from genesis config.optimism.l2BlobTime
+    /// Enables EIP-4844 blob transactions on L2.
+    pub l2_blob_activation_timestamp: Option<u64>,
 }
 
-/// Parse SGT config from genesis extra fields (config.optimism.soulGasTokenTime / isSoulBackedByNative).
-fn parse_sgt_config(genesis: &Genesis) -> (Option<u64>, bool) {
+/// Parse custom OP config from genesis extra fields (config.optimism.*).
+///
+/// Returns (sgt_activation_timestamp, sgt_is_native_backed, l2_blob_activation_timestamp).
+fn parse_optimism_genesis_config(genesis: &Genesis) -> (Option<u64>, bool, Option<u64>) {
     genesis
         .config
         .extra_fields
         .get("optimism")
         .and_then(|v| v.as_object())
         .map(|obj| {
-            let timestamp = obj.get("soulGasTokenTime").and_then(|v| v.as_u64());
+            let sgt_timestamp = obj.get("soulGasTokenTime").and_then(|v| v.as_u64());
             let native_backed = obj
                 .get("isSoulBackedByNative")
                 .and_then(|v| v.as_bool())
                 .unwrap_or(true);
-            (timestamp, native_backed)
+            let l2_blob_timestamp = obj.get("l2BlobTime").and_then(|v| v.as_u64());
+            (sgt_timestamp, native_backed, l2_blob_timestamp)
         })
-        .unwrap_or((None, true))
+        .unwrap_or((None, true, None))
 }
 
 impl OpChainSpec {
     /// Constructs a new [`OpChainSpec`] from the given inner [`ChainSpec`].
     pub fn new(inner: ChainSpec) -> Self {
-        Self { inner, sgt_activation_timestamp: None, sgt_is_native_backed: true }
+        Self {
+            inner,
+            sgt_activation_timestamp: None,
+            sgt_is_native_backed: true,
+            l2_blob_activation_timestamp: None,
+        }
     }
 
     /// Converts the given [`Genesis`] into a [`OpChainSpec`].
@@ -384,6 +396,14 @@ impl OpHardforks for OpChainSpec {
     fn is_sgt_native_backed(&self) -> bool {
         self.sgt_is_native_backed
     }
+
+    fn is_l2_blob_active_at_timestamp(&self, timestamp: u64) -> bool {
+        self.is_cancun_active_at_timestamp(timestamp)
+            && self
+                .l2_blob_activation_timestamp
+                .map(|activation| timestamp >= activation)
+                .unwrap_or(false)
+    }
 }
 
 impl From<Genesis> for OpChainSpec {
@@ -471,8 +491,9 @@ impl From<Genesis> for OpChainSpec {
         let hardforks = ChainHardforks::new(ordered_hardforks);
         let genesis_header = SealedHeader::seal_slow(make_op_genesis_header(&genesis, &hardforks));
 
-        // Parse SGT config from optimism extra field (same as op-geth genesis format)
-        let (sgt_activation_timestamp, sgt_is_native_backed) = parse_sgt_config(&genesis);
+        // Parse custom config from optimism extra field (same as op-geth genesis format)
+        let (sgt_activation_timestamp, sgt_is_native_backed, l2_blob_activation_timestamp) =
+            parse_optimism_genesis_config(&genesis);
 
         Self {
             inner: ChainSpec {
@@ -488,15 +509,16 @@ impl From<Genesis> for OpChainSpec {
             },
             sgt_activation_timestamp,
             sgt_is_native_backed,
+            l2_blob_activation_timestamp,
         }
     }
 }
 
 impl From<ChainSpec> for OpChainSpec {
     fn from(value: ChainSpec) -> Self {
-        let (sgt_activation_timestamp, sgt_is_native_backed) =
-            parse_sgt_config(&value.genesis);
-        Self { inner: value, sgt_activation_timestamp, sgt_is_native_backed }
+        let (sgt_activation_timestamp, sgt_is_native_backed, l2_blob_activation_timestamp) =
+            parse_optimism_genesis_config(&value.genesis);
+        Self { inner: value, sgt_activation_timestamp, sgt_is_native_backed, l2_blob_activation_timestamp }
     }
 }
 

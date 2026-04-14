@@ -94,8 +94,11 @@ pub fn validate_block_post_execution<R: DepositReceipt>(
     result: &BlockExecutionResult<R>,
     receipt_root_bloom: Option<(B256, Bloom)>,
 ) -> Result<(), ConsensusError> {
-    // Validate that the blob gas used is present and correctly computed if Jovian is active.
-    if chain_spec.is_jovian_active_at_timestamp(header.timestamp()) {
+    // Validate that the blob gas used is present and correctly computed if Jovian or L2 Blob is
+    // active.
+    if chain_spec.is_jovian_active_at_timestamp(header.timestamp())
+        || chain_spec.is_l2_blob_active_at_timestamp(header.timestamp())
+    {
         let computed_blob_gas_used = result.blob_gas_used;
         let header_blob_gas_used =
             header.blob_gas_used().ok_or(ConsensusError::BlobGasUsedMissing)?;
@@ -239,6 +242,7 @@ mod tests {
             },
             sgt_activation_timestamp: None,
             sgt_is_native_backed: true,
+            l2_blob_activation_timestamp: None,
         })
     }
 

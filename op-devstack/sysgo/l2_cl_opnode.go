@@ -354,6 +354,9 @@ func withOpNode(l2CLID stack.L2CLNodeID, l1CLID stack.L1CLNodeID, l1ELID stack.L
 		if cfg.SafeDBPath != "" {
 			nodeCfg.SafeDBPath = cfg.SafeDBPath
 		}
+		if len(cfg.DACUrls) > 0 {
+			nodeCfg.DACConfig = &config.DACConfig{URLS: cfg.DACUrls}
+		}
 
 		l2CLNode := &OpNode{
 			id:     l2CLID,

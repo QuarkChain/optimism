@@ -180,6 +180,8 @@ pub struct OpBuiltPayload<N: NodePrimitives = OpPrimitives> {
     pub(crate) executed_block: Option<BuiltPayloadExecutedBlock<N>>,
     /// The fees of the block
     pub(crate) fees: U256,
+    /// The blob sidecars of EIP-4844 transactions in this payload.
+    pub(crate) sidecars: Vec<alloy_eips::eip7594::BlobTransactionSidecarVariant>,
 }
 
 // === impl BuiltPayload ===
@@ -192,7 +194,7 @@ impl<N: NodePrimitives> OpBuiltPayload<N> {
         fees: U256,
         executed_block: Option<BuiltPayloadExecutedBlock<N>>,
     ) -> Self {
-        Self { id, block, fees, executed_block }
+        Self { id, block, fees, executed_block, sidecars: Vec::new() }
     }
 
     /// Returns the identifier of the payload.
@@ -275,7 +277,7 @@ where
     N: NodePrimitives<Block = Block<T>>,
 {
     fn from(value: OpBuiltPayload<N>) -> Self {
-        let OpBuiltPayload { block, fees, .. } = value;
+        let OpBuiltPayload { block, fees, sidecars, .. } = value;
 
         let parent_beacon_block_root = block.parent_beacon_block_root.unwrap_or_default();
 
@@ -285,17 +287,8 @@ where
                 &Arc::unwrap_or_clone(block).into_block(),
             ),
             block_value: fees,
-            // From the engine API spec:
-            //
-            // > Client software **MAY** use any heuristics to decide whether to set
-            // `shouldOverrideBuilder` flag or not. If client software does not implement any
-            // heuristic this flag **SHOULD** be set to `false`.
-            //
-            // Spec:
-            // <https://github.com/ethereum/execution-apis/blob/fe8e13c288c592ec154ce25c534e26cb7ce0530d/src/engine/cancun.md#specification-2>
             should_override_builder: false,
-            // No blobs for OP.
-            blobs_bundle: BlobsBundleV1 { blobs: vec![], commitments: vec![], proofs: vec![] },
+            blobs_bundle: crate::payload::sidecars_to_blobs_bundle(sidecars),
             parent_beacon_block_root,
         }
     }
@@ -307,7 +300,7 @@ where
     N: NodePrimitives<Block = Block<T>>,
 {
     fn from(value: OpBuiltPayload<N>) -> Self {
-        let OpBuiltPayload { block, fees, .. } = value;
+        let OpBuiltPayload { block, fees, sidecars, .. } = value;
 
         let parent_beacon_block_root = block.parent_beacon_block_root.unwrap_or_default();
 
@@ -332,8 +325,7 @@ where
             // Spec:
             // <https://github.com/ethereum/execution-apis/blob/fe8e13c288c592ec154ce25c534e26cb7ce0530d/src/engine/cancun.md#specification-2>
             should_override_builder: false,
-            // No blobs for OP.
-            blobs_bundle: BlobsBundleV1 { blobs: vec![], commitments: vec![], proofs: vec![] },
+            blobs_bundle: crate::payload::sidecars_to_blobs_bundle(sidecars),
             parent_beacon_block_root,
             execution_requests: vec![],
         }
@@ -345,6 +337,31 @@ where
 /// Returns an 8-byte identifier by hashing the payload components with sha256 hash.
 ///
 /// Note: This must be updated whenever the [`OpPayloadAttributes`] changes for a hardfork.
+/// Converts a list of blob transaction sidecars into a [`BlobsBundleV1`].
+pub(crate) fn sidecars_to_blobs_bundle(
+    sidecars: Vec<alloy_eips::eip7594::BlobTransactionSidecarVariant>,
+) -> BlobsBundleV1 {
+    use alloy_eips::eip7594::BlobTransactionSidecarVariant;
+    let mut blobs = Vec::new();
+    let mut commitments = Vec::new();
+    let mut proofs = Vec::new();
+    for sidecar in sidecars {
+        match sidecar {
+            BlobTransactionSidecarVariant::Eip4844(s) => {
+                blobs.extend_from_slice(&s.blobs);
+                commitments.extend_from_slice(&s.commitments);
+                proofs.extend_from_slice(&s.proofs);
+            }
+            BlobTransactionSidecarVariant::Eip7594(s) => {
+                blobs.extend_from_slice(&s.blobs);
+                commitments.extend_from_slice(&s.commitments);
+                // EIP-7594 uses cell proofs, not KZG proofs
+            }
+        }
+    }
+    BlobsBundleV1 { blobs, commitments, proofs }
+}
+
 /// See also <https://github.com/ethereum-optimism/op-geth/blob/d401af16f2dd94b010a72eaef10e07ac10b31931/miner/payload_building.go#L59-L59>
 pub fn payload_id_optimism(
     parent: &B256,

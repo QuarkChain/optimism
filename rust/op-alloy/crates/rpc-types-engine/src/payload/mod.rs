@@ -617,9 +617,8 @@ impl OpExecutionPayload {
             Self::V3(payload) => payload.try_into_block_with(f)?,
             Self::V4(payload) => payload.try_into_block_with(f)?,
         };
-        if block.body.has_eip4844_transactions() {
-            return Err(OpPayloadError::BlobTransaction);
-        }
+        // Note: EIP-4844 blob transactions are allowed when L2 blob is active.
+        // The txpool validator gates blob tx acceptance based on l2BlobTime.
 
         Ok(block)
     }

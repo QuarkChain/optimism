@@ -7,6 +7,7 @@ set -e
 # Inherit ERR trap in functions/subshells and catch pipeline failures
 set -E -o pipefail
 SECONDS=0
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
 error_handler() {
     local rc=$?
@@ -37,9 +38,9 @@ run_step() {
 }
 
 cleanup_test_artifacts() {
-    rm -rf rust/kona/._data
-    rm -f rust/kona/out.bin.gz
-    rm -rf tmp
+    rm -rf "$ROOT_DIR/rust/kona/._data"
+    rm -f "$ROOT_DIR/rust/kona/out.bin.gz"
+    rm -rf "$ROOT_DIR/tmp"
 }
 
 trap 'cleanup_test_artifacts' EXIT

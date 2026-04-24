@@ -10,7 +10,7 @@ use reth_primitives_traits::{
     Block, BlockBody, BlockTy, GotExpected, SealedBlock,
     transaction::error::InvalidTransactionError,
 };
-use reth_storage_api::{AccountInfoReader, BlockReaderIdExt, StateProviderFactory};
+use reth_storage_api::{AccountInfoReader, BlockReaderIdExt, StateProvider, StateProviderFactory};
 use reth_transaction_pool::{
     EthPoolTransaction, EthTransactionValidator, TransactionOrigin, TransactionValidationOutcome,
     TransactionValidator, error::InvalidPoolTransactionError,
@@ -251,12 +251,28 @@ where
             };
             let cost = valid_tx.transaction().cost().saturating_add(cost_addition);
 
+            // Check combined balance (native + SGT) only when SGT will be active at the
+            // next block. Use head.Time + 2 to match op-geth's next-block estimation.
+            let effective_balance = if self.chain_spec().is_sgt_active_at_timestamp(self.block_timestamp() + 2) {
+                match self.read_sgt_balance(valid_tx.transaction().sender()) {
+                    Ok(sgt_balance) => balance.saturating_add(sgt_balance),
+                    Err(err) => {
+                        return TransactionValidationOutcome::Error(
+                            *valid_tx.hash(),
+                            err,
+                        );
+                    }
+                }
+            } else {
+                balance
+            };
+
             // Checks for max cost
-            if cost > balance {
+            if cost > effective_balance {
                 return TransactionValidationOutcome::Invalid(
                     valid_tx.into_transaction(),
                     InvalidTransactionError::InsufficientFunds(
-                        GotExpected { got: balance, expected: cost }.into(),
+                        GotExpected { got: effective_balance, expected: cost }.into(),
                     )
                     .into(),
                 );
@@ -272,6 +288,22 @@ where
             };
         }
         outcome
+    }
+
+    /// Reads the SGT balance for an account.
+    ///
+    /// Returns the SGT balance from storage, or 0 if unavailable.
+    fn read_sgt_balance(&self, address: alloy_primitives::Address) -> Result<alloy_primitives::U256, Box<dyn core::error::Error + Send + Sync>>
+    where
+        Client: StateProviderFactory,
+    {
+        use op_revm::sgt::{sgt_balance_slot, SGT_CONTRACT};
+
+        let slot = sgt_balance_slot(address);
+        let state_provider = self.inner.client().latest()?;
+        let value = state_provider.storage(SGT_CONTRACT, slot.into())?
+            .unwrap_or_default();
+        Ok(value)
     }
 
     /// Wrapper for is valid cross tx

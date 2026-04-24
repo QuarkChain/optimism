@@ -63,7 +63,7 @@ use alloy_eips::eip7840::BlobParams;
 use alloy_genesis::Genesis;
 use alloy_hardforks::Hardfork;
 use alloy_primitives::{B256, U256};
-use derive_more::{Constructor, Deref, From, Into};
+use derive_more::{Deref, From};
 use reth_chainspec::{
     BaseFeeParams, BaseFeeParamsKind, ChainSpec, ChainSpecBuilder, DepositContract,
     DisplayHardforks, EthChainSpec, EthereumHardforks, ForkFilter, ForkId, Hardforks, Head,
@@ -218,18 +218,53 @@ impl OpChainSpecBuilder {
         inner.genesis_header =
             SealedHeader::seal_slow(make_op_genesis_header(&inner.genesis, &inner.hardforks));
 
-        OpChainSpec { inner }
+        let (sgt_activation_timestamp, sgt_is_native_backed) =
+            parse_sgt_config(&inner.genesis);
+
+        OpChainSpec {
+            inner,
+            sgt_activation_timestamp,
+            sgt_is_native_backed,
+        }
     }
 }
 
 /// OP stack chain spec type.
-#[derive(Debug, Clone, Deref, Into, Constructor, PartialEq, Eq)]
+#[derive(Debug, Clone, Deref, PartialEq, Eq)]
 pub struct OpChainSpec {
     /// [`ChainSpec`].
+    #[deref]
     pub inner: ChainSpec,
+    /// SGT activation timestamp from genesis config.optimism.soulGasTokenTime
+    pub sgt_activation_timestamp: Option<u64>,
+    /// Whether SGT is backed by native (from config.optimism.isSoulBackedByNative)
+    pub sgt_is_native_backed: bool,
+}
+
+/// Parse SGT config from genesis extra fields (config.optimism.soulGasTokenTime / isSoulBackedByNative).
+fn parse_sgt_config(genesis: &Genesis) -> (Option<u64>, bool) {
+    genesis
+        .config
+        .extra_fields
+        .get("optimism")
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            let timestamp = obj.get("soulGasTokenTime").and_then(|v| v.as_u64());
+            let native_backed = obj
+                .get("isSoulBackedByNative")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
+            (timestamp, native_backed)
+        })
+        .unwrap_or((None, true))
 }
 
 impl OpChainSpec {
+    /// Constructs a new [`OpChainSpec`] from the given inner [`ChainSpec`].
+    pub fn new(inner: ChainSpec) -> Self {
+        Self { inner, sgt_activation_timestamp: None, sgt_is_native_backed: true }
+    }
+
     /// Converts the given [`Genesis`] into a [`OpChainSpec`].
     pub fn from_genesis(genesis: Genesis) -> Self {
         genesis.into()
@@ -335,6 +370,20 @@ impl OpHardforks for OpChainSpec {
     fn op_fork_activation(&self, fork: OpHardfork) -> ForkCondition {
         self.fork(fork)
     }
+
+    fn sgt_activation_timestamp(&self) -> Option<u64> {
+        self.sgt_activation_timestamp
+    }
+
+    fn is_sgt_active_at_timestamp(&self, timestamp: u64) -> bool {
+        self.sgt_activation_timestamp
+            .map(|activation| timestamp >= activation)
+            .unwrap_or(false)
+    }
+
+    fn is_sgt_native_backed(&self) -> bool {
+        self.sgt_is_native_backed
+    }
 }
 
 impl From<Genesis> for OpChainSpec {
@@ -422,6 +471,9 @@ impl From<Genesis> for OpChainSpec {
         let hardforks = ChainHardforks::new(ordered_hardforks);
         let genesis_header = SealedHeader::seal_slow(make_op_genesis_header(&genesis, &hardforks));
 
+        // Parse SGT config from optimism extra field (same as op-geth genesis format)
+        let (sgt_activation_timestamp, sgt_is_native_backed) = parse_sgt_config(&genesis);
+
         Self {
             inner: ChainSpec {
                 chain: genesis.config.chain_id.into(),
@@ -434,13 +486,23 @@ impl From<Genesis> for OpChainSpec {
                 base_fee_params: optimism_genesis_info.base_fee_params,
                 ..Default::default()
             },
+            sgt_activation_timestamp,
+            sgt_is_native_backed,
         }
     }
 }
 
 impl From<ChainSpec> for OpChainSpec {
     fn from(value: ChainSpec) -> Self {
-        Self { inner: value }
+        let (sgt_activation_timestamp, sgt_is_native_backed) =
+            parse_sgt_config(&value.genesis);
+        Self { inner: value, sgt_activation_timestamp, sgt_is_native_backed }
+    }
+}
+
+impl From<OpChainSpec> for ChainSpec {
+    fn from(value: OpChainSpec) -> Self {
+        value.inner
     }
 }
 

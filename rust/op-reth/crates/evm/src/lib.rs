@@ -22,6 +22,7 @@ use reth_chainspec::EthChainSpec;
 use reth_evm::{
     ConfigureEvm, EvmEnv, TransactionEnv, eth::NextEvmEnvAttributes, precompiles::PrecompilesMap,
 };
+use tracing::debug;
 use reth_optimism_chainspec::OpChainSpec;
 use reth_optimism_forks::OpHardforks;
 use reth_optimism_primitives::{DepositReceipt, OpPrimitives};
@@ -120,6 +121,19 @@ where
     pub const fn chain_spec(&self) -> &Arc<ChainSpec> {
         self.executor_factory.spec()
     }
+
+    /// Extract SGT configuration for a given timestamp.
+    fn extract_sgt_config(&self, timestamp: u64) -> alloy_op_evm::sgt::SgtConfig {
+        let chain_spec = self.chain_spec();
+        let enabled = chain_spec.is_sgt_active_at_timestamp(timestamp);
+        let is_native_backed = chain_spec.is_sgt_native_backed();
+
+        if enabled {
+            debug!(target: "evm", timestamp, is_native_backed, "SGT enabled for block");
+        }
+
+        alloy_op_evm::sgt::SgtConfig { enabled, is_native_backed }
+    }
 }
 
 impl<ChainSpec, N, R, EvmF> ConfigureEvm for OpEvmConfig<ChainSpec, N, R, EvmF>
@@ -160,7 +174,11 @@ where
     }
 
     fn evm_env(&self, header: &Header) -> Result<EvmEnv<OpSpecId>, Self::Error> {
-        Ok(EvmEnv::for_op_block(header, self.chain_spec(), self.chain_spec().chain().id()))
+        let mut env = EvmEnv::for_op_block(header, self.chain_spec(), self.chain_spec().chain().id());
+        let sgt_config = self.extract_sgt_config(header.timestamp());
+        env.cfg_env.sgt_enabled = sgt_config.enabled;
+        env.cfg_env.sgt_is_native_backed = sgt_config.is_native_backed;
+        Ok(env)
     }
 
     fn next_evm_env(
@@ -168,7 +186,7 @@ where
         parent: &Header,
         attributes: &Self::NextBlockEnvCtx,
     ) -> Result<EvmEnv<OpSpecId>, Self::Error> {
-        Ok(EvmEnv::for_op_next_block(
+        let mut env = EvmEnv::for_op_next_block(
             parent,
             NextEvmEnvAttributes {
                 timestamp: attributes.timestamp,
@@ -179,7 +197,11 @@ where
             self.chain_spec().next_block_base_fee(parent, attributes.timestamp).unwrap_or_default(),
             self.chain_spec(),
             self.chain_spec().chain().id(),
-        ))
+        );
+        let sgt_config = self.extract_sgt_config(attributes.timestamp);
+        env.cfg_env.sgt_enabled = sgt_config.enabled;
+        env.cfg_env.sgt_is_native_backed = sgt_config.is_native_backed;
+        Ok(env)
     }
 
     fn context_for_block(
@@ -230,9 +252,12 @@ where
 
         let spec = revm_spec_by_timestamp_after_bedrock(self.chain_spec(), timestamp);
 
-        let cfg_env = CfgEnv::new()
+        let sgt_config = self.extract_sgt_config(timestamp);
+        let mut cfg_env = CfgEnv::new()
             .with_chain_id(self.chain_spec().chain().id())
             .with_spec_and_mainnet_gas_params(spec);
+        cfg_env.sgt_enabled = sgt_config.enabled;
+        cfg_env.sgt_is_native_backed = sgt_config.is_native_backed;
 
         let blob_excess_gas_and_price = spec
             .into_eth_spec()
@@ -337,7 +362,7 @@ mod tests {
         // Use the `OpEvmConfig` to create the `cfg_env` and `block_env` based on the ChainSpec,
         // Header, and total difficulty
         let EvmEnv { cfg_env, .. } =
-            OpEvmConfig::optimism(Arc::new(OpChainSpec { inner: chain_spec.clone() }))
+            OpEvmConfig::optimism(Arc::new(OpChainSpec::new(chain_spec.clone())))
                 .evm_env(&header)
                 .unwrap();
 

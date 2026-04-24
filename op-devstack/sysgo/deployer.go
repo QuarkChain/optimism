@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/testreq"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
@@ -93,6 +94,20 @@ func WithDAFootprintGasScalar(scalar uint16, l2IDs ...stack.L2NetworkID) Deploye
 			}) {
 				l2.WithDAFootprintGasScalar(scalar)
 			}
+		}
+	}
+}
+
+// WithSoulGasToken enables Soul Gas Token deployment for L2 networks.
+// If enabled is true, SGT contract will be deployed in genesis.
+// nativeBacked determines if SGT is 1:1 backed by native token.
+func WithSoulGasToken(enabled bool, nativeBacked bool) DeployerOption {
+	return func(p devtest.P, _ devkeys.Keys, builder intentbuilder.Builder) {
+		builder.WithGlobalOverride("deploySoulGasToken", enabled)
+		builder.WithGlobalOverride("isSoulBackedByNative", nativeBacked)
+		if enabled {
+			// Activate SGT at genesis (offset 0)
+			builder.WithGlobalOverride("soulGasTokenTimeOffset", hexutil.Uint64(0))
 		}
 	}
 }

@@ -247,6 +247,26 @@ pub trait OpHardforks: EthereumHardforks {
     fn is_interop_active_at_timestamp(&self, timestamp: u64) -> bool {
         self.op_fork_activation(OpHardfork::Interop).active_at_timestamp(timestamp)
     }
+
+    /// Returns the SGT activation timestamp, if configured.
+    fn sgt_activation_timestamp(&self) -> Option<u64> {
+        None
+    }
+
+    /// Returns `true` if Soul Gas Token (SGT) is active at given block timestamp.
+    ///
+    /// Default implementation returns `false`. Override in chain-specific implementations
+    /// (e.g., `OpChainSpec`) to enable SGT based on configuration.
+    fn is_sgt_active_at_timestamp(&self, _timestamp: u64) -> bool {
+        false
+    }
+
+    /// Returns whether SGT is backed 1:1 by native token.
+    ///
+    /// Default implementation returns `true` (conservative default).
+    fn is_sgt_native_backed(&self) -> bool {
+        true
+    }
 }
 
 /// A type allowing to configure activation [`ForkCondition`]s for a given list of

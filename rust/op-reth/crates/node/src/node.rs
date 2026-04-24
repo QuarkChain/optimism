@@ -195,6 +195,7 @@ impl OpNode {
             .with_historical_rpc(self.args.historical_rpc.clone())
             .with_flashblocks(self.args.flashblocks_url.clone())
             .with_flashblock_consensus(self.args.flashblock_consensus)
+            .with_sgt_http(self.args.http_sgt_addr.clone(), self.args.http_sgt_port)
     }
 
     /// Instantiates the [`ProviderFactoryBuilder`] for an opstack node.
@@ -323,6 +324,10 @@ pub struct OpAddOns<
     /// Enable transaction conditionals.
     enable_tx_conditional: bool,
     min_suggested_priority_fee: u64,
+    /// HTTP server address for SGT-enabled eth_getBalance endpoint
+    http_sgt_addr: Option<String>,
+    /// HTTP server port for SGT-enabled eth_getBalance endpoint
+    http_sgt_port: u16,
 }
 
 impl<N, EthB, PVB, EB, EVB, RpcMiddleware> OpAddOns<N, EthB, PVB, EB, EVB, RpcMiddleware>
@@ -341,6 +346,8 @@ where
         historical_rpc: Option<String>,
         enable_tx_conditional: bool,
         min_suggested_priority_fee: u64,
+        http_sgt_addr: Option<String>,
+        http_sgt_port: u16,
     ) -> Self {
         Self {
             rpc_add_ons,
@@ -351,6 +358,8 @@ where
             historical_rpc,
             enable_tx_conditional,
             min_suggested_priority_fee,
+            http_sgt_addr,
+            http_sgt_port,
         }
     }
 }
@@ -402,6 +411,8 @@ where
             historical_rpc,
             enable_tx_conditional,
             min_suggested_priority_fee,
+            http_sgt_addr,
+            http_sgt_port,
             ..
         } = self;
         OpAddOns::new(
@@ -413,6 +424,8 @@ where
             historical_rpc,
             enable_tx_conditional,
             min_suggested_priority_fee,
+            http_sgt_addr,
+            http_sgt_port,
         )
     }
 
@@ -430,6 +443,8 @@ where
             enable_tx_conditional,
             min_suggested_priority_fee,
             historical_rpc,
+            http_sgt_addr,
+            http_sgt_port,
             ..
         } = self;
         OpAddOns::new(
@@ -441,6 +456,8 @@ where
             historical_rpc,
             enable_tx_conditional,
             min_suggested_priority_fee,
+            http_sgt_addr,
+            http_sgt_port,
         )
     }
 
@@ -461,6 +478,8 @@ where
             enable_tx_conditional,
             min_suggested_priority_fee,
             historical_rpc,
+            http_sgt_addr,
+            http_sgt_port,
             ..
         } = self;
         OpAddOns::new(
@@ -472,6 +491,8 @@ where
             historical_rpc,
             enable_tx_conditional,
             min_suggested_priority_fee,
+            http_sgt_addr,
+            http_sgt_port,
         )
     }
 
@@ -515,6 +536,7 @@ where
             Pool: TransactionPool<Transaction: OpPooledTx>,
         >,
     EthB: EthApiBuilder<N>,
+    EthB::EthApi: reth_optimism_rpc::EthApiWithSgtMode,
     PVB: Send,
     EB: EngineApiBuilder<N>,
     EVB: EngineValidatorBuilder<N>,
@@ -535,6 +557,8 @@ where
             sequencer_headers,
             enable_tx_conditional,
             historical_rpc,
+            http_sgt_addr,
+            http_sgt_port,
             ..
         } = self;
 
@@ -585,6 +609,9 @@ where
             ctx.node.provider().clone(),
         );
 
+        let sgt_config = http_sgt_addr.map(|addr| (addr, http_sgt_port));
+        let sgt_activation_timestamp = ctx.node.provider().chain_spec().sgt_activation_timestamp();
+
         rpc_add_ons
             .launch_add_ons_with(ctx, move |container| {
                 let reth_node_builder::rpc::RpcModuleContainer { modules, auth_module, registry } =
@@ -619,6 +646,42 @@ where
                     )?;
                 }
 
+                // Spawn SGT HTTP server if configured
+                if let Some((sgt_addr, sgt_port)) = sgt_config {
+                    use reth_rpc_api::EthApiServer;
+                    use jsonrpsee::RpcModule;
+                    use reth_optimism_rpc::EthApiWithSgtMode;
+
+                    info!(target: "reth::cli", sgt_addr = %sgt_addr, sgt_port = %sgt_port,
+                          "Starting SGT HTTP server on separate port");
+
+                    let socket: std::net::SocketAddr = format!("{}:{}", sgt_addr, sgt_port)
+                        .parse()
+                        .map_err(|e| eyre::eyre!("Invalid SGT socket address: {}", e))?;
+
+                    let standard_eth_api = registry.eth_api();
+                    let mut sgt_eth_api = standard_eth_api.clone_with_sgt_mode(true);
+                    sgt_eth_api.set_sgt_activation_timestamp(sgt_activation_timestamp);
+
+                    let mut module = RpcModule::new(());
+                    module.merge(sgt_eth_api.into_rpc())
+                        .map_err(|e| eyre::eyre!("Failed to merge SGT eth RPC methods: {}", e))?;
+
+                    // Bind eagerly so failures surface at node startup.
+                    let listener = std::net::TcpListener::bind(socket)
+                        .map_err(|e| eyre::eyre!("Failed to bind SGT HTTP server on {}: {}", socket, e))?;
+                    let sgt_server = jsonrpsee::server::ServerBuilder::default()
+                        .build_from_tcp(listener)
+                        .map_err(|e| eyre::eyre!("Failed to build SGT HTTP server: {}", e))?;
+
+                    info!(target: "reth::cli", sgt_addr = %socket, "SGT HTTP RPC server started");
+                    tokio::spawn(async move {
+                        let handle = sgt_server.start(module);
+                        handle.stopped().await;
+                        info!(target: "reth::cli", "SGT HTTP RPC server stopped");
+                    });
+                }
+
                 Ok(())
             })
             .await
@@ -644,6 +707,7 @@ where
         >,
     <<N as FullNodeComponents>::Pool as TransactionPool>::Transaction: OpPooledTx,
     EthB: EthApiBuilder<N>,
+    EthB::EthApi: reth_optimism_rpc::EthApiWithSgtMode,
     PVB: PayloadValidatorBuilder<N>,
     EB: EngineApiBuilder<N>,
     EVB: EngineValidatorBuilder<N>,
@@ -662,6 +726,7 @@ impl<N, EthB, PVB, EB, EVB, RpcMiddleware> EngineValidatorAddOn<N>
 where
     N: FullNodeComponents,
     EthB: EthApiBuilder<N>,
+    EthB::EthApi: reth_optimism_rpc::EthApiWithSgtMode,
     PVB: Send,
     EB: EngineApiBuilder<N>,
     EVB: EngineValidatorBuilder<N>,
@@ -703,6 +768,10 @@ pub struct OpAddOnsBuilder<NetworkT, RpcMiddleware = Identity> {
     flashblocks_url: Option<Url>,
     /// Enable flashblock consensus client to drive chain forward.
     flashblock_consensus: bool,
+    /// HTTP server address for SGT-enabled eth_getBalance endpoint
+    http_sgt_addr: Option<String>,
+    /// HTTP server port for SGT-enabled eth_getBalance endpoint
+    http_sgt_port: u16,
 }
 
 impl<NetworkT> Default for OpAddOnsBuilder<NetworkT> {
@@ -720,6 +789,8 @@ impl<NetworkT> Default for OpAddOnsBuilder<NetworkT> {
             tokio_runtime: None,
             flashblocks_url: None,
             flashblock_consensus: false,
+            http_sgt_addr: None,
+            http_sgt_port: crate::args::DEFAULT_SGT_HTTP_PORT,
         }
     }
 }
@@ -789,6 +860,8 @@ impl<NetworkT, RpcMiddleware> OpAddOnsBuilder<NetworkT, RpcMiddleware> {
             _nt,
             flashblocks_url,
             flashblock_consensus,
+            http_sgt_addr,
+            http_sgt_port,
             ..
         } = self;
         OpAddOnsBuilder {
@@ -804,6 +877,8 @@ impl<NetworkT, RpcMiddleware> OpAddOnsBuilder<NetworkT, RpcMiddleware> {
             tokio_runtime,
             flashblocks_url,
             flashblock_consensus,
+            http_sgt_addr,
+            http_sgt_port,
         }
     }
 
@@ -816,6 +891,13 @@ impl<NetworkT, RpcMiddleware> OpAddOnsBuilder<NetworkT, RpcMiddleware> {
     /// With a flashblock consensus client to drive chain forward.
     pub const fn with_flashblock_consensus(mut self, flashblock_consensus: bool) -> Self {
         self.flashblock_consensus = flashblock_consensus;
+        self
+    }
+
+    /// Configure the SGT HTTP server address and port.
+    pub fn with_sgt_http(mut self, addr: Option<String>, port: u16) -> Self {
+        self.http_sgt_addr = addr;
+        self.http_sgt_port = port;
         self
     }
 }
@@ -844,6 +926,8 @@ impl<NetworkT, RpcMiddleware> OpAddOnsBuilder<NetworkT, RpcMiddleware> {
             tokio_runtime,
             flashblocks_url,
             flashblock_consensus,
+            http_sgt_addr,
+            http_sgt_port,
             ..
         } = self;
 
@@ -868,6 +952,8 @@ impl<NetworkT, RpcMiddleware> OpAddOnsBuilder<NetworkT, RpcMiddleware> {
             historical_rpc,
             enable_tx_conditional,
             min_suggested_priority_fee,
+            http_sgt_addr,
+            http_sgt_port,
         )
     }
 }
@@ -991,7 +1077,7 @@ where
             .await;
 
         let blob_store = reth_node_builder::components::create_blob_store(ctx)?;
-        let validator =
+        let mut builder =
             TransactionValidationTaskExecutor::eth_builder(ctx.provider().clone(), evm_config)
                 .no_eip4844()
                 .with_max_tx_input_bytes(ctx.config().txpool.max_tx_input_bytes)
@@ -1003,7 +1089,13 @@ where
                     pool_config_overrides
                         .additional_validation_tasks
                         .unwrap_or_else(|| ctx.config().txpool.additional_validation_tasks),
-                )
+                );
+        // When SGT is configured, skip the inner balance check —
+        // apply_op_checks handles combined (native + SGT) balance validation.
+        if ctx.chain_spec().sgt_activation_timestamp().is_some() {
+            builder = builder.disable_balance_check();
+        }
+        let validator = builder
                 .build_with_tasks(ctx.task_executor().clone(), blob_store.clone())
                 .map(|validator| {
                     OpTransactionValidator::new(validator)
@@ -1018,6 +1110,18 @@ where
         let transaction_pool = TxPoolBuilder::new(ctx)
             .with_validator(validator)
             .build_and_spawn_maintenance_task(blob_store, final_pool_config)?;
+
+        // When SGT is configured, provide the pool with an additional balance provider
+        // so that pool maintenance uses native + SGT for the ENOUGH_BALANCE check.
+        if ctx.chain_spec().sgt_activation_timestamp().is_some() {
+            let client = ctx.provider().clone();
+            transaction_pool.set_additional_balance_provider(std::sync::Arc::new(
+                move |addr| {
+                    reth_optimism_rpc::eth::sgt::read_sgt_balance_from_provider(&client, addr)
+                        .map_err(|e| Box::new(e) as Box<dyn core::error::Error + Send + Sync>)
+                },
+            ));
+        }
 
         info!(target: "reth::cli", "Transaction pool initialized");
         debug!(target: "reth::cli", "Spawned txpool maintenance task");

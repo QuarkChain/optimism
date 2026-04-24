@@ -33,6 +33,9 @@ use revm::{
 pub mod block;
 pub use block::{OpBlockExecutionCtx, OpBlockExecutor, OpBlockExecutorFactory};
 
+pub mod sgt;
+pub use sgt::{SgtConfig, sgt_balance_slot, SGT_CONTRACT, SGT_BALANCE_SLOT};
+
 /// OP EVM implementation.
 ///
 /// This is a wrapper type around the `revm` evm with optional [`Inspector`] (tracing)
@@ -149,6 +152,7 @@ where
             &mut self.inner.0.precompiles,
         )
     }
+
 }
 
 /// Factory producing [`OpEvm`]s.

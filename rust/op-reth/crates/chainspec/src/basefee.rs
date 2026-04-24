@@ -100,6 +100,8 @@ mod tests {
                 genesis_header: base_sepolia_spec.genesis_header,
                 ..Default::default()
             },
+            sgt_activation_timestamp: None,
+            sgt_is_native_backed: true,
         })
     }
 

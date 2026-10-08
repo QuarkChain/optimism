@@ -56,6 +56,26 @@ func TestBlockHeaderJSON(t *testing.T) {
 	}
 }
 
+// Sepolia block 11867140 reproduces https://github.com/QuarkChain/optimism/issues/153.
+func TestGlamsterdamHeaderJSON(t *testing.T) {
+	const fixture = "testdata/data/headers/sepolia-glamsterdam-11867140.json"
+	expectedHash := common.HexToHash("0xce79aa06c0f7165f224a49779a19310d7e55816d47c149d7f3acfc9d2f379a73")
+
+	t.Run("RPCHeader", func(t *testing.T) {
+		var header RPCHeader
+		readJsonTestdata(t, fixture, &header)
+		info, err := header.Info(false, true)
+		require.NoError(t, err)
+		require.Equal(t, expectedHash, info.Hash())
+	})
+
+	t.Run("GethHeader", func(t *testing.T) {
+		var header types.Header
+		readJsonTestdata(t, fixture, &header)
+		require.Equal(t, expectedHash, header.Hash())
+	})
+}
+
 func TestBlockJSON(t *testing.T) {
 	blocksDir, err := blocksTestdata.ReadDir("testdata/data/blocks")
 	require.NoError(t, err)

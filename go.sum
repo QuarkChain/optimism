@@ -41,8 +41,8 @@ github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251001021608
 github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251001021608-1fe7b43fc4d6/go.mod h1:ioLG6R+5bUSO1oeGSDxOV3FADARuMoytZCSX6MEMQkI=
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 h1:wPbRQzjjwFc0ih8puEVAOFGELsn1zoIIYdxvML7mDxA=
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8/go.mod h1:I0gYDMZ6Z5GRU7l58bNFSkPTFN6Yl12dsUlAZ8xy98g=
-github.com/Quarkchain/op-geth v1.0.3-0.20260312040616-1d2e197b7b2c h1:yzC+EJIrl6zPOGZ6BpC1CRiDDjXHasttGCpS5tLDlzk=
-github.com/Quarkchain/op-geth v1.0.3-0.20260312040616-1d2e197b7b2c/go.mod h1:3YphRrN5/TvRp9VGy5rfA6l6rVR6IAsgSJNPLbIg66E=
+github.com/Quarkchain/op-geth v1.0.3-0.20261008062441-e6ac392cc078 h1:G+ZDInNKVrDYdMiUpOQ81ZuBYdd3aaVl5Z2WRKNkCY8=
+github.com/Quarkchain/op-geth v1.0.3-0.20261008062441-e6ac392cc078/go.mod h1:3YphRrN5/TvRp9VGy5rfA6l6rVR6IAsgSJNPLbIg66E=
 github.com/VictoriaMetrics/fastcache v1.13.0 h1:AW4mheMR5Vd9FkAPUv+NH6Nhw+fmbTMGMsNAoA/+4G0=
 github.com/VictoriaMetrics/fastcache v1.13.0/go.mod h1:hHXhl4DA2fTL2HTZDJFXWgW0LNjo6B+4aj2Wmng3TjU=
 github.com/adrg/xdg v0.4.0 h1:RzRqFcjH4nE5C6oTAxhBtoE2IRyjBSa62SCbyPidvls=

@@ -2,8 +2,10 @@ package game
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -115,6 +117,30 @@ func TestMonitorGames(t *testing.T) {
 		require.Equal(t, []common.Address{addr1, addr2}, sched.Scheduled()[0])
 		require.GreaterOrEqual(t, preimages.ScheduleCount(), 1, "Should schedule preimage checks")
 	})
+}
+
+func TestMonitorGlamsterdamHead(t *testing.T) {
+	data, err := os.ReadFile("../../op-service/sources/testdata/data/headers/sepolia-glamsterdam-11867140.json")
+	require.NoError(t, err)
+	var header ethtypes.Header
+	require.NoError(t, json.Unmarshal(data, &header))
+	expectedHash := common.HexToHash("0xce79aa06c0f7165f224a49779a19310d7e55816d47c149d7f3acfc9d2f379a73")
+
+	monitor, source, sched, headSource, preimages, _ := setupMonitorTest(t, nil, 0)
+	source.games = []types.GameMetadata{newFDG(common.Address{0xaa}, header.Time)}
+	sub, err := monitor.resubscribeFunction()(context.Background(), nil)
+	require.NoError(t, err)
+	t.Cleanup(sub.Unsubscribe)
+	headSource.Sub().headers <- &header
+
+	require.Eventually(t, func() bool {
+		return preimages.ScheduleCount() == 1
+	}, 5*time.Second, 10*time.Millisecond)
+	sub.Unsubscribe()
+
+	require.Equal(t, expectedHash, source.blockHash, "game queries must use the canonical L1 hash")
+	require.Equal(t, expectedHash, preimages.blockHash, "preimage checks must use the canonical L1 hash")
+	require.Len(t, sched.Scheduled(), 1)
 }
 
 func TestMonitorCreateAndProgressGameAgents(t *testing.T) {
@@ -293,15 +319,17 @@ func (m *mockSubscription) Err() <-chan error {
 }
 
 type stubGameSource struct {
-	fetchErr error
-	games    []types.GameMetadata
+	fetchErr  error
+	games     []types.GameMetadata
+	blockHash common.Hash
 }
 
 func (s *stubGameSource) GetGamesAtOrAfter(
 	_ context.Context,
-	_ common.Hash,
+	blockHash common.Hash,
 	_ uint64,
 ) ([]types.GameMetadata, error) {
+	s.blockHash = blockHash
 	if s.fetchErr != nil {
 		return nil, s.fetchErr
 	}
@@ -333,12 +361,14 @@ func (s *stubScheduler) Schedule(games []types.GameMetadata, blockNumber uint64)
 type stubPreimageScheduler struct {
 	sync.Mutex
 	scheduleCount int
+	blockHash     common.Hash
 }
 
-func (s *stubPreimageScheduler) Schedule(_ common.Hash, _ uint64) error {
+func (s *stubPreimageScheduler) Schedule(blockHash common.Hash, _ uint64) error {
 	s.Lock()
 	defer s.Unlock()
 	s.scheduleCount++
+	s.blockHash = blockHash
 	return nil
 }
 
